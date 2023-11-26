@@ -521,6 +521,7 @@ static int usb2517_config(FAR struct usb2517_dev_s *priv,
   insert_mfr_str(config);
   insert_prd_str(config);
   insert_ser_str(config);
+  up_mdelay(100);
 
   /* update the configuration */
   

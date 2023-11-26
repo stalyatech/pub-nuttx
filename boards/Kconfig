@@ -2443,6 +2443,17 @@ config ARCH_BOARD_STEVAL_ETH001V1
 		The STMicro STEVAL-ETH001V1 servo drive evaluation board featuring
 		the STM32F767ZI MCU.
 
+config ARCH_BOARD_ARDUSIMPLE_SBC
+  bool "Ardusimple simpleRTK2B-SBC board"
+  depends on ARCH_CHIP_STM32F745VG
+  select ARCH_HAVE_LEDS
+  select ARCH_HAVE_BUTTONS
+  select ARCH_HAVE_IRQBUTTONS
+  ---help---
+    Ardusimple simpleRTK2B-SBC OEM board featuring the STM32F745VG MCU. 
+    The STM32F745VG  is a 216MHz Cortex-M7 operation with 1024Kb Flash
+    memory and 320Kb SRAM.
+    
 config ARCH_BOARD_STM32H747I_DISCO
 	bool "STMicro STM32H747I-DISCO board"
 	depends on ARCH_CHIP_STM32H747XI
@@ -3245,6 +3256,7 @@ config ARCH_BOARD
 	default "stm32f746g-disco"          if ARCH_BOARD_STM32F746G_DISCO
 	default "stm32f769i-disco"          if ARCH_BOARD_STM32F769I_DISCO
 	default "steval-eth001v1"           if ARCH_BOARD_STEVAL_ETH001V1
+  default "ardusimple-sbc"            if ARCH_BOARD_ARDUSIMPLE_SBC
 	default "stm32h747i-disco"          if ARCH_BOARD_STM32H747I_DISCO
 	default "stm32f746-ws"              if ARCH_BOARD_STM32F746_WS
 	default "stm32f777zit6-meadow"      if ARCH_BOARD_MEADOW_F7MICRO
@@ -3719,6 +3731,9 @@ source "boards/arm/stm32f7/stm32f769i-disco/Kconfig"
 endif
 if ARCH_BOARD_STEVAL_ETH001V1
 source "boards/arm/stm32f7/steval-eth001v1/Kconfig"
+endif
+if ARCH_BOARD_ARDUSIMPLE_SBC
+source "boards/arm/stm32f7/ardusimple-sbc/Kconfig"
 endif
 if ARCH_BOARD_STM32H747I_DISCO
 source "boards/arm/stm32h7/stm32h747i-disco/Kconfig"

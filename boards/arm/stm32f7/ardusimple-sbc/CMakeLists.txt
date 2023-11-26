@@ -1,5 +1,5 @@
 # ##############################################################################
-# drivers/usbmisc/CMakeLists.txt
+# boards/arm/stm32f7/ardusimple/CMakeLists.txt
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
@@ -18,26 +18,4 @@
 #
 # ##############################################################################
 
-if(CONFIG_USBMISC)
-  set(SRCS)
-
-  # Include USB miscellaneous drivers
-
-  if(CONFIG_FUSB301)
-    list(APPEND SRCS fusb301.c)
-  endif()
-
-  if(CONFIG_FUSB302)
-    list(APPEND SRCS fusb302.c)
-  endif()
-
-  if(CONFIG_FUSB303)
-    list(APPEND SRCS fusb303.c)
-  endif()
-
-  if(CONFIG_USB2517)
-  list(APPEND SRCS usb2517.c)
-endif()
-
-  target_sources(drivers PRIVATE ${SRCS})
-endif()
+add_subdirectory(src)

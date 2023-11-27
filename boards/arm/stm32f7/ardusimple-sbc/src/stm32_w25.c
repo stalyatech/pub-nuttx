@@ -139,9 +139,9 @@ int stm32_w25initialize(int minor)
       return ret;
     }
 
-  /* Mount the file system at /mnt/w25 */
+  /* Mount the file system at /nor */
 
-  snprintf(devname, 12, "/mnt/w25%c", 'a' + minor);
+  snprintf(devname, 12, "/nor");
   ret = nx_mount(NULL, devname, "nxffs", 0, NULL);
   if (ret < 0)
     {

@@ -19,6 +19,9 @@
 # ##############################################################################
 
 if(CONFIG_SENSORS)
+
+  nuttx_add_subdirectory(ceva)
+
   set(SRCS sensor.c)
 
   if(CONFIG_USENSOR)
@@ -59,6 +62,10 @@ if(CONFIG_SENSORS)
 
   if(CONFIG_SENSORS_BMI270)
     list(APPEND SRCS bmi270.c)
+  endif()
+
+  if(CONFIG_SENSORS_BNO085)
+    list(APPEND SRCS bno085.c)
   endif()
 
   # These drivers depend on I2C support

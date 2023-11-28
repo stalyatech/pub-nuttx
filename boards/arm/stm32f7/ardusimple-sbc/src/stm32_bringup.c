@@ -181,18 +181,33 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_STM32F7_CAN_SOCKET */
 
+#ifdef CONFIG_I2C
 #ifdef CONFIG_USB2517
-  /* Register the usb hub driver driver */
-
-  ret = stm32_usbhub_initialize();
+  /* Register the usb hub driver */
+  
+#ifdef CONFIG_STM32F7_I2C3
+  ret = stm32_usbhub_initialize(3);
   if (ret < 0)
     {
       syslog(LOG_ERR, "Failed to initialize USB2517 Driver: %d\n", ret);
       return ret;
     }
+#endif /* CONFIG_STM32F7_I2C3 */
 #endif /* CONFIG_USB2517 */
 
-#ifdef CONFIG_I2C
+#ifdef CONFIG_SENSORS_BNO085
+  /* Register the smart sensor driver */
+
+#ifdef CONFIG_STM32F7_I2C3
+  ret = stm32_bno085_initialize(3);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "Failed to initialize BNO085 Driver: %d\n", ret);
+      return ret;
+    }
+#endif /* CONFIG_STM32F7_I2C3 */
+#endif /* CONFIG_SENSORS_BNO085 */
+
 #ifdef CONFIG_STM32F7_I2C1
   i2c_bus = 1;
   i2c = stm32_i2cbus_initialize(i2c_bus);
@@ -212,26 +227,6 @@ int stm32_bringup(void)
 #endif /* CONFIG_SYSTEM_I2CTOOL */
     }
 #endif /* CONFIG_STM32F7_I2C1 */
-
-#ifdef CONFIG_STM32F7_I2C3
-  i2c_bus = 3;
-  i2c = stm32_i2cbus_initialize(i2c_bus);
-  if (i2c == NULL)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to get I2C%d interface\n", i2c_bus);
-    }
-  else
-    {
-#ifdef CONFIG_SYSTEM_I2CTOOL
-      ret = i2c_register(i2c, i2c_bus);
-      if (ret < 0)
-        {
-          syslog(LOG_ERR, "ERROR: Failed to register I2C%d driver: %d\n",
-                 i2c_bus, ret);
-        }
-#endif /* CONFIG_SYSTEM_I2CTOOL */
-    }
-#endif /* CONFIG_STM32F7_I2C3 */
 #endif /* CONFIG_I2C */
 
   UNUSED(ret);  /* May not be used */

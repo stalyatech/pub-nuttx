@@ -270,7 +270,7 @@ static int usb2517_block_read(FAR struct usb2517_dev_s *priv, uint8_t regaddr, u
           /* Some error. Try to reset I2C bus and keep trying. */
 
 #ifdef CONFIG_I2C_RESET
-          if (retries == FUSB301_I2C_RETRIES - 1)
+          if (retries == USB2517_I2C_RETRIES - 1)
             {
               break;
             }
@@ -278,7 +278,7 @@ static int usb2517_block_read(FAR struct usb2517_dev_s *priv, uint8_t regaddr, u
           ret = I2C_RESET(priv->i2c);
           if (ret < 0)
             {
-              fusb301_err("ERROR: I2C_RESET failed: %d\n", ret);
+              usb2517_err("ERROR: I2C_RESET failed: %d\n", ret);
               return ret;
             }
 #endif

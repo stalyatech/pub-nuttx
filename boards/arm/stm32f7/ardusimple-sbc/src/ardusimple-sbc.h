@@ -177,6 +177,18 @@
 #define GPIO_DOUT4        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                           GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN12)
 
+/* IMU Sensor Interrupt
+ *
+ * PD11  AGM_INT
+ */
+
+#define GPIO_BNO085_INT   (GPIO_INPUT | GPIO_PULLUP | GPIO_EXTI | GPIO_PORTD | GPIO_PIN11)
+#define BNO085_IRQ        (11 + STM32_IRQ_EXTI0)
+
+#define BOARD_IMU_GPIO_INT  GPIO_BNO085_INT
+#define BOARD_IMU_IRQ       BNO085_IRQ
+
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -342,7 +354,15 @@ int stm32_gpio_initialize(void);
  ****************************************************************************/
 
 #ifdef CONFIG_USB2517
-int stm32_usbhub_initialize(void);
+int stm32_usbhub_initialize(int bus);
+#endif
+
+/****************************************************************************
+ * Name: stm32_bno085_initialize
+ ****************************************************************************/
+
+#ifdef CONFIG_SENSORS_BNO085
+int stm32_bno085_initialize(int bus);
 #endif
 
 #endif /* __ASSEMBLY__ */

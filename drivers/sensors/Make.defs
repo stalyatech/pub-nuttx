@@ -22,6 +22,8 @@
 
 ifeq ($(CONFIG_SENSORS),y)
 
+include sensors/ceva/Make.defs
+
 CSRCS += sensor.c
 
 ifeq ($(CONFIG_USENSOR),y)
@@ -66,6 +68,10 @@ endif
 
 ifeq ($(CONFIG_SENSORS_BMI270),y)
   CSRCS += bmi270.c
+endif
+
+ifeq ($(CONFIG_SENSORS_BNO085),y)
+  CSRCS += bno085.c
 endif
 
 # These drivers depend on I2C support

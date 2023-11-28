@@ -38,8 +38,9 @@
 
 #include "stm32_gpio.h"
 #include "stm32_i2c.h"
-
 #include "ardusimple-sbc.h"
+
+#ifdef CONFIG_I2C
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -140,13 +141,10 @@ static struct usb2517_config_s hub_config =
  *
  ****************************************************************************/
 
-int stm32_usbhub_initialize(void)
+int stm32_usbhub_initialize(int bus)
 {
-  int ret = ERROR;
-#ifdef CONFIG_I2C
-  int i2c_bus;
   struct i2c_master_s *i2c;
-#endif /* CONFIG_I2C */
+  int ret = ERROR;
 
   /* Configure GPIOs
    * Power On, and Reset GPIOs
@@ -161,15 +159,12 @@ int stm32_usbhub_initialize(void)
   up_udelay(2000);
   stm32_gpiowrite(GPIO_USBHUB_NRST, true);
   
-  /* configure the I2C bus */
+  /* Initialize the I2C bus */
 
-#ifdef CONFIG_I2C
-#ifdef CONFIG_STM32F7_I2C3
-  i2c_bus = 3;
-  i2c = stm32_i2cbus_initialize(i2c_bus);
+  i2c = stm32_i2cbus_initialize(bus);
   if (i2c == NULL)
     {
-      syslog(LOG_ERR, "ERROR: Failed to get I2C%d interface\n", i2c_bus);
+      syslog(LOG_ERR, "ERROR: Failed to get I2C%d interface\n", bus);
     }
   else
     {
@@ -177,8 +172,8 @@ int stm32_usbhub_initialize(void)
 
       ret = usb2517_register("/dev/usbhub0", i2c, 0x2c, &hub_config);
     }
-#endif /* CONFIG_STM32F7_I2C3 */
-#endif /* CONFIG_I2C */
 
   return ret;
 }
+
+#endif /* CONFIG_I2C */

@@ -59,10 +59,11 @@ static int bno085_attach(struct bno085_config_s *cfg, xcpt_t irq, void *arg);
 
 static struct bno085_config_s g_bno085_config =
 {
-  .attach = bno085_attach,
-  .irq    = BOARD_IMU_IRQ,
+  .dev    = NULL,
   .devid  = BNO085_I2C_ADDRESS,
-  .freq   = BNO085_I2C_FREQUENCY
+  .freq   = BNO085_I2C_FREQUENCY,
+  .irq    = BOARD_IMU_IRQ,
+  .attach = bno085_attach,
 };
 
 /****************************************************************************
@@ -88,13 +89,12 @@ static int bno085_attach(struct bno085_config_s *cfg, xcpt_t irq, void *arg)
 
 int stm32_bno085_initialize(int bus)
 {
-  struct i2c_master_s *i2c;
   int ret = ERROR;
 
   /* Initialize the I2C bus */
 
-  i2c = stm32_i2cbus_initialize(bus);
-  if (i2c == NULL)
+  g_bno085_config.dev = stm32_i2cbus_initialize(bus);
+  if (g_bno085_config.dev == NULL)
     {
       syslog(LOG_ERR, "ERROR: Failed to get I2C%d interface\n", bus);
     }
@@ -102,7 +102,7 @@ int stm32_bno085_initialize(int bus)
     {
       /* register the driver */
 
-      ret = bno085_register("/dev/sensor0", i2c, &g_bno085_config);
+      ret = bno085_register("/dev/sensor0", &g_bno085_config);
     }
 
   return ret;

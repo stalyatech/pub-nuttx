@@ -26,11 +26,11 @@
 #include <stdint.h>
 
 // Maximum SHTP Transfer and Payload sizes
-#define SH2_HAL_MAX_TRANSFER_OUT (128)
-#define SH2_HAL_MAX_PAYLOAD_OUT  (128)
+#define SH2_HAL_MAX_TRANSFER_OUT (256)
+#define SH2_HAL_MAX_PAYLOAD_OUT  (256)
 
-#define SH2_HAL_MAX_TRANSFER_IN  (128)
-#define SH2_HAL_MAX_PAYLOAD_IN   (128)
+#define SH2_HAL_MAX_TRANSFER_IN  (512)
+#define SH2_HAL_MAX_PAYLOAD_IN   (512)
 
 typedef struct sh2_Hal_s sh2_Hal_t;
 

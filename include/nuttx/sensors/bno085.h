@@ -39,7 +39,8 @@
 /* IOCTL Commands ***********************************************************/
 
 #define SNIOC_RESET     _SNIOC(0x0001)    /* Arg: None */
-#define SNIOC_CONFIG    _SNIOC(0x0002)    /* Arg: void* pointer */
+#define SNIOC_STATUS    _SNIOC(0x0002)    /* Arg: int */
+#define SNIOC_CONFIG    _SNIOC(0x0003)    /* Arg: void* pointer */
 
 /****************************************************************************
  * Public Types
@@ -55,6 +56,14 @@
 
 struct bno085_config_s
 {
+    /* Device interface */
+
+#ifdef CONFIG_SENSORS_BNO085_I2C
+  FAR struct i2c_master_s *dev;
+#else
+  FAR struct spi_dev_s *dev;
+#endif
+
   /* Since multiple BNO085 can be connected to the same bus we need
    * to use multiple device ids which are employed by NuttX to select/
    * deselect the desired BNO085 chip via their chip select inputs.
@@ -124,14 +133,8 @@ extern "C"
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SENSORS_BNO085_I2C
-struct i2c_master_s;
-int bno085_register(FAR const char *devpath, FAR struct i2c_master_s *dev,
+int bno085_register(FAR const char *devpath, 
                     FAR struct bno085_config_s *config);
-#else /* CONFIG_BNO085_SPI */
-struct spi_dev_s;
-int bno085_register(FAR const char *devpath, FAR struct spi_dev_s *dev);
-#endif
 
 #undef EXTERN
 #ifdef __cplusplus

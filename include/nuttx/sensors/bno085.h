@@ -31,6 +31,7 @@
 #include <nuttx/fs/ioctl.h>
 
 #include <nuttx/sensors/ceva/sh2/sh2_SensorValue.h>
+#include <nuttx/sensors/ceva/sh2/euler.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -38,9 +39,9 @@
 
 /* IOCTL Commands ***********************************************************/
 
-#define SNIOC_RESET     _SNIOC(0x0001)    /* Arg: None */
-#define SNIOC_STATUS    _SNIOC(0x0002)    /* Arg: int */
-#define SNIOC_CONFIG    _SNIOC(0x0003)    /* Arg: void* pointer */
+#define SNIOC_RESET       _SNIOC(0x0001)    /* Arg: None          */
+#define SNIOC_GETSTATUS   _SNIOC(0x0002)    /* Arg: int*  pointer */
+#define SNIOC_SETCONFIG   _SNIOC(0x0003)    /* Arg: void* pointer */
 
 /****************************************************************************
  * Public Types
@@ -123,10 +124,9 @@ extern "C"
  *   Register the BNO085 character device as 'devpath'
  *
  * Input Parameters:
- *   devpath - The full path to the driver to register. E.g., "/dev/accel0"
- *   dev     - An instance of the SPI or I2C interface to use to communicate
+ *   devpath - The full path to the driver to register. E.g., "/dev/sensor0"
+ *   config  - Configuration of the SPI/I2C interface to use to communicate
  *             with BNO085
- *   addr    - (I2C only) I2C address
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.

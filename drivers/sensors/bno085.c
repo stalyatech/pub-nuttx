@@ -71,7 +71,8 @@ struct bno085_dev_s
                                            * after the arrival of new data was
                                            * signalled in an interrupt */
   struct pollfd              *fds[CONFIG_BNO085_NPOLLWAITERS];
-  volatile uint32_t           ready;  
+  volatile uint8_t            ready;      /* Sensor ready flag */
+  volatile uint8_t            initialized;/* Sensor initialized flag */
 };
 
 /****************************************************************************
@@ -198,7 +199,7 @@ static uint32_t shtp_i2c_hal_getTimeUs(sh2_Hal_t *self)
  * Name: bno085_getregs
  *
  * Description:
- *   Read cnt bytes from specified dev_addr and reg_addr
+ *   Read (len) bytes from specified device
  *
  ****************************************************************************/
 
@@ -255,7 +256,7 @@ static int bno085_getregs(FAR struct bno085_dev_s *priv, FAR uint8_t *regval, in
  * Name: bno085_putregs
  *
  * Description:
- *   Send cnt bytes for specified dev_addr and reg_addr
+ *   Send (len) bytes for specified device
  *
  ****************************************************************************/
 
@@ -315,39 +316,51 @@ static int bno085_putregs(FAR struct bno085_dev_s *priv, FAR uint8_t *regval, in
 static int bno085_interrupt_handler(int irq, FAR void *context,
                                     FAR void *arg)
 {
-  /* This function should be called upon a falling edge on the BNO085 new data
+  FAR struct bno085_dev_s *priv = arg;
+  int ret = OK;
+
+  /* 
+   * This function should be called upon a falling edge on the BNO085 new data
    * interrupt pin since it signals that new data has been measured.
    */
 
-  FAR struct bno085_dev_s *priv = arg;
-  int ret;
+  /* Check the initialize flag */
 
-  /* Find out which BNO085 device caused the interrupt */
-  #if 0
-  for (priv = g_bno085_list; priv && priv->config->irq != irq;
-       priv = priv->flink);
-  #endif
-  DEBUGASSERT(priv != NULL);
+  if (priv->initialized) 
+  {
 
-  /* Get the timestamp */
+    /* Find out which BNO085 device caused the interrupt */
 
-  priv->timestamp = sensor_get_timestamp();
+    for (priv = g_bno085_list; priv && priv->config->irq != irq;
+        priv = priv->flink);
+    DEBUGASSERT(priv != NULL);
 
-  /* Increment the interrupt counter */
+    /* Get the timestamp */
 
-  priv->intf++;
+    priv->timestamp = sensor_get_timestamp();
 
-  /* Schedule the worker immediately */
+    /* Increment the interrupt counter */
 
-  DEBUGASSERT(priv->work.worker == NULL);
-  ret = work_queue(HPWORK, &priv->work, bno085_worker, priv, 0);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to queue work: %d\n", ret);
-      return ret;
-    }
+    priv->intf++;
 
-  return OK;
+    /* Task the worker with retrieving the latest sensor data. We should not do
+    * this in a interrupt since it might take too long. Also we cannot lock
+    * the bus from within an interrupt.
+    */
+
+    /* Schedule the worker immediately */
+
+    if (work_available(&priv->work))
+      {
+        ret = work_queue(HPWORK, &priv->work, bno085_worker, priv, 0);
+        if (ret < 0)
+          {
+            snerr("ERROR: Failed to queue work: %d\n", ret);
+          }
+      }
+  }
+
+  return ret;
 }
 
 /****************************************************************************
@@ -372,15 +385,20 @@ static void bno085_worker(FAR void *arg)
       return;
     }
 
-  /* Service the sensor hub.
-   * Sensor reports and event processing handled by callbacks.
-   */
+  /* Check the initialize flag */
 
-  sh2_service();
+  if (priv->initialized) 
+    {
+      /* Service the sensor hub.
+      * Sensor reports and event processing handled by callbacks.
+      */
 
-  /* Re-schedule the worker (10Hz) */
+      sh2_service();
 
-  work_queue(HPWORK, &priv->work, bno085_worker, priv, USEC2TICK(10000));
+      /* Re-schedule the worker (100Hz) */
+
+      work_queue(HPWORK, &priv->work, bno085_worker, priv, USEC2TICK(10000));
+    }
 
   /* Give back the mutex */
 
@@ -511,6 +529,10 @@ static int bno085_open(FAR struct file *filep)
       return -ENODEV;
     }
 
+  /* Set the initialize flag */
+
+  priv->initialized = 1;
+
   /* Register sensor listener */
 
   sh2_setSensorCallback(sh2_sensorHandler, priv);
@@ -521,11 +543,14 @@ static int bno085_open(FAR struct file *filep)
 
   /* Start the worker */
 
-  ret = work_queue(HPWORK, &priv->work, bno085_worker, priv, 0);
-  if (ret < 0)
+  if (work_available(&priv->work))
     {
-      snerr("ERROR: Failed to queue work: %d\n", ret);
-      return ret;
+      ret = work_queue(HPWORK, &priv->work, bno085_worker, priv, 0);
+      if (ret < 0)
+        {
+          snerr("ERROR: Failed to queue work: %d\n", ret);
+          return ret;
+        }
     }
 
   return OK;
@@ -541,6 +566,25 @@ static int bno085_open(FAR struct file *filep)
 
 static int bno085_close(FAR struct file *filep)
 {
+  FAR struct inode        *inode = filep->f_inode;
+  FAR struct bno085_dev_s *priv  = inode->i_private;
+
+  /* Sanity check */
+
+  DEBUGASSERT(priv != NULL);
+
+  /* Close SH2 interface */
+
+  sh2_close();
+
+  /* Clear receive sensor events */
+
+  sh2_setSensorCallback(NULL, NULL);
+
+  /* Clear the initialize flag */
+
+  priv->initialized = 0;
+
   return OK;
 }
 
@@ -646,36 +690,38 @@ static int bno085_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           /* Perform a device reset */
 
           sh2_devReset();
+
+          /* It is important to wait untill reset has been done !!! */
         }
         break;
 
-      case SNIOC_CONFIG:
-        {
-          /* Get the configuration data */
-
-          struct bno085_reports_s *ptr = (FAR struct bno085_reports_s *)((uintptr_t)arg);
-          DEBUGASSERT(ptr != NULL);
-
-          /* Apply the configuration */
-
-          ret = sh2_setSensorConfig(ptr->sensorId, &ptr->config);
-          if (ret != 0) 
-            {
-              snerr("ERROR: Failed to configure sensor (%d)\n", ptr->sensorId);
-            }
-        }
-        break;
-
-      case SNIOC_STATUS:
+      case SNIOC_GETSTATUS:
         {
           /* Get the status data pointer */
 
           int *ptr = (FAR int *)((uintptr_t)arg);
           DEBUGASSERT(ptr != NULL);
 
-          /* Return the current ready flag */
+          /* Return the current ready status */
 
           *ptr = priv->ready;
+        }
+        break;
+
+      case SNIOC_SETCONFIG:
+        {
+          /* Get the configuration data pointer */
+
+          struct bno085_reports_s *ptr = (FAR struct bno085_reports_s *)((uintptr_t)arg);
+          DEBUGASSERT(ptr != NULL);
+
+          /* Set the configuration */
+
+          ret = sh2_setSensorConfig(ptr->sensorId, &ptr->config);
+          if (ret != 0) 
+            {
+              snerr("ERROR: Failed to configure sensor (%d)\n", ptr->sensorId);
+            }
         }
         break;
 
@@ -789,7 +835,7 @@ out:
  *   Register the BNO085 character device as 'devpath'
  *
  * Input Parameters:
- *   devpath - The full path to the driver to register. E.g., "/dev/imu0"
+ *   devpath - The full path to the driver to register. E.g., "/dev/sensor0"
  *   config  - Configuration of the SPI/I2C interface to use to communicate
  *             with BNO085
  *
@@ -821,7 +867,9 @@ int bno085_register(FAR const char *devpath,
   priv->config    = config;
   priv->timestamp = 0;
   priv->intf      = 0;
+  priv->ready     = 0;
   priv->work.worker = NULL;
+  priv->initialized = 0;
 
   /* Initialize sensor interface functions */
 

@@ -24,7 +24,9 @@
 
 #include <nuttx/config.h>
 #include <sys/types.h>
+#include <stdio.h>
 
+#include "stm32_uid.h"
 #include "ardusimple-sbc.h"
 
 #ifdef CONFIG_BOARDCTL
@@ -32,6 +34,36 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name:  board_usbdev_serialstr
+ *
+ * Description:
+ *   Use board unique serial number string to iSerialNumber field in the
+ *   device descriptor. This is for determining the board when multiple
+ *   boards on the same host.
+ *
+ * Returned Value:
+ *   The board unique serial number string.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_BOARD_USBDEV_SERIALSTR)
+static char g_serialstr[CONFIG_BOARDCTL_UNIQUEID_SIZE * 2 + 1];
+
+FAR const char *board_usbdev_serialstr(void)
+{
+  uint8_t uid[CONFIG_BOARDCTL_UNIQUEID_SIZE];
+
+  stm32_get_uniqueid(uid);
+
+  snprintf(g_serialstr, sizeof(g_serialstr),
+           "%02X%02X%02X%02X%02X",
+           uid[0], uid[1], uid[2], uid[3], uid[4]);
+
+  return g_serialstr;
+}
+#endif
 
 /****************************************************************************
  * Name: board_app_initialize

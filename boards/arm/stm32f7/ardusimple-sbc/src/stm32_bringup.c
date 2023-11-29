@@ -67,6 +67,10 @@ int stm32_bringup(void)
   int i2c_bus;
   struct i2c_master_s *i2c;
 #endif /* CONFIG_I2C */
+#ifdef HAVE_RTC_DRIVER
+  struct rtc_lowerhalf_s *lower;
+#endif /* HAVE_RTC_DRIVER */
+
 
 #ifdef CONFIG_FS_PROCFS
   /* Mount the procfs file system */
@@ -90,6 +94,32 @@ int stm32_bringup(void)
              CONFIG_STM32_ROMFS_MOUNTPOINT, ret);
     }
 #endif /* CONFIG_STM32_ROMFS */
+
+#ifdef HAVE_RTC_DRIVER
+  /* Instantiate the STM32 lower-half RTC driver */
+
+  lower = stm32_rtc_lowerhalf();
+  if (!lower)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to instantiate the RTC lower-half driver\n");
+      return -ENOMEM;
+    }
+  else
+    {
+      /* Bind the lower half driver and register the combined RTC driver
+       * as /dev/rtc0
+       */
+
+      ret = rtc_initialize(0, lower);
+      if (ret < 0)
+        {
+          syslog(LOG_ERR,
+                 "ERROR: Failed to bind/register the RTC driver: %d\n", ret);
+          return ret;
+        }
+    }
+#endif /* HAVE_RTC_DRIVER */
 
 #ifdef CONFIG_DEV_GPIO
   /* Register the GPIO driver */
@@ -228,6 +258,30 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_STM32F7_I2C1 */
 #endif /* CONFIG_I2C */
+
+#if defined(CONFIG_CDCACM) && !defined(CONFIG_CDCACM_CONSOLE) && \
+    !defined(CONFIG_CDCACM_COMPOSITE)
+  /* Initialize CDCACM */
+
+  syslog(LOG_INFO, "Initialize CDCACM device\n");
+
+  ret = cdcacm_initialize(0, NULL);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: cdcacm_initialize failed: %d\n", ret);
+    }
+#endif /* CONFIG_CDCACM & !CONFIG_CDCACM_CONSOLE */
+
+#if defined(CONFIG_RNDIS) && !defined(CONFIG_RNDIS_COMPOSITE)
+  uint8_t mac[6];
+  mac[0] = 0xa0; /* TODO */
+  mac[1] = (CONFIG_NETINIT_MACADDR_2 >> (8 * 0)) & 0xff;
+  mac[2] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 3)) & 0xff;
+  mac[3] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 2)) & 0xff;
+  mac[4] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 1)) & 0xff;
+  mac[5] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 0)) & 0xff;
+  usbdev_rndis_initialize(mac);
+#endif
 
   UNUSED(ret);  /* May not be used */
   return OK;

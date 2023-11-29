@@ -26,8 +26,8 @@
 #include <stdint.h>
 
 // Maximum SHTP Transfer and Payload sizes
-#define SH2_HAL_MAX_TRANSFER_OUT (256)
-#define SH2_HAL_MAX_PAYLOAD_OUT  (256)
+#define SH2_HAL_MAX_TRANSFER_OUT (512)
+#define SH2_HAL_MAX_PAYLOAD_OUT  (512)
 
 #define SH2_HAL_MAX_TRANSFER_IN  (512)
 #define SH2_HAL_MAX_PAYLOAD_IN   (512)

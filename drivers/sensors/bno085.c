@@ -466,7 +466,7 @@ static void sh2_sensorHandler(void *cookie, sh2_SensorEvent_t *pEvent)
 
   if (priv->intf > 0)
     {
-      priv->intf--;
+      priv->intf = 0;
     }
 
   /* Notify the application layer */

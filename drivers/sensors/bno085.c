@@ -51,6 +51,7 @@
  ****************************************************************************/
 
 #define BNO085_I2C_RETRIES  (10)
+#define BNO085_FAULT_COUNT  (20)
 
 /****************************************************************************
  * Private Types
@@ -71,7 +72,8 @@ struct bno085_dev_s
                                            * after the arrival of new data was
                                            * signalled in an interrupt */
   struct pollfd              *fds[CONFIG_BNO085_NPOLLWAITERS];
-  volatile uint8_t            ready;      /* Sensor ready flag */
+  volatile uint8_t            status;     /* Sensor status flag */
+  volatile uint32_t           faulty;     /* Sensor fault counter */
   volatile uint8_t            initialized;/* Sensor initialized flag */
 };
 
@@ -415,26 +417,56 @@ static void bno085_worker(FAR void *arg)
 
 static void sh2_eventHandler(void *cookie, sh2_AsyncEvent_t *pEvent)
 {
-    struct bno085_dev_s *priv = cookie;
+    struct bno085_dev_s *priv = (struct bno085_dev_s *)cookie;
     UNUSED(priv);
 
     /* If we see a reset, set a flag so that sensors will be reconfigured */
   
     if (pEvent->eventId == SH2_RESET) 
       {
-        /* Set the ready flag */
+        /* Set the status as ready and clear the faulty */
 
-        priv->ready = 1;
+        priv->status = BNO085_STATUS_READY;
+        priv->faulty = 0;
+
+        sninfo("EventHandler  id:RESET\n");
       }
     else if (pEvent->eventId == SH2_SHTP_EVENT) 
       {
         sninfo("EventHandler  id:SHTP, %d\n", (int)pEvent->shtpEvent);
+
+        if (priv->status & BNO085_STATUS_READY)
+          {
+            switch (pEvent->shtpEvent)
+              {
+                case SH2_SHTP_TX_DISCARD:
+                  break;
+
+                case SH2_SHTP_INTERRUPTED_PAYLOAD:
+                  break;
+
+                case SH2_SHTP_SHORT_FRAGMENT:
+                case SH2_SHTP_TOO_LARGE_PAYLOADS:
+                case SH2_SHTP_BAD_RX_CHAN:
+                case SH2_SHTP_BAD_TX_CHAN:
+                case SH2_SHTP_BAD_FRAGMENT:
+                case SH2_SHTP_BAD_SN:
+
+                  /* Set the faulty status */
+
+                  if (++priv->faulty >= BNO085_FAULT_COUNT) 
+                    {
+                      priv->status |= BNO085_STATUS_FAULT;  
+                    }
+                  break;
+              }            
+          }
       }
     else if (pEvent->eventId == SH2_GET_FEATURE_RESP) 
       {
         sninfo("EventHandler Sensor Config, %d\n", (int)pEvent->sh2SensorConfigResp.sensorId);
       }
-    else 
+    else
     {
         sninfo("EventHandler, unknown event Id: %d\n", (int)pEvent->eventId);
     }
@@ -451,7 +483,15 @@ static void sh2_eventHandler(void *cookie, sh2_AsyncEvent_t *pEvent)
 static void sh2_sensorHandler(void *cookie, sh2_SensorEvent_t *pEvent)
 {
   struct bno085_dev_s *priv = cookie;
+  irqstate_t flags;
   int rc;
+
+  /* Decrement the interrupt counter */
+
+  if (priv->intf > 0)
+    {
+      priv->intf--;
+    }
 
   /* Decode the event */
 
@@ -462,16 +502,14 @@ static void sh2_sensorHandler(void *cookie, sh2_SensorEvent_t *pEvent)
       return;
     }
 
-  /* Decrement the interrupt counter */
+  /* Clear the faulty counter because of data has been received */
 
-  if (priv->intf > 0)
-    {
-      priv->intf = 0;
-    }
+  priv->faulty = 0;
 
-  /* Notify the application layer */
+  /* Notify the poll waiters */
 
   poll_notify(priv->fds, CONFIG_BNO085_NPOLLWAITERS, POLLIN);
+
 }
 
 /****************************************************************************
@@ -683,9 +721,10 @@ static int bno085_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
       case SNIOC_RESET:
         {
-          /* Reset the ready flag */
+          /* Reset the status flag and clear the faulty counter */
 
-          priv->ready = 0;
+          priv->status = 0;
+          priv->faulty = 0;          
 
           /* Perform a device reset */
 
@@ -702,9 +741,9 @@ static int bno085_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           int *ptr = (FAR int *)((uintptr_t)arg);
           DEBUGASSERT(ptr != NULL);
 
-          /* Return the current ready status */
+          /* Return the current status flag */
 
-          *ptr = priv->ready;
+          *ptr = priv->status;
         }
         break;
 
@@ -800,11 +839,6 @@ static int bno085_poll(FAR struct file *filep, FAR struct pollfd *fds,
           ret = -EBUSY;
           goto out;
         }
-
-      if (priv->intf)
-        {
-          poll_notify(priv->fds, CONFIG_BNO085_NPOLLWAITERS, POLLIN);
-        }
     }
   else if (fds->priv)
     {
@@ -867,7 +901,8 @@ int bno085_register(FAR const char *devpath,
   priv->config    = config;
   priv->timestamp = 0;
   priv->intf      = 0;
-  priv->ready     = 0;
+  priv->status    = 0;
+  priv->faulty    = 0;
   priv->work.worker = NULL;
   priv->initialized = 0;
 

@@ -37,6 +37,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Sensor Status ************************************************************/
+
+#define BNO085_STATUS_READY (1)
+#define BNO085_STATUS_FAULT (2)
+
 /* IOCTL Commands ***********************************************************/
 
 #define SNIOC_RESET       _SNIOC(0x0001)    /* Arg: None          */

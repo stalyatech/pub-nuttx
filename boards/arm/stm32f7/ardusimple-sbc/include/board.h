@@ -310,6 +310,8 @@
 #define DMAMAP_USART3_TX  DMAMAP_USART3_TX_1  /* DMA1: STREAM3, CHAN4 */
 #define DMAMAP_USART6_RX  DMAMAP_USART6_RX_1  /* DMA2: STREAM1, CHAN5 */
 #define DMAMAP_USART6_TX  DMAMAP_USART6_TX_1  /* DMA2: STREAM6, CHAN5 */
+#define DMAMAP_SPI3_RX    DMAMAP_SPI3_RX_2    /* DMA1: STREAM2, CHAN0 */
+#define DMAMAP_SPI3_TX    DMAMAP_SPI3_TX_2    /* DMA1: STREAM7, CHAN0 */
 
 /* Alternate function pin selections ****************************************/
 

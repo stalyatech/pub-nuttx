@@ -371,7 +371,7 @@ static int bno085_interrupt_handler(int irq, FAR void *context,
 
 static void bno085_worker(FAR void *arg)
 {
-  FAR struct bno085_dev_s *priv = (FAR struct bno085_dev_s *)(arg);
+  FAR struct bno085_dev_s *priv = arg;
   int ret;
 
   /* Sanity check */
@@ -417,7 +417,7 @@ static void bno085_worker(FAR void *arg)
 
 static void sh2_eventHandler(void *cookie, sh2_AsyncEvent_t *pEvent)
 {
-    struct bno085_dev_s *priv = (struct bno085_dev_s *)cookie;
+    struct bno085_dev_s *priv = cookie;
     UNUSED(priv);
 
     /* If we see a reset, set a flag so that sensors will be reconfigured */
@@ -483,7 +483,6 @@ static void sh2_eventHandler(void *cookie, sh2_AsyncEvent_t *pEvent)
 static void sh2_sensorHandler(void *cookie, sh2_SensorEvent_t *pEvent)
 {
   struct bno085_dev_s *priv = cookie;
-  irqstate_t flags;
   int rc;
 
   /* Decrement the interrupt counter */

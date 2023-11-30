@@ -584,9 +584,11 @@ static const struct uart_ops_s g_uart_ops =
   .attach         = up_attach,
   .detach         = up_detach,
   .ioctl          = up_ioctl,
+#ifndef SERIAL_HAVE_ONLY_RXDMA
   .receive        = up_receive,
   .rxint          = up_rxint,
   .rxavailable    = up_rxavailable,
+#endif
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
   .rxflowcontrol  = up_rxflowcontrol,
 #endif
@@ -648,9 +650,11 @@ static const struct uart_ops_s g_uart_txdma_ops =
     .attach         = up_attach,
     .detach         = up_detach,
     .ioctl          = up_ioctl,
+  #ifndef SERIAL_HAVE_ONLY_RXDMA
     .receive        = up_receive,
     .rxint          = up_rxint,
     .rxavailable    = up_rxavailable,
+  #endif
   #ifdef CONFIG_SERIAL_IFLOWCONTROL
     .rxflowcontrol  = up_rxflowcontrol,
   #endif

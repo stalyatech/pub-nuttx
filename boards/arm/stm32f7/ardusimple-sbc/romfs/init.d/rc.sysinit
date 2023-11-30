@@ -3,8 +3,3 @@
 if [ -b "/dev/mmcsd0" ]; then
 mount -t vfat /dev/mmcsd0 /sdc
 fi
-
-# Start the telnet daemon as background process
-if [ -b "/dev/telnet" ]; then
-telnetd &
-fi

@@ -1,4 +1,3 @@
-#ifup can0
 
 if [ -b "/dev/mmcsd0" ]; then
 mount -t vfat /dev/mmcsd0 /sdc

@@ -54,6 +54,10 @@ if(CONFIG_MMCSD)
   list(APPEND SRCS stm32_sdio.c)
 endif()
 
+if(CONFIG_USBMSC)
+list(APPEND SRCS stm32_usbmsc.c)
+endif()
+
 if(CONFIG_STM32F7_ETHMAC)
   list(APPEND SRCS stm32_netinit.c)
 endif()

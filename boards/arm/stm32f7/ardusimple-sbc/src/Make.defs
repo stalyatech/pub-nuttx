@@ -56,6 +56,10 @@ ifeq ($(CONFIG_MMCSD),y)
 CSRCS += stm32_sdio.c
 endif
 
+ifeq ($(CONFIG_USBMSC),y)
+CSRCS += stm32_usbmsc.c
+endif
+
 ifeq ($(CONFIG_STM32F7_ETHMAC),y)
 CSRCS += stm32_netinit.c
 endif

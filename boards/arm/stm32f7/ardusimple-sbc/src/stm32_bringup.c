@@ -71,7 +71,6 @@ int stm32_bringup(void)
   struct rtc_lowerhalf_s *lower;
 #endif /* HAVE_RTC_DRIVER */
 
-
 #ifdef CONFIG_FS_PROCFS
   /* Mount the procfs file system */
 
@@ -259,8 +258,25 @@ int stm32_bringup(void)
 #endif /* CONFIG_STM32F7_I2C1 */
 #endif /* CONFIG_I2C */
 
-#if defined(CONFIG_CDCACM) && !defined(CONFIG_CDCACM_CONSOLE) && \
-    !defined(CONFIG_CDCACM_COMPOSITE)
+#ifdef CONFIG_USBDEV_COMPOSITE
+  /* Initialize Composite Device */
+
+#ifndef CONFIG_BOARDCTL_USBDEVCTRL
+  ret = board_composite_initialize(0);
+  if (ret != OK)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize composite: %d\n", ret);
+      return ret;
+    }
+
+  if (board_composite_connect(0, 0) == NULL)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to connect composite: %d\n", ret);
+      return ret;
+    }
+#endif /* !CONFIG_BOARDCTL_USBDEVCTRL */
+#else /* CONFIG_USBDEV_COMPOSITE */
+#if defined(CONFIG_CDCACM) && !defined(CONFIG_CDCACM_CONSOLE)
   /* Initialize CDCACM */
 
   syslog(LOG_INFO, "Initialize CDCACM device\n");
@@ -271,8 +287,7 @@ int stm32_bringup(void)
       syslog(LOG_ERR, "ERROR: cdcacm_initialize failed: %d\n", ret);
     }
 #endif /* CONFIG_CDCACM & !CONFIG_CDCACM_CONSOLE */
-
-#if defined(CONFIG_RNDIS) && !defined(CONFIG_RNDIS_COMPOSITE)
+#if defined(CONFIG_RNDIS)
   uint8_t mac[6];
   mac[0] = 0xa0; /* TODO */
   mac[1] = (CONFIG_NETINIT_MACADDR_2 >> (8 * 0)) & 0xff;
@@ -282,6 +297,7 @@ int stm32_bringup(void)
   mac[5] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 0)) & 0xff;
   usbdev_rndis_initialize(mac);
 #endif
+#endif /* CONFIG_USBDEV_COMPOSITE */
 
   UNUSED(ret);  /* May not be used */
   return OK;

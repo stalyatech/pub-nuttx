@@ -365,6 +365,47 @@ int stm32_usbhub_initialize(int bus);
 int stm32_bno085_initialize(int bus);
 #endif
 
+/****************************************************************************
+ * Name:  board_composite_initialize
+ *
+ * Description:
+ *   Initialize the USB device <usbdev> on the specified USB device port.
+ *
+ * Input Parameters:
+ *   port- The USB device port.
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+#if !defined(CONFIG_BOARDCTL_USBDEVCTRL) && defined(CONFIG_USBDEV_COMPOSITE)
+int board_composite_initialize(int port);
+#endif
+
+/****************************************************************************
+ * Name:  board_composite_connect
+ *
+ * Description:
+ *   Connect the USB composite device on the specified USB device port using
+ *   the specified configuration.  The interpretation of the configid is
+ *   board specific.
+ *
+ * Input Parameters:
+ *   port     - The USB device port.
+ *   configid - The USB composite configuration
+ *
+ * Returned Value:
+ *   A non-NULL handle value is returned on success.  NULL is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+#if !defined(CONFIG_BOARDCTL_USBDEVCTRL) && defined(CONFIG_USBDEV_COMPOSITE)
+FAR void *board_composite_connect(int port, int configid);
+#endif
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* __BOARDS_ARM_STM32F7_ARDUSIMPLE_SBC_SRC_ARDUSIMPLE_SBC_H */

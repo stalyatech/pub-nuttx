@@ -2328,6 +2328,32 @@ static int up_interrupt(int irq, void *context, void *arg)
         }
 #endif
 
+      /* Receive bytes by RXDMA. */
+
+#ifdef SERIAL_HAVE_RXDMA
+      if ((priv->sr & USART_ISR_IDLE) != 0 &&
+          (priv->ie & USART_CR1_IDLEIE) != 0)
+        {
+          /* This flag is cleared by writing the corresponding bit to the
+           * interrupt clear register (ICR).
+           */
+
+          up_serialout(priv, STM32_USART_ICR_OFFSET,
+                      (USART_ICR_IDLECF));
+
+          /* Received data ready... process incoming bytes.
+           * NOTE the check for  IDLEIE:  We cannot call
+           * uart_recvchards of RX interrupts are disabled.
+           */
+
+          if (priv->rxenable && up_dma_rxavailable(&priv->dev))
+            {
+              uart_recvchars(&priv->dev);
+              handled = true;
+            }
+        } 
+#else
+
       /* Handle incoming, receive bytes. */
 
       if ((priv->sr & USART_ISR_RXNE) != 0 &&
@@ -2341,6 +2367,7 @@ static int up_interrupt(int irq, void *context, void *arg)
           uart_recvchars(&priv->dev);
           handled = true;
         }
+#endif /* SERIAL_HAVE_RXDMA */
 
       /* We may still have to read from the DR register to clear any pending
        * error conditions.
@@ -2367,6 +2394,27 @@ static int up_interrupt(int irq, void *context, void *arg)
           uart_xmitchars(&priv->dev);
           handled = true;
         }
+
+#ifdef SERIAL_HAVE_TXDMA
+
+      /* Transmission completed by TXDMA - TC is set */
+
+      if ((priv->sr & USART_ISR_TC) != 0 &&
+          (priv->ie & USART_CR1_TCIE) != 0)
+        {
+          /* This flag is cleared by writing the corresponding bit to the
+           * interrupt clear register (ICR).
+           */
+
+          up_restoreusartint(priv, priv->ie & ~USART_CR1_TCIE);
+          up_serialout(priv, STM32_USART_ICR_OFFSET, USART_ICR_TCCF);
+
+          /* Adjust the pointers and wakeup upper layer */
+
+          uart_xmitchars_done(&priv->dev);
+          handled = true;
+        }
+#endif
     }
 
   return OK;
@@ -3075,6 +3123,8 @@ static void up_dma_reenable(struct up_dev_s *priv)
 static void up_dma_rxint(struct uart_dev_s *dev, bool enable)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
+  irqstate_t flags;
+  uint16_t ie;
 
   /* Enable/disable DMA reception.
    *
@@ -3085,6 +3135,27 @@ static void up_dma_rxint(struct uart_dev_s *dev, bool enable)
    */
 
   priv->rxenable = enable;
+
+  /* If RXDMA is supported on this U[S]ART, then also enable the
+    * idle interrupt to receive bytes less than DMA buffer.
+    */
+
+  flags = enter_critical_section();
+  ie = priv->ie;
+
+  if (enable)
+    {
+      ie |= USART_CR1_IDLEIE;
+    }
+  else
+    {
+      ie &= ~USART_CR1_IDLEIE;
+    }
+
+  /* Then set the new interrupt state */
+
+  up_restoreusartint(priv, ie);
+  leave_critical_section(flags);
 }
 #endif
 
@@ -3156,11 +3227,15 @@ static void up_dma_txcallback(DMA_HANDLE handle, uint8_t status, void *arg)
 
           return;
         }
+      else
+        {
+          /* If TXDMA is supported on this U[S]ART, then also enable the
+           * transmission complete interrupt.
+           */
+
+          up_restoreusartint(priv, priv->ie | USART_CR1_TCIE);
+        }
     }
-
-  /* Adjust the pointers */
-
-  uart_xmitchars_done(&priv->dev);
 }
 #endif
 

@@ -2352,7 +2352,7 @@ static int up_interrupt(int irq, void *context, void *arg)
               handled = true;
             }
         } 
-#else
+#endif /* SERIAL_HAVE_RXDMA */
 
       /* Handle incoming, receive bytes. */
 
@@ -2367,7 +2367,6 @@ static int up_interrupt(int irq, void *context, void *arg)
           uart_recvchars(&priv->dev);
           handled = true;
         }
-#endif /* SERIAL_HAVE_RXDMA */
 
       /* We may still have to read from the DR register to clear any pending
        * error conditions.

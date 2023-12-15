@@ -70,8 +70,16 @@ if(CONFIG_STM32F7_BBSRAM)
   list(APPEND SRCS stm32_bbsram.c)
 endif()
 
+if(CONFIG_STM32F7_PROGMEM)
+  list(APPEND SRCS stm32_progmem.c)
+endif()
+
 if(CONFIG_BOARDCTL_RESET)
   list(APPEND SRCS stm32_reset.c)
+endif()
+
+if(CONFIG_BOARDCTL_BOOT_IMAGE)
+  list(APPEND SRCS stm32_boot_image.c)
 endif()
 
 if(CONFIG_STM32_ROMFS)
@@ -109,6 +117,19 @@ endif()
 
 target_sources(board PRIVATE ${SRCS})
 
-if(CONFIG_ARCH_CHIP_STM32F745VG)
+if(CONFIG_STM32F7_APP_FORMAT_MCUBOOT)
+  if(CONFIG_MCUBOOT_BOOTLOADER)
+    set_property(GLOBAL PROPERTY LD_SCRIPT "${NUTTX_BOARD_DIR}/scripts/flash-mcuboot-loader.ld")
+  else()
+    set_property(GLOBAL PROPERTY LD_SCRIPT "${NUTTX_BOARD_DIR}/scripts/flash-mcuboot-app.ld")
+  endif()
+else()
   set_property(GLOBAL PROPERTY LD_SCRIPT "${NUTTX_BOARD_DIR}/scripts/flash.ld")
+endif()
+
+if(NOT CONFIG_BUILD_FLAT)
+  add_subdirectory(${NUTTX_BOARD_DIR}/kernel)
+  set_property(
+    GLOBAL PROPERTY LD_SCRIPT_USER ${NUTTX_BOARD_DIR}/scripts/memory.ld
+    ${NUTTX_BOARD_DIR}/scripts/user-space.ld)
 endif()

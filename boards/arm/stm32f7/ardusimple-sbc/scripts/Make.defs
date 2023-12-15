@@ -1,5 +1,5 @@
 ############################################################################
-# boards/arm/stm32f7/ardusimple-sbc/configs/sbc/Make.defs
+# boards/arm/stm32f7/ardusimple-sbc/scripts/Make.defs
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -22,7 +22,27 @@ include $(TOPDIR)/.config
 include $(TOPDIR)/tools/Config.mk
 include $(TOPDIR)/arch/arm/src/armv7-m/Toolchain.defs
 
-LDSCRIPT = flash.ld
+bootld = 
+ifeq ($(CONFIG_STM32F7_APP_FORMAT_MCUBOOT),y)
+  bootld = y
+endif
+
+ifeq ($(CONFIG_STM32F7_APP_FORMAT_MINIBOOT),y)
+  bootld = y
+endif
+
+ifeq ($(bootld),y)
+  ifeq ($(CONFIG_MCUBOOT_BOOTLOADER),y)
+    LDSCRIPT = flash-boot-loader.ld
+  else ifeq ($(CONFIG_BOOT_MINIBOOT),y)
+    LDSCRIPT = flash-boot-loader.ld
+  else
+    LDSCRIPT = flash-boot-app.ld
+  endif
+else
+  LDSCRIPT = flash.ld
+endif
+
 ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(LDSCRIPT)
 
 ARCHPICFLAGS = -fpic -msingle-pic-base -mpic-register=r10
@@ -37,3 +57,11 @@ AFLAGS := $(CFLAGS) -D__ASSEMBLY__
 NXFLATLDFLAGS1 = -r -d -warn-common
 NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)/binfmt/libnxflat/gnu-nxflat-pcrel.ld -no-check-sections
 LDNXFLATFLAGS = -e main -s 2048
+
+# ELF module definitions
+
+CELFFLAGS = $(CFLAGS) -mlong-calls # --target1-abs
+CXXELFFLAGS = $(CXXFLAGS) -mlong-calls # --target1-abs
+
+LDELFFLAGS = -r -e main
+LDELFFLAGS += -T $(call CONVERT_PATH,$(TOPDIR)/binfmt/libelf/gnu-elf.ld)

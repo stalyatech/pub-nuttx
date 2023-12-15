@@ -366,7 +366,7 @@ FAR struct mtd_dev_s *s512_initialize(FAR struct mtd_dev_s *mtd);
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *progmem_initialize(void);
+FAR struct mtd_dev_s *progmem_initialize(size_t offset);
 
 /****************************************************************************
  * Name: at45db_initialize

@@ -18,14 +18,14 @@
  *
  ****************************************************************************/
 
-/* The STM32F746NGH6 has 1024Kb of main FLASH memory.  This FLASH memory can
- * be accessed from either the AXIM interface at address 0x0800:0000 or from
- * the ITCM interface at address 0x0020:0000.
+/* The STM32F745VGT6 has 1024 KiB of main FLASH memory.  This FLASH memory
+ * can be accessed from either the AXIM interface at address 0x0800:0000 or
+ * from the ITCM interface at address 0x0020:0000.
  *
  * Additional information, including the option bytes, is available at at
  * FLASH at address 0x1ff0:0000 (AXIM) or 0x0010:0000 (ITCM).
  *
- * In the STM32F746NGH6, two different boot spaces can be selected through
+ * In the STM32F745VGT6, two different boot spaces can be selected through
  * the BOOT pin and the boot base address programmed in the BOOT_ADD0 and
  * BOOT_ADD1 option bytes:
  *
@@ -34,16 +34,16 @@
  *   2) BOOT=1: Boot address defined by user option byte BOOT_ADD1[15:0].
  *      ST programmed value: System bootloader at 0x0010:0000
  *
- * NuttX does not modify these option bytes.  On the unmodified STM32F746G
- * DISCO board, the BOOT0 pin is at ground so by default, the STM32 will boot
- * to address 0x0020:0000 in ITCM FLASH.
+ * NuttX does not modify these option bytes.  On the Ardusimple SBC
+ * board, the BOOT0 pin is at ground so by default, the STM32F745VGT6 will
+ * boot from address 0x0020:0000 in ITCM FLASH.
  *
- * The STM32F746NGH6 also has 320Kb of data SRAM (in addition to ITCM SRAM).
+ * The STM32F745VGT6 also has 320 KiB of data SRAM (in addition to ITCM SRAM).
  * SRAM is split up into three blocks:
  *
- *   1)  64Kb of DTCM SRM beginning at address 0x2000:0000
- *   2) 240Kb of SRAM1 beginning at address 0x2001:0000
- *   3)  16Kb of SRAM2 beginning at address 0x2004:c000
+ *   1)  64 KiB of DTCM SRM beginning at address 0x2000:0000
+ *   2) 240 KiB of SRAM1 beginning at address 0x2001:0000
+ *   3)  16 KiB of SRAM2 beginning at address 0x2004:c000
  *
  * When booting from FLASH, FLASH memory is aliased to address 0x0000:0000
  * where the code expects to begin execution by jumping to the entry point in

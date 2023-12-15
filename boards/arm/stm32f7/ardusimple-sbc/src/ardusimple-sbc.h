@@ -35,6 +35,59 @@
 
 /* Configuration ************************************************************/
 
+#define HAVE_PROC            1
+#define HAVE_USBDEV          1
+#define HAVE_USBHOST         1
+#define HAVE_USBMONITOR      1
+#define HAVE_MTDCONFIG       1
+#define HAVE_PROGMEM_CHARDEV 1
+
+/* Can't support USB host or device features if USB OTG FS is not enabled */
+
+#ifndef CONFIG_STM32F7_OTGFS
+#  undef HAVE_USBDEV
+#  undef HAVE_USBHOST
+#endif
+
+/* Can't support USB device if USB device is not enabled */
+
+#ifndef CONFIG_USBDEV
+#  undef HAVE_USBDEV
+#endif
+
+/* Can't support USB host is USB host is not enabled */
+
+#ifndef CONFIG_USBHOST
+#  undef HAVE_USBHOST
+#endif
+
+/* Check if we should enable the USB monitor before starting NSH */
+
+#ifndef CONFIG_USBMONITOR
+#  undef HAVE_USBMONITOR
+#endif
+
+#ifndef HAVE_USBDEV
+#  undef CONFIG_USBDEV_TRACE
+#endif
+
+#ifndef HAVE_USBHOST
+#  undef CONFIG_USBHOST_TRACE
+#endif
+
+#if !defined(CONFIG_USBDEV_TRACE) && !defined(CONFIG_USBHOST_TRACE)
+#  undef HAVE_USBMONITOR
+#endif
+
+#if !defined(CONFIG_STM32F7_PROGMEM) || !defined(CONFIG_MTD_PROGMEM)
+#  undef HAVE_PROGMEM_CHARDEV
+#endif
+
+/* This is the on-chip progmem memory driver minor number */
+
+#define PROGMEM_MTD_MINOR 0
+
+
 /* procfs File System */
 
 #ifdef CONFIG_FS_PROCFS
@@ -242,6 +295,18 @@ void stm32_spidev_initialize(void);
 int stm32_dma_alloc_init(void);
 #endif
 
+#ifdef CONFIG_MTD
+/****************************************************************************
+ * Name: stm32_mtd_initialize
+ *
+ * Description:
+ *   Initialize MTD drivers.
+ *
+ ****************************************************************************/
+#ifdef HAVE_PROGMEM_CHARDEV
+int stm32_progmem_init(void);
+#endif  /* HAVE_PROGMEM_CHARDEV */
+
 /****************************************************************************
  * Name: stm32_w25initialize
  *
@@ -252,7 +317,8 @@ int stm32_dma_alloc_init(void);
 
 #ifdef CONFIG_MTD_W25
 int stm32_w25initialize(int minor);
-#endif
+#endif /* CONFIG_MTD_W25 */
+#endif /* CONFIG_MTD */
 
 /****************************************************************************
  * Name: stm32_sdio_initialize

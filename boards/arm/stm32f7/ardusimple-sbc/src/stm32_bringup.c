@@ -164,6 +164,15 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_FAT_DMAMEMORY */
 
+#ifdef CONFIG_MTD
+#ifdef HAVE_PROGMEM_CHARDEV
+  ret = stm32_progmem_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize MTD progmem: %d\n", ret);
+    }
+#endif /* HAVE_PROGMEM_CHARDEV */
+
 #ifdef CONFIG_MTD_W25
   ret = stm32_w25initialize(0);
   if (ret < 0)
@@ -171,6 +180,7 @@ int stm32_bringup(void)
       syslog(LOG_ERR, "ERROR: stm32_w25initialize failed: %d\n", ret);
     }
 #endif /* CONFIG_MTD_W25 */
+#endif /* CONFIG_MTD */
 
 #ifdef CONFIG_MMCSD
   /* Initialize the SDIO block driver */

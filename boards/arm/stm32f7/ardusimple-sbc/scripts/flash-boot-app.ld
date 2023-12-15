@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32f7/ardusimple-sbc/scripts/flash.ld
+ * boards/arm/stm32f7/ardusimple-sbc/scripts/flash-mcuboot-app.ld
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -52,8 +52,8 @@
 
 MEMORY
 {
-  itcm  (rwx) : ORIGIN = 0x00200000, LENGTH = 1024K
-  flash (rx)  : ORIGIN = 0x08000000, LENGTH = 1024K
+  itcm  (rwx) : ORIGIN = 0x00200000, LENGTH = 1024K - 128K
+  flash (rx)  : ORIGIN = 0x08020000, LENGTH = 1024K - 128K
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
   sram1 (rwx) : ORIGIN = 0x20010000, LENGTH = 240K
   sram2 (rwx) : ORIGIN = 0x2004c000, LENGTH = 16K
@@ -64,7 +64,8 @@ EXTERN(_vectors)
 ENTRY(_stext)
 SECTIONS
 {
-    .text : {
+    .text :
+    {
         _stext = ABSOLUTE(.);
         *(.vectors)
         *(.text .text.*)
@@ -80,26 +81,30 @@ SECTIONS
         _etext = ABSOLUTE(.);
     } > flash
 
-    .init_section : {
+    .init_section :
+    {
         _sinit = ABSOLUTE(.);
         KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
         KEEP(*(.init_array .ctors))
         _einit = ABSOLUTE(.);
     } > flash
 
-    .ARM.extab : {
+    .ARM.extab :
+    {
         *(.ARM.extab*)
     } > flash
 
     __exidx_start = ABSOLUTE(.);
-    .ARM.exidx : {
+    .ARM.exidx :
+    {
         *(.ARM.exidx*)
     } > flash
     __exidx_end = ABSOLUTE(.);
 
     _eronly = ABSOLUTE(.);
 
-    .data : {
+    .data :
+    {
         _sdata = ABSOLUTE(.);
         *(.data .data.*)
         *(.gnu.linkonce.d.*)
@@ -108,7 +113,8 @@ SECTIONS
         _edata = ABSOLUTE(.);
     } > sram1 AT > flash
 
-    .bss : {
+    .bss :
+    {
         _sbss = ABSOLUTE(.);
         *(.bss .bss.*)
         *(.gnu.linkonce.b.*)
@@ -118,6 +124,7 @@ SECTIONS
     } > sram1
 
     /* Stabs debugging sections. */
+
     .stab 0 : { *(.stab) }
     .stabstr 0 : { *(.stabstr) }
     .stab.excl 0 : { *(.stab.excl) }

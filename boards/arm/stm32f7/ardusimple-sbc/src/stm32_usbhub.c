@@ -43,6 +43,12 @@
 #ifdef CONFIG_I2C
 
 /****************************************************************************
+ * Private Functions prototypes
+ ****************************************************************************/
+
+static int usbhub_portmap(uint8_t dn_port);
+
+/****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
@@ -55,6 +61,8 @@ static struct usb2517_config_s hub_config =
   .mfr_str = "EPSWorks",
   .prd_str = "simpleRTK2B-SBC",
   .ser_str = "1234567890",
+  .portnum = 7,
+  .portmap = usbhub_portmap,
   .config  = 
   {
     0x24,   // Vendor ID LSB
@@ -129,6 +137,58 @@ static struct usb2517_config_s hub_config =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: usbhub_portmap
+ *
+ * Description:
+ *    User defined port mapping callback. It converts downstream port number
+ *    to the logical port number.
+ *
+ ****************************************************************************/
+
+static int usbhub_portmap(uint8_t dn_port)
+{
+  switch (dn_port)
+    {
+      /* Downstream port 1: Logical port 2 (XBee A - XBee B)*/
+
+      case USB251X_DN1_PORT:
+        return 2;
+
+      /* Downstream port 2: null */
+
+      case USB251X_DN2_PORT:
+        return -1;
+
+      /* Downstream port 3: Logical port 1 (MCU)*/
+
+      case USB251X_DN3_PORT:
+        return 1;
+
+      /* Downstream port 4: Logical port 4 (GPS2)*/
+
+      case USB251X_DN4_PORT:
+        return 4;
+
+      /* Downstream port 5: Logical port 3 (GPS1)*/
+
+      case USB251X_DN5_PORT:
+        return 3;
+
+      /* Downstream port 6: Logical port 6 (M2M)*/
+
+      case USB251X_DN6_PORT:
+        return 6;
+
+      /* Downstream port 7: Logical port 5 (GPS3)*/
+
+      case USB251X_DN7_PORT:
+        return 5;
+    }
+
+    return ERROR;
+}
 
 /****************************************************************************
  * Public Functions

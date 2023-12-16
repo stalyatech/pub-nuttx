@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/usbmisc/usb2517.c
+ * drivers/usbmisc/usb251x.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -35,43 +35,42 @@
 #include <nuttx/mutex.h>
 #include <nuttx/i2c/i2c_master.h>
 
-#include <nuttx/usb/usb2517.h>
+#include <nuttx/usb/usb251x.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_DEBUG_USB2517
-#  define usb2517_err(x, ...)        _err(x, ##__VA_ARGS__)
-#  define usb2517_info(x, ...)       _info(x, ##__VA_ARGS__)
+#ifdef CONFIG_DEBUG_USB251X
+#  define usb251x_err(x, ...)        _err(x, ##__VA_ARGS__)
+#  define usb251x_info(x, ...)       _info(x, ##__VA_ARGS__)
 #else
-#  define usb2517_err(x, ...)        uerr(x, ##__VA_ARGS__)
-#  define usb2517_info(x, ...)       uinfo(x, ##__VA_ARGS__)
+#  define usb251x_err(x, ...)        uerr(x, ##__VA_ARGS__)
+#  define usb251x_info(x, ...)       uinfo(x, ##__VA_ARGS__)
 #endif
 
-#ifndef CONFIG_USB2517_I2C_FREQUENCY
-#  define CONFIG_USB2517_I2C_FREQUENCY 100000
+#ifndef CONFIG_USB251X_I2C_FREQUENCY
+#  define CONFIG_USB251X_I2C_FREQUENCY 100000
 #endif
 
 /* Other macros */
 
-#define USB2517_I2C_RETRIES   10
+#define USB251X_I2C_RETRIES   10
 
-#define USB2517_MFR_LEN_OFS	  (0x13)
-#define USB2517_PRD_LEN_OFS	  (0x14)
-#define USB2517_SER_LEN_OFS	  (0x15)
-#define USB2517_MFR_STR_OFS	  (0x16)
-#define USB2517_PRD_STR_OFS	  (0x54)
-#define USB2517_SER_STR_OFS	  (0x92)
-
+#define USB251X_MFR_LEN_OFS	  (0x13)
+#define USB251X_PRD_LEN_OFS	  (0x14)
+#define USB251X_SER_LEN_OFS	  (0x15)
+#define USB251X_MFR_STR_OFS	  (0x16)
+#define USB251X_PRD_STR_OFS	  (0x54)
+#define USB251X_SER_STR_OFS	  (0x92)
 
 /****************************************************************************
  * Private Data Types
  ****************************************************************************/
 
-struct usb2517_dev_s
+struct usb251x_dev_s
 {
-  FAR struct usb2517_config_s *config;  /* Platform specific configuration */
+  FAR struct usb251x_config_s *config;  /* Platform specific configuration */
   FAR struct i2c_master_s *i2c;         /* I2C interface */
   uint8_t addr;                         /* I2C address */
   mutex_t devlock;                      /* Manages exclusive access */
@@ -81,28 +80,28 @@ struct usb2517_dev_s
  * Private Function prototypes
  ****************************************************************************/
 
-static int usb2517_open(FAR struct file *filep);
-static int usb2517_close(FAR struct file *filep);
-static int usb2517_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
+static int usb251x_open(FAR struct file *filep);
+static int usb251x_close(FAR struct file *filep);
+static int usb251x_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 
-static int usb2517_portcfg(struct usb2517_dev_s *priv, enum usb2517_ports_e port, bool stat);
-static int usb2517_config_ports(struct usb2517_dev_s *priv);
-static int usb2517_attach(FAR struct usb2517_dev_s *priv);
-static int usb2517_detach(FAR struct usb2517_dev_s *priv);
-static int usb2517_reset(FAR struct usb2517_dev_s *priv);
+static int usb251x_portcfg(struct usb251x_dev_s *priv, enum usb251x_ports_e port, bool stat);
+static int usb251x_config_ports(struct usb251x_dev_s *priv);
+static int usb251x_attach(FAR struct usb251x_dev_s *priv);
+static int usb251x_detach(FAR struct usb251x_dev_s *priv);
+static int usb251x_reset(FAR struct usb251x_dev_s *priv);
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static const struct file_operations g_usb2517ops =
+static const struct file_operations g_usb251xops =
 {
-  usb2517_open,  /* open */
-  usb2517_close, /* close */
+  usb251x_open,  /* open */
+  usb251x_close, /* close */
   NULL,          /* read */
   NULL,          /* write */
   NULL,          /* seek */
-  usb2517_ioctl, /* ioctl */
+  usb251x_ioctl, /* ioctl */
   NULL,          /* mmap */
   NULL,          /* truncate */
   NULL           /* poll */
@@ -145,7 +144,7 @@ static int create_utf16_str(const char *inp_str, char *utf16_str)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-static void insert_mfr_str(struct usb2517_config_s *config)
+static void insert_mfr_str(struct usb251x_config_s *config)
 {
   char utf16_str[62] = {0};
 
@@ -157,9 +156,9 @@ static void insert_mfr_str(struct usb2517_config_s *config)
 
   /* update the config */
 
-  config->config[USB2517_MFR_LEN_OFS] = len/2;
+  config->config[USB251X_MFR_LEN_OFS] = len/2;
 
-  memcpy(&config->config[USB2517_MFR_STR_OFS], utf16_str, len);
+  memcpy(&config->config[USB251X_MFR_STR_OFS], utf16_str, len);
 }
 
 /*******************************************************************************
@@ -169,7 +168,7 @@ static void insert_mfr_str(struct usb2517_config_s *config)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-static void insert_prd_str(struct usb2517_config_s *config)
+static void insert_prd_str(struct usb251x_config_s *config)
 {
   char utf16_str[62] = {0};
 
@@ -181,9 +180,9 @@ static void insert_prd_str(struct usb2517_config_s *config)
 
   /* update the config */
 
-  config->config[USB2517_PRD_LEN_OFS] = len/2;
+  config->config[USB251X_PRD_LEN_OFS] = len/2;
 
-  memcpy(&config->config[USB2517_PRD_STR_OFS], utf16_str, len);
+  memcpy(&config->config[USB251X_PRD_STR_OFS], utf16_str, len);
 }
 
 /*******************************************************************************
@@ -193,7 +192,7 @@ static void insert_prd_str(struct usb2517_config_s *config)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-static void insert_ser_str(struct usb2517_config_s *config)
+static void insert_ser_str(struct usb251x_config_s *config)
 {
   char utf16_str[62] = {0};
 
@@ -205,19 +204,19 @@ static void insert_ser_str(struct usb2517_config_s *config)
 
   /* update the config */
 
-  config->config[USB2517_SER_LEN_OFS] = len/2;
+  config->config[USB251X_SER_LEN_OFS] = len/2;
 
-  memcpy(&config->config[USB2517_SER_STR_OFS], utf16_str, len);
+  memcpy(&config->config[USB251X_SER_STR_OFS], utf16_str, len);
 }
 
 /****************************************************************************
- * Name: usb2517_block_read
+ * Name: usb251x_block_read
  *
  * Description:
- *   Read register block from USB2517
+ *   Read register block from USB251X
  *
  * Input Parameters:
- *   priv    - pointer to USB2517 Private Structure
+ *   priv    - pointer to USB251X Private Structure
  *   regaddr - register address to read
  *   regvals - register values to read
  *   len     - length of read values
@@ -226,9 +225,9 @@ static void insert_ser_str(struct usb2517_config_s *config)
  *   Returns OK in case of success, otherwise ERROR
  ****************************************************************************/
 
-static int usb2517_block_read(FAR struct usb2517_dev_s *priv, uint8_t regaddr, uint8_t *regvals, uint8_t len)
+static int usb251x_block_read(FAR struct usb251x_dev_s *priv, uint8_t regaddr, uint8_t *regvals, uint8_t len)
 {
-  uint8_t rxbuffer[CONFIG_USB2517_BLOCK_SIZE+1];
+  uint8_t rxbuffer[CONFIG_USB251X_BLOCK_SIZE+1];
   struct i2c_msg_s msg[2];
   int retries;
   int ret = -EIO;
@@ -239,7 +238,7 @@ static int usb2517_block_read(FAR struct usb2517_dev_s *priv, uint8_t regaddr, u
    * with STOP condition.
    */
 
-  msg[0].frequency = CONFIG_USB2517_I2C_FREQUENCY;
+  msg[0].frequency = CONFIG_USB251X_I2C_FREQUENCY;
   msg[0].addr      = priv->addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
@@ -249,7 +248,7 @@ static int usb2517_block_read(FAR struct usb2517_dev_s *priv, uint8_t regaddr, u
    * write (rbuflen < 0) with no restart.
    */
 
-  msg[1].frequency = CONFIG_USB2517_I2C_FREQUENCY;
+  msg[1].frequency = CONFIG_USB251X_I2C_FREQUENCY;
   msg[1].addr      = priv->addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = rxbuffer;
@@ -257,7 +256,7 @@ static int usb2517_block_read(FAR struct usb2517_dev_s *priv, uint8_t regaddr, u
 
   /* Perform the transfer */
 
-  for (retries = 0; retries < USB2517_I2C_RETRIES; retries++)
+  for (retries = 0; retries < USB251X_I2C_RETRIES; retries++)
     {
       ret = I2C_TRANSFER(priv->i2c, msg, 2);
       if (ret >= 0)
@@ -270,7 +269,7 @@ static int usb2517_block_read(FAR struct usb2517_dev_s *priv, uint8_t regaddr, u
           /* Some error. Try to reset I2C bus and keep trying. */
 
 #ifdef CONFIG_I2C_RESET
-          if (retries == USB2517_I2C_RETRIES - 1)
+          if (retries == USB251X_I2C_RETRIES - 1)
             {
               break;
             }
@@ -278,25 +277,25 @@ static int usb2517_block_read(FAR struct usb2517_dev_s *priv, uint8_t regaddr, u
           ret = I2C_RESET(priv->i2c);
           if (ret < 0)
             {
-              usb2517_err("ERROR: I2C_RESET failed: %d\n", ret);
+              usb251x_err("ERROR: I2C_RESET failed: %d\n", ret);
               return ret;
             }
 #endif
         }
     }
 
-  usb2517_info("reg:%02X, error:%d\n", regaddr, ret);
+  usb251x_info("reg:%02X, error:%d\n", regaddr, ret);
   return ret;
 }
 
 /****************************************************************************
- * Name: usb2517_block_write
+ * Name: usb251x_block_write
  *
  * Description:
- *   Write a value to an 8-bit USB2517 register
+ *   Write a value to an 8-bit USB251X register
  *
  * Input Parameters:
- *   priv    - pointer to USB2517 Private Structure
+ *   priv    - pointer to USB251X Private Structure
  *   regaddr - register address to write
  *   regvals - register values to write
  *   len     - length of write values
@@ -305,9 +304,9 @@ static int usb2517_block_read(FAR struct usb2517_dev_s *priv, uint8_t regaddr, u
  *   Returns OK in case of success, otherwise ERROR
  ****************************************************************************/
 
-static int usb2517_block_write(FAR struct usb2517_dev_s *priv, uint8_t regaddr, uint8_t *regvals, uint8_t len)
+static int usb251x_block_write(FAR struct usb251x_dev_s *priv, uint8_t regaddr, uint8_t *regvals, uint8_t len)
 {
-  uint8_t txbuffer[CONFIG_USB2517_BLOCK_SIZE+2];
+  uint8_t txbuffer[CONFIG_USB251X_BLOCK_SIZE+2];
   struct i2c_msg_s msg;
   int retries;
   int ret = -EIO;
@@ -322,7 +321,7 @@ static int usb2517_block_write(FAR struct usb2517_dev_s *priv, uint8_t regaddr, 
 
   /* Set up the I2C configuration */
 
-  msg.frequency = CONFIG_USB2517_I2C_FREQUENCY;
+  msg.frequency = CONFIG_USB251X_I2C_FREQUENCY;
   msg.addr      = priv->addr;
   msg.flags     = 0;
   msg.buffer    = txbuffer;
@@ -330,7 +329,7 @@ static int usb2517_block_write(FAR struct usb2517_dev_s *priv, uint8_t regaddr, 
 
   /* Perform the transfer */
 
-  for (retries = 0; retries < USB2517_I2C_RETRIES; retries++)
+  for (retries = 0; retries < USB251X_I2C_RETRIES; retries++)
     {
       ret = I2C_TRANSFER(priv->i2c, &msg, 1);
       if (ret == OK)
@@ -342,7 +341,7 @@ static int usb2517_block_write(FAR struct usb2517_dev_s *priv, uint8_t regaddr, 
           /* Some error. Try to reset I2C bus and keep trying. */
 
 #ifdef CONFIG_I2C_RESET
-          if (retries == USB2517_I2C_RETRIES - 1)
+          if (retries == USB251X_I2C_RETRIES - 1)
             {
               break;
             }
@@ -350,115 +349,97 @@ static int usb2517_block_write(FAR struct usb2517_dev_s *priv, uint8_t regaddr, 
           ret = I2C_RESET(priv->i2c);
           if (ret < 0)
             {
-              usb2517_err("ERROR: I2C_RESET failed: %d\n", ret);
+              usb251x_err("ERROR: I2C_RESET failed: %d\n", ret);
               return ret;
             }
 #endif
         }
     }
 
-  usb2517_err("ERROR: failed reg:%02X, error:%d\n", regaddr, ret);
+  usb251x_err("ERROR: failed reg:%02X, error:%d\n", regaddr, ret);
   return ret;
 }
 
 /*******************************************************************************
-* Function Name  : usb2517_portcfg
+* Function Name  : usb251x_portmap
 * Description    : None
 * Input          : None
 * Output         : None
 * Return         : None
 *******************************************************************************/
-static int usb2517_portcfg(struct usb2517_dev_s *priv, enum usb2517_ports_e port, bool stat)
+static int usb251x_portmap(struct usb251x_dev_s *priv, enum usb251x_ports_e phyport, uint8_t logport, bool stat)
 {
   uint8_t port_map[4];
   int ret;
 
   /* read the current port remap status */
 
-  ret = usb2517_block_read(priv, USB2517_PRTR12_REG, port_map, 4);
+  ret = usb251x_block_read(priv, USB251X_PRTR12_REG, port_map, 4);
   if (ret < 0)
     {
-      usb2517_err("ERROR: USB2517 port(%d) config failed: %d\n", port, ret);
+      usb251x_err("ERROR: USB251X port(%d) config failed: %d\n", phyport, ret);
       return ret;
     }
 
-  /* scan the all logical port numbers */
-
-  uint8_t log_num = 0, num;
-  
-  for (uint8_t i = 0; i < 4; i++)
-    {
-      /* find the last logical number */
-      if ((num = (port_map[i] & 0xff) & 7) > log_num) {
-          log_num = num;
-      }
-      if ((num = ((port_map[i] >> 4) & 0xff) & 7) > log_num) {
-          log_num = num;
-      }
-    }
-
-  /* update the next logical number */
-  log_num++;
-
   /* check the physical port number */
-  switch ((uint8_t)port)
+  switch ((uint8_t)phyport)
   {
     case 1:
       port_map[0] &= 0xF0;
       if (stat) {
-          port_map[0] |= log_num;
+          port_map[0] |= logport;
       }
       break;
         
     case 2:
       port_map[0] &= 0x0F;
       if (stat) {
-          port_map[0] |= (log_num << 4);
+          port_map[0] |= (logport << 4);
       }
       break;
 
     case 3:
       port_map[1] &= 0xF0;
       if (stat) {
-          port_map[1] |= log_num;
+          port_map[1] |= logport;
       }
       break;
         
     case 4:
       port_map[1] &= 0x0F;
       if (stat) {
-          port_map[1] |= (log_num << 4);
+          port_map[1] |= (logport << 4);
       }
       break;
 
     case 5:
       port_map[2] &= 0xF0;
       if (stat) {
-          port_map[2] |= log_num;
+          port_map[2] |= logport;
       }
       break;
         
     case 6:
       port_map[2] &= 0x0F;
       if (stat) {
-          port_map[2] |= (log_num << 4);
+          port_map[2] |= (logport << 4);
       }
       break;
 
     case 7:
       port_map[3] &= 0xF0;
       if (stat) {
-          port_map[3] |= log_num;
+          port_map[3] |= logport;
       }
       break;
   }
 
   /* write the new port remap status */
   
-  ret = usb2517_block_write(priv, USB2517_PRTR12_REG, port_map, 4);
+  ret = usb251x_block_write(priv, USB251X_PRTR12_REG, port_map, 4);
   if (ret < 0)
     {
-      usb2517_err("ERROR: USB2517 port(%d) config failed: %d\n", port, ret);
+      usb251x_err("ERROR: USB251X port(%d) config failed: %d\n", phyport, ret);
       return ret;
     }
 
@@ -466,53 +447,67 @@ static int usb2517_portcfg(struct usb2517_dev_s *priv, enum usb2517_ports_e port
 }
 
 /*******************************************************************************
-* Function Name  : usb2517_config_ports
+* Function Name  : usb251x_config_ports
 * Description    : None
 * Input          : None
 * Output         : None
 * Return         : None
 *******************************************************************************/
-static int usb2517_config_ports(struct usb2517_dev_s *priv)
+static int usb251x_config_ports(struct usb251x_dev_s *priv)
 {
     int ret = 0;
+    int phy, log;
 
-    /* Enable the MCU USB port */
-    ret += usb2517_portcfg(priv, USB2517_MCU_PORT, true);
+    /* Is the port mapping enabled ?*/
 
-    /* Enable the F9P USB port */
-    ret += usb2517_portcfg(priv, USB2517_F9P_PORT, true);
+    if (priv->config->portmap != NULL) 
+      {
+        /* Scan all physical ports */
 
-    /* Enable the F9H1 USB port */
-    ret += usb2517_portcfg(priv, USB2517_F9H1_PORT, true);
+        for (phy = 1; phy < priv->config->portnum + 1; phy++)
+          {
+            /* Get the logical port number */
 
-    /* Enable the F9H2 USB port */
-    ret += usb2517_portcfg(priv, USB2517_F9H2_PORT, true);
+            log = priv->config->portmap(phy);
+            if (log > 0)
+              {
+                /* Map and enable the port */
 
-    /* Enable the XBEE USB port */
-    ret += usb2517_portcfg(priv, USB2517_XBEE_PORT, true);
+                ret += usb251x_portmap(priv, phy, log, true);
+              }
+          }
+      }
+    else 
+      {
+        /* Scan all physical ports */
 
-    /* Enable the LTE USB port */
-    ret += usb2517_portcfg(priv, USB2517_M2M_PORT, true);
+        for (phy = 1; phy < priv->config->portnum + 1; phy++)
+          {
+            /* Map and enable the port with default order */
+
+            ret += usb251x_portmap(priv, phy, phy, true);
+          }
+      }
 
     return ret;
 }
 
 /****************************************************************************
- * Name: usb2517_config
+ * Name: usb251x_config
  *
  * Description:
- *   Setup USB2517 chip
+ *   Setup USB251X chip
  *
  ****************************************************************************/
 
-static int usb2517_config(FAR struct usb2517_dev_s *priv,
-                         struct usb2517_config_s *config)
+static int usb251x_config(FAR struct usb251x_dev_s *priv,
+                         struct usb251x_config_s *config)
 {
-  uint8_t buf[CONFIG_USB2517_BLOCK_SIZE];
+  uint8_t buf[CONFIG_USB251X_BLOCK_SIZE];
 	uint32_t crc1 = 0xffffffff;
 	uint32_t crc2 = 0xffffffff;
   uint8_t i, addr, *cfg;
-  int ret = OK;
+  int ret = ERROR;
 
   /* reset the hub */
 
@@ -528,23 +523,24 @@ static int usb2517_config(FAR struct usb2517_dev_s *priv,
   for (i = 0; i < 8; i++)
     {
         /* update the register address */
-        addr = i * CONFIG_USB2517_BLOCK_SIZE; 
+        addr = i * CONFIG_USB251X_BLOCK_SIZE; 
 
         /* get the configuration part */
         cfg = &config->config[addr];
+        memcpy(buf, cfg, CONFIG_USB251X_BLOCK_SIZE);
 
         /* write configuration block */
 
-        ret = usb2517_block_write(priv, addr, cfg, CONFIG_USB2517_BLOCK_SIZE);
+        ret = usb251x_block_write(priv, addr, cfg, CONFIG_USB251X_BLOCK_SIZE);
         if (ret < 0)
           {
-            usb2517_err("ERROR: Failed to write register(s)\n");
+            usb251x_err("ERROR: Failed to write register(s)\n");
             goto err_out;
           }
         
         /* calculate the crc value of configuration part */
 
-        crc1 = crc32part(cfg, CONFIG_USB2517_BLOCK_SIZE, crc1);
+        crc1 = crc32part(cfg, CONFIG_USB251X_BLOCK_SIZE, crc1);
     }
 
   /* read back the configuration */
@@ -552,38 +548,41 @@ static int usb2517_config(FAR struct usb2517_dev_s *priv,
   for (i = 0; i < 8; i++)
     {
         /* update the register address */
-        addr = i * CONFIG_USB2517_BLOCK_SIZE; 
+        addr = i * CONFIG_USB251X_BLOCK_SIZE; 
 
         /* read configuration block */
 
-        ret = usb2517_block_read(priv, addr, buf, CONFIG_USB2517_BLOCK_SIZE);
+        ret = usb251x_block_read(priv, addr, buf, CONFIG_USB251X_BLOCK_SIZE);
         if (ret < 0)
           {
-            usb2517_err("ERROR: Failed to write register(s)\n");
+            usb251x_err("ERROR: Failed to write register(s)\n");
             goto err_out;
           } 
 
         /* calculate the crc value of configuration part */
         
-        crc2 = crc32part(buf, CONFIG_USB2517_BLOCK_SIZE, crc2);
+        crc2 = crc32part(buf, CONFIG_USB251X_BLOCK_SIZE, crc2);
     }
 
   /* Check for configuration validity */
   
+  ret = ERROR;
   if (crc1 == crc2)
     {
       /* check the ids */
 
       /* confiures the hub ports */
-      ret = usb2517_config_ports(priv);
+
+      ret = usb251x_config_ports(priv);
       if (ret < 0)
         {
-          usb2517_err("ERROR: Failed to config port(s)\n");
+          usb251x_err("ERROR: Failed to config port(s)\n");
           goto err_out;
         } 
 
       /* attach the USB up-stream port */
-      return usb2517_attach(priv);
+
+      return usb251x_attach(priv);
     }
 
 err_out:
@@ -591,22 +590,22 @@ err_out:
 }
 
 /****************************************************************************
- * Name: usb2517_reset
+ * Name: usb251x_reset
  *
  * Description:
- *   Reset USB2517 HW and clear I2C registers
+ *   Reset USB251X HW and clear I2C registers
  *
  ****************************************************************************/
 
-static int usb2517_reset(FAR struct usb2517_dev_s *priv)
+static int usb251x_reset(FAR struct usb251x_dev_s *priv)
 {
   int ret = OK;
   uint8_t reg = STCD_RESET;
 
-  ret = usb2517_block_write(priv, USB2517_STCD_REG, &reg, 1);
+  ret = usb251x_block_write(priv, USB251X_STCD_REG, &reg, 1);
   if (ret < 0)
     {
-      usb2517_err("ERROR: Failed to write command register\n");
+      usb251x_err("ERROR: Failed to write command register\n");
       ret = -EIO;
     }
 
@@ -614,22 +613,22 @@ static int usb2517_reset(FAR struct usb2517_dev_s *priv)
 }
 
 /****************************************************************************
- * Name: usb2517_attach
+ * Name: usb251x_attach
  *
  * Description:
- *   Attach USB2517 to the bus
+ *   Attach USB251X to the bus
  *
  ****************************************************************************/
 
-static int usb2517_attach(FAR struct usb2517_dev_s *priv)
+static int usb251x_attach(FAR struct usb251x_dev_s *priv)
 {
   int ret = OK;
   uint8_t reg = STCD_ATTACH;
 
-  ret = usb2517_block_write(priv, USB2517_STCD_REG, &reg, 1);
+  ret = usb251x_block_write(priv, USB251X_STCD_REG, &reg, 1);
   if (ret < 0)
     {
-      usb2517_err("ERROR: Failed to write command register\n");
+      usb251x_err("ERROR: Failed to write command register\n");
       ret = -EIO;
     }
 
@@ -637,22 +636,22 @@ static int usb2517_attach(FAR struct usb2517_dev_s *priv)
 }
 
 /****************************************************************************
- * Name: usb2517_detach
+ * Name: usb251x_detach
  *
  * Description:
- *   Detach USB2517 from the bus
+ *   Detach USB251X from the bus
  *
  ****************************************************************************/
 
-static int usb2517_detach(FAR struct usb2517_dev_s *priv)
+static int usb251x_detach(FAR struct usb251x_dev_s *priv)
 {
   int ret = OK;
   uint8_t reg = STCD_DETACH;
 
-  ret = usb2517_block_write(priv, USB2517_STCD_REG, &reg, 1);
+  ret = usb251x_block_write(priv, USB251X_STCD_REG, &reg, 1);
   if (ret < 0)
     {
-      usb2517_err("ERROR: Failed to write command register\n");
+      usb251x_err("ERROR: Failed to write command register\n");
       ret = -EIO;
     }
 
@@ -660,42 +659,42 @@ static int usb2517_detach(FAR struct usb2517_dev_s *priv)
 }
 
 /****************************************************************************
- * Name: usb2517_open
+ * Name: usb251x_open
  *
  * Description:
- *   This function is called whenever the USB2517 device is opened.
+ *   This function is called whenever the USB251X device is opened.
  *
  ****************************************************************************/
 
-static int usb2517_open(FAR struct file *filep)
+static int usb251x_open(FAR struct file *filep)
 {
   return OK;
 }
 
 /****************************************************************************
- * Name: usb2517_close
+ * Name: usb251x_close
  *
  * Description:
- *   This routine is called when the USB2517 device is closed.
+ *   This routine is called when the USB251X device is closed.
  *
  ****************************************************************************/
 
-static int usb2517_close(FAR struct file *filep)
+static int usb251x_close(FAR struct file *filep)
 {
   return OK;
 }
 
 /****************************************************************************
- * Name: usb2517_ioctl
+ * Name: usb251x_ioctl
  * Description:
  *   This routine is called when ioctl function call is performed for
- *   the USB2517 device.
+ *   the USB251X device.
  ****************************************************************************/
 
-static int usb2517_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
+static int usb251x_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   FAR struct inode *inode = filep->f_inode;
-  FAR struct usb2517_dev_s *priv = inode->i_private;
+  FAR struct usb251x_dev_s *priv = inode->i_private;
   int ret;
 
   ret = nxmutex_lock(&priv->devlock);
@@ -704,7 +703,7 @@ static int usb2517_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       return ret;
     }
 
-  usb2517_info("cmd: 0x%02X, arg:%lu\n", cmd, arg);
+  usb251x_info("cmd: 0x%02X, arg:%lu\n", cmd, arg);
 
   switch (cmd)
   {
@@ -728,31 +727,31 @@ static int usb2517_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   case USBCIOC_CONFIG:
     {
-      ret = usb2517_config(priv, (struct usb2517_config_s *)arg);
+      ret = usb251x_config(priv, (struct usb251x_config_s *)arg);
     }
     break;
 
   case USBCIOC_ATTACH:
     {
-      ret = usb2517_attach(priv);
+      ret = usb251x_attach(priv);
     }
     break;
 
   case USBCIOC_DETACH:
     {
-      ret = usb2517_detach(priv);
+      ret = usb251x_detach(priv);
     }
     break;
 
   case USBCIOC_RESET:
     {
-      ret = usb2517_reset(priv);
+      ret = usb251x_reset(priv);
     }
     break;
 
   default:
     {
-      usb2517_err("ERROR: Unrecognized cmd: %d\n", cmd);
+      usb251x_err("ERROR: Unrecognized cmd: %d\n", cmd);
       ret = -ENOTTY;
     }
     break;
@@ -766,21 +765,21 @@ static int usb2517_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Public Functions
  ****************************************************************************/
 
-int usb2517_register(FAR const char *devpath, FAR struct i2c_master_s *i2c,
-                     uint8_t addr, FAR struct usb2517_config_s *config)
+int usb251x_register(FAR const char *devpath, FAR struct i2c_master_s *i2c,
+                     uint8_t addr, FAR struct usb251x_config_s *config)
 {
-  FAR struct usb2517_dev_s *priv;
+  FAR struct usb251x_dev_s *priv;
   int ret;
 
   DEBUGASSERT(devpath != NULL && i2c != NULL && config != NULL);
 
-  /* Initialize the USB2517 device structure */
+  /* Initialize the USB251X device structure */
 
-  priv = (FAR struct usb2517_dev_s *)
-                kmm_zalloc(sizeof(struct usb2517_dev_s));
+  priv = (FAR struct usb251x_dev_s *)
+                kmm_zalloc(sizeof(struct usb251x_dev_s));
   if (!priv)
     {
-      usb2517_err("ERROR: Failed to allocate instance\n");
+      usb251x_err("ERROR: Failed to allocate instance\n");
       return -ENOMEM;
     }
 
@@ -794,16 +793,16 @@ int usb2517_register(FAR const char *devpath, FAR struct i2c_master_s *i2c,
 
   /* Register the character driver */
 
-  ret = register_driver(devpath, &g_usb2517ops, 0666, priv);
+  ret = register_driver(devpath, &g_usb251xops, 0666, priv);
   if (ret < 0)
     {
-      usb2517_err("ERROR: Failed to register driver: %d\n", ret);
+      usb251x_err("ERROR: Failed to register driver: %d\n", ret);
       goto errout_with_priv;
     }
 
   /* Configure the device */
 
-  return usb2517_config(priv, config);
+  return usb251x_config(priv, config);
 
 errout_with_priv:
   nxmutex_destroy(&priv->devlock);

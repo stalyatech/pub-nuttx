@@ -109,7 +109,7 @@ ifeq ($(CONFIG_MTD_W25),y)
 CSRCS += stm32_w25.c
 endif
 
-ifeq ($(CONFIG_USB2517),y)
+ifeq ($(CONFIG_USB251X),y)
 CSRCS += stm32_usbhub.c
 endif
 

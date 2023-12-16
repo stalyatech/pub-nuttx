@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/usb/usb2517.h
+ * include/nuttx/usb/usb251x.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_USB_USB2517_H
-#define __INCLUDE_NUTTX_USB_USB2517_H
+#ifndef __INCLUDE_NUTTX_USB_USB251X_H
+#define __INCLUDE_NUTTX_USB_USB251X_H
 
 /****************************************************************************
  * Included Files
@@ -58,51 +58,53 @@ extern "C"
  * Public Types
  ****************************************************************************/
 
-enum usb2517_reg_address_e
+enum usb251x_reg_address_e
 {
-  USB2517_VIDL_REG   = 0x00,
-  USB2517_VIDM_REG,
-  USB2517_PIDL_REG,
-  USB2517_PIDM_REG,
-  USB2517_DIDL_REG,
-  USB2517_DIDM_REG,
-  USB2517_CFG1_REG,
-  USB2517_CFG2_REG,
-  USB2517_CFG3_REG,
-  USB2517_PRTR12_REG = 0xfb,
-  USB2517_PRTR34_REG = 0xfc,
-  USB2517_PRTR56_REG = 0xfd,
-  USB2517_PRTR7_REG  = 0xfe,
-  USB2517_STCD_REG   = 0xff
+  USB251X_VIDL_REG   = 0x00,
+  USB251X_VIDM_REG,
+  USB251X_PIDL_REG,
+  USB251X_PIDM_REG,
+  USB251X_DIDL_REG,
+  USB251X_DIDM_REG,
+  USB251X_CFG1_REG,
+  USB251X_CFG2_REG,
+  USB251X_CFG3_REG,
+  USB251X_PRTR12_REG = 0xfb,
+  USB251X_PRTR34_REG = 0xfc,
+  USB251X_PRTR56_REG = 0xfd,
+  USB251X_PRTR7_REG  = 0xfe,
+  USB251X_STCD_REG   = 0xff
 };
 
 /* USB hub port number */
-enum usb2517_ports_e
+enum usb251x_ports_e
 {
-    USB2517_UPS_PORT,
-    USB2517_XBEE_PORT,
-    USB2517_RSV_PORT,
-    USB2517_MCU_PORT,
-    USB2517_F9H1_PORT,
-    USB2517_F9P_PORT,
-    USB2517_M2M_PORT,
-    USB2517_F9H2_PORT,
+    USB251X_UPS_PORT,
+    USB251X_DN1_PORT,
+    USB251X_DN2_PORT,
+    USB251X_DN3_PORT,
+    USB251X_DN4_PORT,
+    USB251X_DN5_PORT,
+    USB251X_DN6_PORT,
+    USB251X_DN7_PORT,
 };
 
 /* Status/Command - 0xff */
 
-enum usb2517_stcd_e
+enum usb251x_stcd_e
 {
   STCD_DETACH  = (0 << 0),
   STCD_ATTACH  = (1 << 0),
   STCD_RESET   = (1 << 1),
 };
 
-struct usb2517_config_s
+struct usb251x_config_s
 {
   const char *mfr_str;
   const char *prd_str;
   const char *ser_str;
+  int portnum;
+  int (*portmap)(uint8_t);
   uint8_t config[256];
 };
 
@@ -111,30 +113,30 @@ struct usb2517_config_s
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usb2517_register
+ * Name: usb251x_register
  *
  * Description:
- *   Register the USB2517 character device as 'devpath'
+ *   Register the USB251X character device as 'devpath'
  *
  * Input Parameters:
  *   devpath - The full path to the driver to register. E.g., "/dev/usbhub0"
  *   i2c     - An instance of the I2C interface to use to communicate with
- *             USB2517
- *   addr    - The I2C address of the USB2517.
- *             The I2C address of the USB2517 is 0x58.
- *   config  - Pointer to USB2517 configuration
+ *             USB251X
+ *   addr    - The I2C address of the USB251X.
+ *             The I2C address of the USB251X is 0x58.
+ *   config  - Pointer to USB251X configuration
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-int usb2517_register(FAR const char *devpath, FAR struct i2c_master_s *i2c,
-                     uint8_t addr, FAR struct usb2517_config_s *config);
+int usb251x_register(FAR const char *devpath, FAR struct i2c_master_s *i2c,
+                     uint8_t addr, FAR struct usb251x_config_s *config);
 
 #undef EXTERN
 #if defined(__cplusplus)
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_USB_USB2517_H */
+#endif /* __INCLUDE_NUTTX_USB_USB251X_H */

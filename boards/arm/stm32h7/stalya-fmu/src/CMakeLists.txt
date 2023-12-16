@@ -1,5 +1,5 @@
 # ##############################################################################
-# boards/arm/stm32f7/ardusimple-sbc/src/CMakeLists.txt
+# boards/arm/stm32h7/stalya-fmu/src/CMakeLists.txt
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
@@ -18,7 +18,11 @@
 #
 # ##############################################################################
 
-set(SRCS stm32_boot.c stm32_bringup.c stm32_platform.c)
+set(SRCS stm32_boot.c stm32_bringup.c)
+
+if(CONFIG_ADC)
+  list(APPEND SRCS stm32_adc.c)
+endif()
 
 if(CONFIG_ARCH_LEDS)
   list(APPEND SRCS stm32_autoleds.c)
@@ -30,94 +34,83 @@ if(CONFIG_ARCH_BUTTONS)
   list(APPEND SRCS stm32_buttons.c)
 endif()
 
-if(CONFIG_BOARDCTL)
-  list(APPEND SRCS stm32_appinit.c)
+if(CONFIG_STM32_ROMFS)
+  list(APPEND SRCS stm32_romfs_initialize.c)
 endif()
 
-if(CONFIG_DEV_GPIO)
-  list(APPEND SRCS stm32_gpio.c)
-endif()
-
-if(CONFIG_SPI)
+if(CONFIG_STM32H7_SPI)
   list(APPEND SRCS stm32_spi.c)
 endif()
 
-if(CONFIG_ADC)
-  list(APPEND SRCS stm32_adc.c)
-endif()
-
-if(CONFIG_PWM)
-  list(APPEND SRCS stm32_pwm.c)
-endif()
-
-if(CONFIG_MMCSD)
-  list(APPEND SRCS stm32_sdio.c)
-endif()
-
-if(CONFIG_USBMSC)
-list(APPEND SRCS stm32_usbmsc.c)
-endif()
-
-if(CONFIG_STM32F7_ETHMAC)
-  list(APPEND SRCS stm32_netinit.c)
-endif()
-
-if(CONFIG_STM32F7_OTGFS)
+if(CONFIG_STM32H7_OTGFS)
   list(APPEND SRCS stm32_usb.c)
-endif()
-
-if(CONFIG_STM32F7_BBSRAM)
-  list(APPEND SRCS stm32_bbsram.c)
-endif()
-
-if(CONFIG_STM32F7_PROGMEM)
-  list(APPEND SRCS stm32_progmem.c)
-endif()
-
-if(CONFIG_BOARDCTL_RESET)
-  list(APPEND SRCS stm32_reset.c)
-endif()
-
-if(CONFIG_BOARDCTL_BOOT_IMAGE)
-  list(APPEND SRCS stm32_boot_image.c)
-endif()
-
-if(CONFIG_STM32_ROMFS)
-  list(APPEND SRCS stm32_romfs_init.c)
 endif()
 
 if(CONFIG_BOARDCTL_UNIQUEID)
   list(APPEND SRCS stm32_uid.c)
 endif()
 
-if(CONFIG_STM32F7_CAN)
-  if(CONFIG_STM32F7_CAN_CHARDRIVER)
-    list(APPEND SRCS stm32_can.c)
+if(CONFIG_SENSORS_ICM20689_I2C)
+  list(APPEND SRCS stm32_icm20689.c)
+endif()
+
+if(CONFIG_SENSORS_LIS3MDL_I2C)
+  list(APPEND SRCS stm32_lis3mdl.c)
+endif()
+
+if(CONFIG_SENSORS_MS56110_I2C)
+  list(APPEND SRCS stm32_ms56110.c)
+endif()
+
+if(CONFIG_IOEXPANDER_PCA9557)
+  list(APPEND SRCS stm32_pca9557.c)
+endif()
+
+if(CONFIG_BOARDCTL)
+  list(APPEND SRCS stm32_appinitialize.c)
+  if(CONFIG_BOARDCTL_RESET)
+    list(APPEND SRCS stm32_reset.c)
   endif()
-  if(CONFIG_STM32F7_CAN_SOCKET)
-    list(APPEND SRCS stm32_cansock.c)
+  if(CONFIG_BOARDCTL_IOCTL)
+    list(APPEND SRCS stm32_ioctl.c)
   endif()
 endif()
 
-if(CONFIG_USBDEV_COMPOSITE)
-  list(APPEND SRCS stm32_composite.c)
-endif()
-
-if(CONFIG_MTD_W25)
-  list(APPEND SRCS stm32_w25.c)
+if(CONFIG_STM32H7_PROGMEM)
+  list(APPEND SRCS stm32_progmem.c)
 endif()
 
 if(CONFIG_USB251X)
   list(APPEND SRCS stm32_usbhub.c)
 endif()
 
-if(CONFIG_SENSORS_BNO085)
-  list(APPEND SRCS stm32_bno085.c)
+if(CONFIG_DEV_GPIO)
+  list(APPEND SRCS stm32_gpio.c)
+endif()
+
+if(CONFIG_PWM)
+  list(APPEND SRCS stm32_pwm.c)
+endif()
+
+if(CONFIG_BOARDCTL_BOOT_IMAGE)
+  list(APPEND SRCS stm32_boot_image.c)
+endif()
+
+if(CONFIG_USBMSC)
+  list(APPEND SRCS stm32_usbmsc.c)
+endif()
+
+if(CONFIG_USBDEV_COMPOSITE)
+  list(APPEND SRCS stm32_composite.c)
+endif()
+
+if(CONFIG_MMCSD)
+  list(APPEND SRCS stm32_mmcsd.c)
 endif()
 
 target_sources(board PRIVATE ${SRCS})
 
-if(CONFIG_STM32F7_APP_FORMAT_MCUBOOT)
+if(CONFIG_STM32_APP_FORMAT_MCUBOOT)
   if(CONFIG_MCUBOOT_BOOTLOADER)
     set_property(GLOBAL PROPERTY LD_SCRIPT "${NUTTX_BOARD_DIR}/scripts/flash-mcuboot-loader.ld")
   else()

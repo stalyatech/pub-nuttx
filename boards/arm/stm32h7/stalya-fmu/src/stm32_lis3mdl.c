@@ -23,61 +23,106 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/arch.h>
 
-#include <errno.h>
+#include <stdio.h>
 #include <debug.h>
 
-#include <nuttx/board.h>
+#include <nuttx/sensors/lis3mdl_uorb.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/spi/spi.h>
+
 #include "stm32.h"
-#include <stalya-fmu.h>
-#include <nuttx/sensors/lis3mdl.h>
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#ifndef CONFIG_STM32H7_I2C4
-#  error "LIS3MDL driver requires CONFIG_STM32H7_I2C4 to be enabled"
-#endif
+#include "stalya-fmu.h"
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_lis3mdl_initialize
+ * Name: board_lis3mdl_i2c_initialize
  *
  * Description:
- *   Initialize I2C-based LIS3MDL.
+ *   Initialize and register the I2C based LIS3MDL e-Compass driver.
+ *
+ * Input Parameters:
+ *   devno - The device number
+ *   busno - The I2C bus number
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-int stm32_lis3mdl_initialize(char *devpath)
+int board_lis3mdl_i2c_initialize(int devno, int busno)
 {
-  struct i2c_master_s *i2c;
-  int ret = OK;
+  struct lis3mdl_config_s config;
+  int ret = -ENODEV;
 
-  sninfo("INFO: Initializing LIS3MDL sensor over I2C\n");
+  sninfo("Initializing LIS3MDL!\n");
+  memset(&config, 0, sizeof(config));
 
-#if defined(CONFIG_STM32H7_I2C4)
-  i2c = stm32_i2cbus_initialize(4);
-  if (i2c == NULL)
+#ifdef CONFIG_LIS3MDL_I2C
+  /* Initialize I2C */
+
+  config.addr = LIS3MDL_I2CADDR;
+  config.i2c = stm32_i2cbus_initialize(busno);
+  if (config.i2c != NULL)
     {
-      return -ENODEV;
-    }
+      /* Then try to register the imu sensor on I2C */
 
-  ret = lis3mdl_sensor_register(devpath, i2c,
-                                  LIS3MDL_I2CADDR);
-  if (ret < 0)
+      ret = lis3mdl_uorb_register(devno, &config);
+      if (ret < 0)
+        {
+          snerr("ERROR: Error registering LIS3MDL on I2C%d\n", busno);
+        }
+    }
+#endif /* CONFIG_LIS3MDL_I2C */
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: board_lis3mdl_spi_initialize
+ *
+ * Description:
+ *   Initialize and register the SPI based LIS3MDL e-Compass driver.
+ *
+ * Input Parameters:
+ *   devno - The device number
+ *   busno - The SPI bus number
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+int board_lis3mdl_spi_initialize(int devno, int busno)
+{
+  struct lis3mdl_config_s config;
+  char devpath[12];
+  int ret = -ENODEV;
+
+  sninfo("Initializing LIS3MDL!\n");
+  memset(&config, 0, sizeof(config));
+
+  UNUSED(devpath);
+#ifdef CONFIG_LIS3MDL_SPI
+  /* Initialize SPI */
+
+  config.spi_devid = LIS3MDL_SPIDEV;
+  config.spi = stm32_spibus_initialize(busno);
+  if (config.spi != NULL)
     {
-      snerr("ERROR: Failed to initialize LIS3MDL magneto driver %s\n",
-            devpath);
-      return -ENODEV;
-    }
+      /* Then try to register the imu sensor on SPI */
 
-  sninfo("INFO: LIS3MDL sensor has been initialized successfully\n");
-#endif
+      snprintf(devpath, 12, "/dev/mag%d", devno);
+      ret = lis3mdl_register(devpath, &config);
+      if (ret < 0)
+        {
+          snerr("ERROR: Error registering LIS3MDL on SPI%d\n", busno);
+        }
+    }
+#endif /* CONFIG_ICM20689_SPI */
 
   return ret;
 }

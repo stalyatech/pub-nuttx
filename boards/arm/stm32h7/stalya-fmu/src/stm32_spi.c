@@ -62,6 +62,7 @@ void stm32_spidev_initialize(void)
    */
 
 #ifdef CONFIG_SENSORS_BMI088
+#ifdef CONFIG_BMI088_SPI
   /* Configure the SPI-based BMI088 sensor selects GPIO */
 
   /* Accel part */
@@ -73,8 +74,9 @@ void stm32_spidev_initialize(void)
   
   stm32_configgpio(GPIO_BMI088_CS2);
   stm32_gpiowrite(GPIO_BMI088_CS2, true);
+#endif /* CONFIG_BMI088_SPI */
 
-  /* Configure the SPI-based BMI088 sensor interrupt pins */
+  /* Configure the BMI088 sensor interrupt pins */
 
   /* Accel part */
 
@@ -83,27 +85,27 @@ void stm32_spidev_initialize(void)
   /* Gyro part */
   
   stm32_configgpio(GPIO_BMI088_INT3);
-#endif
+#endif /* CONFIG_SENSORS_BMI088 */
 
-#ifdef CONFIG_SENSORS_ICM20689
+#if defined(CONFIG_SENSORS_ICM20689) && defined(CONFIG_ICM20689_SPI)
   /* Configure the SPI-based ICM20689 sensor select GPIO */
 
   stm32_configgpio(GPIO_ICM20689_CS);
   stm32_gpiowrite(GPIO_ICM20689_CS, true);
 #endif
 
-#ifdef CONFIG_SENSORS_LIS3MDL
+#if defined(CONFIG_SENSORS_LIS3MDL) && defined(CONFIG_LIS3MDL_SPI)
   /* Configure the SPI-based LIS3MDL sensor select GPIO */
 
   stm32_configgpio(GPIO_LIS3MDL_CS);
   stm32_gpiowrite(GPIO_LIS3MDL_CS, true);
 #endif
 
-#ifdef CONFIG_SENSORS_MS56110
-  /* Configure the SPI-based MS56110 sensor select GPIO */
+#if defined(CONFIG_SENSORS_MS5611) && defined(CONFIG_MS5611_SPI)
+  /* Configure the SPI-based MS5611 sensor select GPIO */
 
-  stm32_configgpio(GPIO_MS56110_CS);
-  stm32_gpiowrite(GPIO_MS56110_CS, true);
+  stm32_configgpio(GPIO_MS5611_CS);
+  stm32_gpiowrite(GPIO_MS5611_CS, true);
 #endif
 }
 
@@ -139,7 +141,7 @@ void stm32_spi1select(struct spi_dev_s *dev,
 {
   switch (devid)
     {
-#ifdef CONFIG_SENSORS_BMI088
+#if defined(CONFIG_SENSORS_BMI088) && defined(CONFIG_BMI088_SPI)
       case SPIDEV_IMU(0):
         spiinfo("BMI088 accel device %s\n",
                 selected ? "asserted" : "de-asserted");
@@ -157,9 +159,9 @@ void stm32_spi1select(struct spi_dev_s *dev,
 
         stm32_gpiowrite(GPIO_BMI088_CS2, !selected);
         break;
-#endif /* CONFIG_SENSORS_BMI088 */
+#endif /* CONFIG_SENSORS_BMI088 && CONFIG_BMI088_SPI */
 
-#ifdef CONFIG_SENSORS_ICM20689
+#if defined(CONFIG_SENSORS_ICM20689) && defined(CONFIG_ICM20689_SPI)
       case SPIDEV_IMU(2):
         spiinfo("ICM20689 accel/gyro device %s\n",
                 selected ? "asserted" : "de-asserted");
@@ -168,9 +170,9 @@ void stm32_spi1select(struct spi_dev_s *dev,
 
         stm32_gpiowrite(GPIO_ICM20689_CS, !selected);
         break;
-#endif /* CONFIG_SENSORS_ICM20689 */
+#endif /* CONFIG_SENSORS_ICM20689 && CONFIG_ICM20689_SPI */
 
-#ifdef CONFIG_SENSORS_LIS3MDL
+#if defined(CONFIG_SENSORS_LIS3MDL) && defined(CONFIG_LIS3MDL_SPI)
       case SPIDEV_IMU(3):
         spiinfo("LIS3MDL megneto device %s\n",
                 selected ? "asserted" : "de-asserted");
@@ -179,21 +181,18 @@ void stm32_spi1select(struct spi_dev_s *dev,
 
         stm32_gpiowrite(GPIO_LIS3MDL_CS, !selected);
         break;
-#endif /* CONFIG_SENSORS_LIS3MDL */
+#endif /* CONFIG_SENSORS_LIS3MDL && CONFIG_LIS3MDL_SPI */
 
-#ifdef CONFIG_SENSORS_MS56110
-      case SPIDEV_IMU(4):
-        spiinfo("MS56110 baro device %s\n",
+#if defined(CONFIG_SENSORS_MS5611) && defined(CONFIG_MS5611_SPI)
+      case SPIDEV_BAROMETER(0):
+        spiinfo("MS5611 baro device %s\n",
                 selected ? "asserted" : "de-asserted");
 
         /* Set the GPIO low to select and high to de-select */
 
-        stm32_gpiowrite(GPIO_MS56110_CS, !selected);
+        stm32_gpiowrite(GPIO_MS5611_CS, !selected);
         break;
-#endif /* CONFIG_SENSORS_MS56110 */
-
-      default:
-        break;
+#endif /* CONFIG_SENSORS_MS5611 && CONFIG_MS5611_SPI */
     }          
 }
 

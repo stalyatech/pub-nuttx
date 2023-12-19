@@ -59,6 +59,10 @@
 #  include "stm32_wdg.h"
 #endif
 
+#ifdef CONFIG_I2C
+#  include "stm32_i2c.h"
+#endif
+
 #ifdef CONFIG_RNDIS
 #  include <nuttx/usb/rndis.h>
 #endif
@@ -275,32 +279,59 @@ int stm32_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_SENSORS_ICM20689_I2C
-  ret = stm32_icm20689_initialize("/dev/imu0");
+#ifdef CONFIG_SENSORS_ICM20689
+  /* Initialize the ICM20689 motion tracker sensor(s). */
+
+  ret = board_icm20689_i2c_initialize(0, ICM20689_I2CBUS);
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize ICM20689 I2C driver: %d\n",
              ret);
     }
-#endif /* CONFIG_SENSORS_ICM20689_I2C */
 
-#ifdef CONFIG_SENSORS_LIS3MDL_I2C
-  ret = stm32_lis3mdl_initialize("/dev/mag0");
+  ret = board_icm20689_spi_initialize(0, ICM20689_SPIBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize ICM20689 SPI driver: %d\n",
+             ret);
+    }
+#endif /* CONFIG_SENSORS_ICM20689 */
+
+#ifdef CONFIG_SENSORS_MS5611
+  /* Initialize the MS5611 pressure sensor(s). */
+
+  ret = board_ms5611_i2c_initialize(0, MS5611_I2CBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize MS5611 I2C driver: %d\n",
+             ret);
+    }
+
+  ret = board_ms5611_spi_initialize(0, MS5611_SPIBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize MS5611 I2C driver: %d\n",
+             ret);
+    }
+#endif /* CONFIG_SENSORS_MS5611 */
+
+#ifdef CONFIG_SENSORS_LIS3MDL
+  /* Initialize the LIS3MDL e-compass sensor(s). */
+
+  ret = board_lis3mdl_i2c_initialize(0, LIS3MDL_I2CBUS);
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize LIS3MDL I2C driver: %d\n",
              ret);
     }
-#endif /* CONFIG_SENSORS_LIS3MDL_I2C */
 
-#ifdef CONFIG_SENSORS_MS56110_I2C
-  ret = stm32_ms56110_initialize("/dev/baro0");
+  ret = board_lis3mdl_spi_initialize(0, LIS3MDL_SPIBUS);
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: Failed to initialize MS56110 I2C driver: %d\n",
+      syslog(LOG_ERR, "ERROR: Failed to initialize LIS3MDL SPI driver: %d\n",
              ret);
     }
-#endif /* CONFIG_SENSORS_MS56110_I2C */
+#endif /* CONFIG_SENSORS_LIS3MDL */
 
 #if defined(CONFIG_CDCACM) && !defined(CONFIG_CDCACM_CONSOLE) && \
     !defined(CONFIG_CDCACM_COMPOSITE)

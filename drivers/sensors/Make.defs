@@ -311,7 +311,11 @@ ifeq ($(CONFIG_SENSORS_MPL115A),y)
 endif
 
 ifeq ($(CONFIG_SENSORS_LIS3MDL),y)
+ifeq ($(CONFIG_SENSORS_LIS3MDL_UORB),y)
+  CSRCS += lis3mdl_uorb.c
+else
   CSRCS += lis3mdl.c
+endif
 endif
 
 ifeq ($(CONFIG_SENSORS_LSM330SPI),y)
@@ -390,6 +394,15 @@ endif
 
 ifeq ($(CONFIG_SENSORS_HDC1008),y)
   CSRCS += hdc1008.c
+endif
+
+ifeq ($(CONFIG_SENSORS_ICM20689),y)
+  CSRCS += icm20689_base.c
+ifeq ($(CONFIG_SENSORS_ICM20689_UORB),y)
+  CSRCS += icm20689_uorb.c
+else
+  CSRCS += icm20689.c
+endif
 endif
 
 # Include sensor driver build support

@@ -52,16 +52,16 @@ ifeq ($(CONFIG_BOARDCTL_UNIQUEID),y)
 CSRCS += stm32_uid.c
 endif
 
-ifeq ($(CONFIG_SENSORS_ICM20689_I2C),y)
+ifeq ($(CONFIG_SENSORS_ICM20689),y)
 CSRCS += stm32_icm20689.c
 endif
 
-ifeq ($(CONFIG_SENSORS_LIS3MDL_I2C),y)
+ifeq ($(CONFIG_SENSORS_LIS3MDL),y)
 CSRCS += stm32_lis3mdl.c
 endif
 
-ifeq ($(CONFIG_SENSORS_MS56110_I2C),y)
-CSRCS += stm32_ms56110.c
+ifeq ($(CONFIG_SENSORS_MS5611),y)
+CSRCS += stm32_ms5611.c
 endif
 
 ifeq ($(CONFIG_IOEXPANDER_PCA9557),y)

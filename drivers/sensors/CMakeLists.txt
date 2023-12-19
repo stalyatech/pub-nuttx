@@ -368,5 +368,9 @@ if(CONFIG_SENSORS)
     list(APPEND SRCS hdc1008.c)
   endif()
 
+  if(CONFIG_SENSORS_ICM20689)
+    list(APPEND SRCS icm20689.c)
+  endif()
+
   target_sources(drivers PRIVATE ${SRCS})
 endif()

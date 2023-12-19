@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32h7/stalya-fmu/src/stm32_icm20689.c
+ * boards/arm/stm32h7/stalya-fmu/src/stm32_ms5611.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <debug.h>
 
-#include <nuttx/sensors/icm20689.h>
+#include <nuttx/sensors/ms5611.h>
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/spi/spi.h>
 
@@ -35,18 +35,14 @@
 #include "stalya-fmu.h"
 
 /****************************************************************************
- * Private data
- ****************************************************************************/
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_icm20689_i2c_initialize
+ * Name: board_ms5611_i2c_initialize
  *
  * Description:
- *   Initialize and register the I2C based ICM20689 Motion Tracker driver.
+ *   Initialize and register the I2C based MS5611 Pressure Sensor driver.
  *
  * Input Parameters:
  *   devno - The device number
@@ -57,39 +53,35 @@
  *
  ****************************************************************************/
 
-int board_icm20689_i2c_initialize(int devno, int busno)
+int board_ms5611_i2c_initialize(int devno, int busno)
 {
-  struct icm20689_config_s config;
+  struct i2c_master_s *i2c;
   int ret = -ENODEV;
 
-  sninfo("Initializing ICM20689!\n");
-  memset(&config, 0, sizeof(config));
+  sninfo("Initializing MS5611!\n");
 
-#ifdef CONFIG_ICM20689_I2C
   /* Initialize I2C */
 
-  config.addr = ICM20689_I2CADDR;
-  config.i2c = stm32_i2cbus_initialize(busno);
-  if (config.i2c != NULL)
+  i2c = stm32_i2cbus_initialize(busno);
+  if (i2c != NULL)
     {
-      /* Then try to register the imu sensor on I2C */
+      /* Then try to register the barometer sensor on I2C */
 
-      ret = icm20689_register(devno, &config);
+      ret = ms5611_register(i2c, devno, MS5611_I2CADDR);
       if (ret < 0)
         {
-          snerr("ERROR: Error registering ICM20689 on I2C%d\n", busno);
+          snerr("ERROR: Error registering MS5611 on I2C%d\n", busno);
         }
     }
-#endif /* CONFIG_ICM20689_I2C */
 
   return ret;
 }
 
 /****************************************************************************
- * Name: board_icm20689_spi_initialize
+ * Name: board_ms5611_spi_initialize
  *
  * Description:
- *   Initialize and register the SPI based ICM20689 Motion Tracker driver.
+ *   Initialize and register the SPI based MS5611 Pressure Sensor driver.
  *
  * Input Parameters:
  *   devno - The device number
@@ -100,30 +92,7 @@ int board_icm20689_i2c_initialize(int devno, int busno)
  *
  ****************************************************************************/
 
-int board_icm20689_spi_initialize(int devno, int busno)
+int board_ms5611_spi_initialize(int devno, int busno)
 {
-  struct icm20689_config_s config;
-  int ret = -ENODEV;
-
-  sninfo("Initializing ICM20689!\n");
-  memset(&config, 0, sizeof(config));
-
-#ifdef CONFIG_ICM20689_SPI
-  /* Initialize SPI */
-
-  config.spi_devid = ICM20689_SPIDEV;
-  config.spi = stm32_spibus_initialize(busno);
-  if (config.spi != NULL)
-    {
-      /* Then try to register the imu sensor on SPI */
-
-      ret = icm20689_register(devno, &config);
-      if (ret < 0)
-        {
-          snerr("ERROR: Error registering ICM20689 on SPI%d\n", busno);
-        }
-    }
-#endif /* CONFIG_ICM20689_SPI */
-
-  return ret;
+  return -ENODEV;
 }

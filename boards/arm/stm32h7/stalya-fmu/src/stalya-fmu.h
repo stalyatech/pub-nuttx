@@ -198,26 +198,41 @@
 #define GPIO_MMCSD_NCD    (GPIO_INPUT | GPIO_PULLUP | GPIO_EXTI |  \
                            GPIO_PORTC | GPIO_PIN9)
 
-/* ICM20689 configuration */
+/* ICM20689 I2C configuration */
 
-#define ICM20689_I2CBUS     4
-#define ICM20689_I2CADDR    0x68
+#define ICM20689_I2CBUS     (4)
+#define ICM20689_I2CADDR    (0x68)
 
-/* LIS3MDL configuration */
+/* ICM20689 SPI configuration */
 
-#define LIS3MDL_I2CBUS      4
-#define LIS3MDL_I2CADDR     0x1c
+#define ICM20689_SPIBUS     (1)
+#define ICM20689_SPIDEV     SPIDEV_IMU(2)
 
-/* MS56110 configuration */
+/* LIS3MDL I2C configuration */
 
-#define MS56110_I2CBUS      4
-#define MS56110_I2CADDR     0x76
+#define LIS3MDL_I2CBUS      (4)
+#define LIS3MDL_I2CADDR     (0x1c)
+
+/* LIS3MDL SPI configuration */
+
+#define LIS3MDL_SPIBUS      (1)
+#define LIS3MDL_SPIDEV      SPIDEV_IMU(3)
+
+/* MS5611 configuration */
+
+#define MS5611_I2CBUS       (4)
+#define MS5611_I2CADDR      (0x77)
+
+/* MS5611 SPI configuration */
+
+#define MS5611_SPIBUS       (1)
+#define MS5611_SPIDEV       SPIDEV_BAROMETER(0)
 
 /* PCA9635 configuration */
 
-#define PCA9557_I2CBUS      2
-#define PCA9557_I2CADDR     0x18
-#define PCA9557_I2CFREQ     100000
+#define PCA9557_I2CBUS      (2)
+#define PCA9557_I2CADDR     (0x18)
+#define PCA9557_I2CFREQ     (100000)
 
 #define GPIO_PCA9557_NRST   (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | \
                              GPIO_OUTPUT_SET | GPIO_PORTE | GPIO_PIN15)
@@ -326,38 +341,63 @@ int stm32_usbhost_initialize(void);
 #endif
 
 /****************************************************************************
- * Name: stm32_icm20689_initialize
+ * Name: board_icm20689_xxx_initialize
  *
  * Description:
- *   Initialize I2C-based ICM20689.
+ *   Initialize and register the I2C/SPI based ICM20689 Motion Tracker driver.
+ *
+ * Input Parameters:
+ *   devno - The device number
+ *   busno - The I2C bus number
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SENSORS_ICM20689_I2C
-int stm32_icm20689_initialize(char *devpath);
+#ifdef CONFIG_SENSORS_ICM20689
+int board_icm20689_i2c_initialize(int devno, int busno);
+int board_icm20689_spi_initialize(int devno, int busno);
 #endif
 
 /****************************************************************************
- * Name: stm32_lis3mdl_initialize
+ * Name: board_lis3mdl_xxx_initialize
  *
  * Description:
- *   Initialize I2C-based LIS3MDL.
+ *   Initialize and register the I2C/SPI based LIS3MDL e-Compass driver.
+ *
+ * Input Parameters:
+ *   devno - The device number
+ *   busno - The I2C bus number
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SENSORS_LIS3MDL_I2C
-int stm32_lis3mdl_initialize(char *devpath);
+#ifdef CONFIG_SENSORS_LIS3MDL
+int board_lis3mdl_i2c_initialize(int devno, int busno);
+int board_lis3mdl_spi_initialize(int devno, int busno);
 #endif
 
 /****************************************************************************
- * Name: stm32_ms56110_initialize
+ * Name: board_ms5611_xxx_initialize
  *
  * Description:
- *   Initialize I2C-based MS56110.
+ *   Initialize and register the I2C/SPI based MS5611 Pressure Sensor driver.
+ *
+ * Input Parameters:
+ *   devno - The device number
+ *   busno - The I2C bus number
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
  ****************************************************************************/
 
-#ifdef CONFIG_SENSORS_MS56110_I2C
-int stm32_ms56110_initialize(char *devpath);
+#ifdef CONFIG_SENSORS_MS5611
+int board_ms5611_i2c_initialize(int devno, int busno);
+int board_ms5611_spi_initialize(int devno, int busno);
 #endif
 
 /****************************************************************************

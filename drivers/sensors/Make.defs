@@ -217,7 +217,12 @@ ifeq ($(CONFIG_SENSORS_MLX90614),y)
 endif
 
 ifeq ($(CONFIG_SENSORS_MS5611),y)
+  CSRCS += ms5611_base.c
+ifeq ($(CONFIG_SENSORS_MS5611_UORB),y)
   CSRCS += ms5611_uorb.c
+else
+  CSRCS += ms5611.c
+endif
 endif
 
 ifeq ($(CONFIG_SENSORS_MS58XX),y)

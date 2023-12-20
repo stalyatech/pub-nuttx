@@ -28,7 +28,7 @@
 #include <nuttx/config.h>
 #include <nuttx/sensors/ioctl.h>
 
-#if defined(CONFIG_I2C) && defined(CONFIG_SENSORS_MS5611)
+#ifdef CONFIG_SENSORS_MS5611
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -52,13 +52,53 @@
  * Public Types
  ****************************************************************************/
 
+/* These structures are defined elsewhere, and we don't need their
+ * definitions here.
+ */
+
+#ifdef CONFIG_MS5611_SPI
+struct spi_dev_s;
+#endif 
+
+#ifdef CONFIG_MS5611_I2C
+struct i2c_master_s;
+#endif
+
+/* Specifies the initial chip configuration and location */
+
+struct ms5611_config_s
+{
+  uint32_t freq;        /* Bus Frequency I2C/SPI */
+
+#ifdef CONFIG_MS5611_SPI
+  /* For users on SPI.
+   *
+   *  spi_devid : the SPI master's slave-select number
+   *              for the chip, as used in SPI_SELECT(..., dev_id, ...)
+   *  spi       : the SPI master device, as used in SPI_SELECT(spi, ..., ...)
+   */
+
+  FAR struct spi_dev_s *spi;
+  int spi_devid;
+#endif /* CONFIG_MS5611_SPI */
+
+#ifdef CONFIG_MS5611_I2C
+  /* For users on I2C.
+   *
+   *  i2c  : the I2C master device
+   *  addr : the I2C address.
+   */
+
+  FAR struct i2c_master_s *i2c;
+  int addr;
+#endif /* CONFIG_MS5611_I2C */
+};
+
 struct ms5611_measure_s
 {
   int32_t temperature;  /* in Degree   x100    */
   int32_t pressure;     /* in mBar     x10     */
 };
-
-struct i2c_master_s;
 
 /****************************************************************************
  * Public Function Prototypes
@@ -88,7 +128,7 @@ extern "C"
  *
  ****************************************************************************/
 
-int ms5611_register(FAR struct i2c_master_s *i2c, int devno, uint8_t addr);
+int ms5611_register(int devno, FAR struct ms5611_config_s *config);
 
 #undef EXTERN
 #ifdef __cplusplus

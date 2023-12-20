@@ -22,27 +22,11 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-#include <nuttx/nuttx.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <fixedmath.h>
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/fs/fs.h>
+#include "ms5611_base.h"
+#include <nuttx/wqueue.h>
 #include <nuttx/signal.h>
-#include <nuttx/kmalloc.h>
-#include <nuttx/kthread.h>
-#include <nuttx/mutex.h>
-#include <nuttx/semaphore.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sensors/sensor.h>
-#include <nuttx/sensors/ms5611.h>
-#include <nuttx/sensors/msxxxx_crc4.h>
 
-#if defined(CONFIG_SENSORS_MS5611) && \
+#if defined(CONFIG_SENSORS_MS5611_UORB) && \
     (defined(CONFIG_I2C) || defined(CONFIG_SPI))
 
 /****************************************************************************
@@ -68,53 +52,21 @@
  * Private Type Definitions
  ****************************************************************************/
 
-struct ms5611_calib_s
-{
-  uint16_t reversed;
-  uint16_t c1;
-  uint16_t c2;
-  uint16_t c3;
-  uint16_t c4;
-  uint16_t c5;
-  uint16_t c6;
-  uint16_t crc;
-};
-
-struct ms5611_dev_s
-{
-  FAR struct sensor_lowerhalf_s sensor_lower;
-
-#ifdef CONFIG_MS5611_I2C
-  FAR struct i2c_master_s *i2c;       /* I2C interface */
-  uint8_t                  addr;      /* I2C address */
-#endif
-
-#ifdef CONFIG_MS5611_SPI
-  FAR struct spi_dev_s    *spi;       /* SPI interface */
-#endif
-
-  uint32_t                 freq;      /* Bus Frequency I2C/SPI */
-  struct ms5611_calib_s    calib;     /* Calib. params from ROM */
-  unsigned long            interval;  /* Polling interval */
-  bool                     enabled;   /* Enable/Disable MS5611 */
-  sem_t                    run;       /* Locks measure cycle */
-  mutex_t                  lock;      /* Manages exclusive to device */
-};
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-static int ms5611_sendcmd(FAR struct ms5611_dev_s *priv,
+static int ms5611_sendcmd(FAR struct ms5611_dev_s *dev,
                           uint8_t cmd);
-static int ms5611_read16(FAR struct ms5611_dev_s *priv,
+static int ms5611_read16(FAR struct ms5611_dev_s *dev,
                          FAR uint8_t *regval);
-static int ms5611_read24(FAR struct ms5611_dev_s *priv,
+static int ms5611_read24(FAR struct ms5611_dev_s *dev,
                          FAR uint8_t *regval);
 
-static int32_t ms5611_compensate_temp(FAR struct ms5611_dev_s *priv,
+static int32_t ms5611_compensate_temp(FAR struct ms5611_dev_s *dev,
                                       uint32_t temp, int32_t *deltat);
-static uint32_t ms5611_compensate_press(FAR struct ms5611_dev_s *priv,
+static uint32_t ms5611_compensate_press(FAR struct ms5611_dev_s *dev,
                                         uint32_t press, uint32_t dt);
 
 static unsigned long ms5611_curtime(void);
@@ -127,6 +79,10 @@ static int ms5611_set_interval(FAR struct sensor_lowerhalf_s *lower,
 static int ms5611_activate(FAR struct sensor_lowerhalf_s *lower,
                            FAR struct file *filep, bool enable);
 
+/* Sensor poll functions */
+
+static void ms5611_worker(FAR void *arg);
+
 #if 0 /* Please read below */
 static int ms5611_fetch(FAR struct sensor_lowerhalf_s *lower,
                         FAR char *buffer, size_t buflen);
@@ -136,7 +92,7 @@ static int ms5611_fetch(FAR struct sensor_lowerhalf_s *lower,
  * Private Data
  ****************************************************************************/
 
-static const struct sensor_ops_s g_sensor_ops =
+static const struct sensor_ops_s g_ms5611_ops =
 {
   .activate      = ms5611_activate,
   .fetch         = NULL, /* ms5611_fetch */
@@ -172,25 +128,9 @@ static unsigned long ms5611_curtime(void)
  *
  ****************************************************************************/
 
-static int ms5611_sendcmd(FAR struct ms5611_dev_s *priv, uint8_t cmd)
+static int ms5611_sendcmd(FAR struct ms5611_dev_s *dev, uint8_t cmd)
 {
-  struct i2c_msg_s msg;
-  int ret;
-
-  msg.frequency = priv->freq;
-  msg.addr      = priv->addr;
-  msg.flags     = 0;
-  msg.buffer    = &cmd;
-  msg.length    = 1;
-
-  ret = I2C_TRANSFER(priv->i2c, &msg, 1);
-  if (ret < 0)
-    {
-      snerr("I2C_TRANSFER failed: %d\n", ret);
-      return ret;
-    }
-
-  return OK;
+  return ms5611_write(dev, &cmd, 1);
 }
 
 /****************************************************************************
@@ -201,25 +141,9 @@ static int ms5611_sendcmd(FAR struct ms5611_dev_s *priv, uint8_t cmd)
  *
  ****************************************************************************/
 
-static int ms5611_read16(FAR struct ms5611_dev_s *priv, FAR uint8_t *regval)
+static int ms5611_read16(FAR struct ms5611_dev_s *dev, FAR uint8_t *regval)
 {
-  struct i2c_msg_s msg;
-  int ret;
-
-  msg.frequency = priv->freq;
-  msg.addr      = priv->addr;
-  msg.flags     = I2C_M_READ;
-  msg.buffer    = regval;
-  msg.length    = 2;
-
-  ret = I2C_TRANSFER(priv->i2c, &msg, 1);
-  if (ret < 0)
-    {
-      snerr("I2C_TRANSFER failed: %d\n", ret);
-      return ret;
-    }
-
-  return OK;
+  return ms5611_read(dev, regval, 2);
 }
 
 /****************************************************************************
@@ -230,28 +154,12 @@ static int ms5611_read16(FAR struct ms5611_dev_s *priv, FAR uint8_t *regval)
  *
  ****************************************************************************/
 
-static int ms5611_read24(FAR struct ms5611_dev_s *priv, uint8_t *regval)
+static int ms5611_read24(FAR struct ms5611_dev_s *dev, uint8_t *regval)
 {
-  struct i2c_msg_s msg;
-  int ret;
-
-  msg.frequency = priv->freq;
-  msg.addr      = priv->addr;
-  msg.flags     = I2C_M_READ;
-  msg.buffer    = regval;
-  msg.length    = 3;
-
-  ret = I2C_TRANSFER(priv->i2c, &msg, 1);
-  if (ret < 0)
-    {
-      snerr("I2C_TRANSFER failed: %d\n", ret);
-      return ret;
-    }
-
-  return OK;
+  return ms5611_read(dev, regval, 3);
 }
 
-static inline void baro_measure_read(FAR struct ms5611_dev_s *priv,
+static inline void baro_measure_read(FAR struct ms5611_dev_s *dev,
                                      FAR struct sensor_baro *baro)
 {
   uint32_t press;
@@ -262,7 +170,7 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *priv,
 
   /* Enforce exclusive access */
 
-  ret = nxmutex_lock(&priv->lock);
+  ret = nxmutex_lock(&dev->lock);
   if (ret < 0)
     {
       return;
@@ -270,10 +178,10 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *priv,
 
   /* Send command to start a D1 (pressure) conversion */
 
-  ret = ms5611_sendcmd(priv, MS5611_CMD_CONV_D1_OSR_4096);
+  ret = ms5611_sendcmd(dev, MS5611_CMD_CONV_D1_OSR_1024);
   if (ret < 0)
     {
-      snerr("Fail to send cmd MS5611_CMD_CONV_D1_OSR_4096!\n");
+      snerr("Fail to send cmd MS5611_CMD_CONV_D1_OSR_1024!\n");
       return;
     }
 
@@ -283,7 +191,7 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *priv,
 
   /* Send command to start a read sequence */
 
-  ret = ms5611_sendcmd(priv, MS5611_CMD_START_ADC_READ);
+  ret = ms5611_sendcmd(dev, MS5611_CMD_START_ADC_READ);
   if (ret < 0)
     {
       snerr("Fail to send cmd MS5611_CMD_START_ADC_READ!\n");
@@ -292,9 +200,9 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *priv,
 
   /* Wait data get ready */
 
-  up_udelay(4000);
+  up_udelay(10000);
 
-  ret = ms5611_read24(priv, buffer);
+  ret = ms5611_read24(dev, buffer);
   if (ret < 0)
     {
       snerr("Fail to read pressure!\n");
@@ -307,10 +215,10 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *priv,
 
   /* Send command to start a D2 (temperature) conversion */
 
-  ret = ms5611_sendcmd(priv, MS5611_CMD_CONV_D2_OSR_4096);
+  ret = ms5611_sendcmd(dev, MS5611_CMD_CONV_D2_OSR_1024);
   if (ret < 0)
     {
-      snerr("Fail to send cmd MS5611_CMD_CONV_D2_OSR_4096!\n");
+      snerr("Fail to send cmd MS5611_CMD_CONV_D2_OSR_1024!\n");
       return;
     }
 
@@ -320,7 +228,7 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *priv,
 
   /* Send command to start a read sequence */
 
-  ret = ms5611_sendcmd(priv, MS5611_CMD_START_ADC_READ);
+  ret = ms5611_sendcmd(dev, MS5611_CMD_START_ADC_READ);
   if (ret < 0)
     {
       snerr("Fail to send cmd MS5611_CMD_START_ADC_READ!\n");
@@ -329,9 +237,9 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *priv,
 
   /* Wait data get ready */
 
-  up_udelay(4000);
+  up_udelay(10000);
 
-  ret = ms5611_read24(priv, buffer);
+  ret = ms5611_read24(dev, buffer);
   if (ret < 0)
     {
       snerr("Fail to read temperature!\n");
@@ -344,62 +252,16 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *priv,
 
   /* Release the mutex */
 
-  nxmutex_unlock(&priv->lock);
+  nxmutex_unlock(&dev->lock);
 
   /* Compensate the temp/press with calibration data */
 
-  temp = ms5611_compensate_temp(priv, temp, &deltat);
-  press = ms5611_compensate_press(priv, press, deltat);
+  temp = ms5611_compensate_temp(dev, temp, &deltat);
+  press = ms5611_compensate_press(dev, press, deltat);
 
   baro->timestamp = ms5611_curtime();
   baro->pressure = press / 100.0f;
   baro->temperature = temp / 100.0f;
-}
-
-/****************************************************************************
- * Name: ms5611_thread
- *
- * Description: Thread for performing interval measurement cycle and data
- *              read.
- *
- * Parameter:
- *   argc - Number opf arguments
- *   argv - Pointer to argument list
- ****************************************************************************/
-
-static int ms5611_thread(int argc, char **argv)
-{
-  FAR struct ms5611_dev_s *priv = (FAR struct ms5611_dev_s *)
-        ((uintptr_t)strtoul(argv[1], NULL, 16));
-
-  struct sensor_baro baro_data;
-
-  while (true)
-    {
-      int ret;
-
-      if (!priv->enabled)
-        {
-          /* Waiting to be woken up */
-
-          ret = nxsem_wait(&priv->run);
-          if (ret < 0)
-            {
-              continue;
-            }
-        }
-
-       baro_measure_read(priv, &baro_data);
-
-       priv->sensor_lower.push_event(priv->sensor_lower.priv, &baro_data,
-                                     sizeof(struct sensor_baro));
-
-      /* Sleeping thread before fetching the next sensor data */
-
-      nxsig_usleep(priv->interval);
-    }
-
-  return OK;
 }
 
 /****************************************************************************
@@ -410,8 +272,9 @@ static int ms5611_thread(int argc, char **argv)
  *
  ****************************************************************************/
 
-static int ms5611_initialize(FAR struct ms5611_dev_s *priv)
+static int ms5611_initialize(FAR struct ms5611_dev_s *dev)
 {
+  struct ms5611_sensor_s *priv = &dev->priv;
   uint16_t prom[8];
   uint8_t data[2];
   uint8_t crc;
@@ -420,7 +283,7 @@ static int ms5611_initialize(FAR struct ms5611_dev_s *priv)
 
   /* Get calibration data. */
 
-  ret = ms5611_sendcmd(priv, MS5611_CMD_RESET);
+  ret = ms5611_sendcmd(dev, MS5611_CMD_RESET);
   if (ret < 0)
     {
       snerr("ms5611 reset failed\n");
@@ -433,14 +296,14 @@ static int ms5611_initialize(FAR struct ms5611_dev_s *priv)
 
   for (i = 0; i < 8; i++)
     {
-      ret = ms5611_sendcmd(priv, MS5611_CMD_ADC_PROM_READ(i));
+      ret = ms5611_sendcmd(dev, MS5611_CMD_ADC_PROM_READ(i));
       if (ret < 0)
         {
           snerr("ms5611_sendcmd failed\n");
           return ret;
         }
 
-      ret = ms5611_read16(priv, data);
+      ret = ms5611_read16(dev, data);
       if (ret < 0)
         {
           snerr("ms5611_read16 failed\n");
@@ -488,9 +351,10 @@ static int ms5611_initialize(FAR struct ms5611_dev_s *priv)
  *
  ****************************************************************************/
 
-static int32_t ms5611_compensate_temp(FAR struct ms5611_dev_s *priv,
+static int32_t ms5611_compensate_temp(FAR struct ms5611_dev_s *dev,
                                       uint32_t temp, int32_t *deltat)
 {
+  struct ms5611_sensor_s *priv = &dev->priv;
   struct ms5611_calib_s *c = &priv->calib;
   int32_t dt;
 
@@ -523,9 +387,10 @@ static int32_t ms5611_compensate_temp(FAR struct ms5611_dev_s *priv,
  *
  ****************************************************************************/
 
-static uint32_t ms5611_compensate_press(FAR struct ms5611_dev_s *priv,
+static uint32_t ms5611_compensate_press(FAR struct ms5611_dev_s *dev,
                                         uint32_t press, uint32_t dt)
 {
+  struct ms5611_sensor_s *priv = &dev->priv;
   struct ms5611_calib_s *c = &priv->calib;
   int64_t off;
   int64_t sens;
@@ -545,11 +410,10 @@ static int ms5611_set_interval(FAR struct sensor_lowerhalf_s *lower,
                                FAR struct file *filep,
                                FAR unsigned long *period_us)
 {
-  FAR struct ms5611_dev_s *priv = container_of(lower,
-                                               FAR struct ms5611_dev_s,
-                                               sensor_lower);
+  FAR struct ms5611_sensor_s *priv = (FAR struct ms5611_sensor_s *)lower;
 
   priv->interval = *period_us;
+
   return OK;
 }
 
@@ -560,24 +424,39 @@ static int ms5611_set_interval(FAR struct sensor_lowerhalf_s *lower,
 static int ms5611_activate(FAR struct sensor_lowerhalf_s *lower,
                            FAR struct file *filep, bool enable)
 {
-  bool start_thread = false;
-  struct ms5611_dev_s *priv = (FAR struct ms5611_dev_s *)lower;
+  FAR struct ms5611_sensor_s *priv = (FAR struct ms5611_sensor_s *)lower;
+  FAR struct ms5611_dev_s *dev = (FAR struct ms5611_dev_s *)(priv->dev);
+  int ret;
 
   if (enable)
     {
       if (!priv->enabled)
         {
-          start_thread = true;
+          /* Enable the sensor */
+
+          priv->enabled = true;
+          priv->last_update = sensor_get_timestamp();
+        }
+
+      /* Schedule the worker */
+
+      if (work_available(&dev->work))
+        {
+          ret = work_queue(HPWORK, &dev->work, 
+                          ms5611_worker, dev, 
+                          priv->interval / USEC_PER_TICK);
+          if (ret < 0)
+            {
+              snerr("ERROR: Failed to queue work: %d\n", ret);
+            }
         }
     }
-
-  priv->enabled = enable;
-
-  if (start_thread)
+  else
     {
-      /* Wake up the thread */
+      /* Set suspend mode to sensors. */
 
-      nxsem_post(&priv->run);
+      priv->enabled = false;
+      work_cancel(HPWORK, &dev->work);
     }
 
   return OK;
@@ -596,7 +475,7 @@ static int ms5611_activate(FAR struct sensor_lowerhalf_s *lower,
 static int ms5611_fetch(FAR struct sensor_lowerhalf_s *lower,
                         FAR char *buffer, size_t buflen)
 {
-  FAR struct ms5611_dev_s *priv = container_of(lower,
+  FAR struct ms5611_dev_s *dev = container_of(lower,
                                                FAR struct ms5611_dev_s,
                                                sensor_lower);
   struct sensor_baro baro_data;
@@ -613,6 +492,62 @@ static int ms5611_fetch(FAR struct sensor_lowerhalf_s *lower,
   return buflen;
 }
 #endif
+
+/* Sensor poll functions */
+
+/****************************************************************************
+ * Name: ms5611_worker
+ *
+ * Description:
+ *   Task the worker with retrieving the latest sensor data. We should not do
+ *   this in a interrupt since it might take too long. Also we cannot lock
+ *   the bus from within an interrupt.
+ *
+ * Input Parameters:
+ *   arg    - Device struct.
+ *
+ * Returned Value:
+ *   none.
+ *
+ * Assumptions/Limitations:
+ *   none.
+ *
+ ****************************************************************************/
+
+static void ms5611_worker(FAR void *arg)
+{
+  FAR struct ms5611_dev_s *dev = (FAR struct ms5611_dev_s *)arg;
+  FAR struct ms5611_sensor_s *priv = &dev->priv;
+  struct sensor_baro baro_data;
+  uint64_t now;
+
+  /* Get the timestamp */
+
+  now = sensor_get_timestamp();
+
+  /* Re-schedule the worker */
+
+  work_queue(HPWORK, &dev->work,
+             ms5611_worker, dev, 
+             priv->interval / USEC_PER_TICK);
+
+  /* Check the update status */
+
+  if (!priv->enabled || now - priv->last_update < priv->interval)
+    {
+      return;
+    }
+  priv->last_update = now;
+
+  /* Read the data */
+
+  baro_measure_read(dev, &baro_data);
+
+  /* Push the event */
+
+  priv->lower.push_event(priv->lower.priv, &baro_data,
+                                sizeof(struct sensor_baro));
+}
 
 /****************************************************************************
  * Public Functions
@@ -635,76 +570,68 @@ static int ms5611_fetch(FAR struct sensor_lowerhalf_s *lower,
  *
  ****************************************************************************/
 
-int ms5611_register(FAR struct i2c_master_s *i2c, int devno, uint8_t addr)
+int ms5611_register(int devno, FAR struct ms5611_config_s *config)
 {
-  FAR struct ms5611_dev_s *priv;
-  FAR char *argv[2];
-  char arg1[32];
-
+  FAR struct ms5611_dev_s *dev;
+  FAR struct ms5611_sensor_s *priv;
   int ret;
+
+  /* Without config info, we can't do anything. */
+
+  if (config == NULL)
+    {
+      return -EINVAL;
+    }
 
   /* Initialize the MS5611 device structure */
 
-  priv = kmm_zalloc(sizeof(struct ms5611_dev_s));
-  if (priv == NULL)
+  dev = kmm_zalloc(sizeof(struct ms5611_dev_s));
+  if (dev == NULL)
     {
       snerr("Failed to allocate instance\n");
       return -ENOMEM;
     }
 
-  priv->i2c      = i2c;
-  priv->addr     = addr;
-  priv->freq     = CONFIG_MS5611_I2C_FREQUENCY;
-  priv->interval = 1000000; /* Default interval 1s */
+  nxmutex_init(&dev->lock);
 
-  nxsem_init(&priv->run, 0, 0);
-  nxmutex_init(&priv->lock);
+  /* Keep a copy of the config structure, in case the caller discards
+   * theirs.
+   */
 
-  priv->sensor_lower.ops = &g_sensor_ops;
-  priv->sensor_lower.type = SENSOR_TYPE_BAROMETER;
+  dev->config = *config;
 
-  ret = ms5611_initialize(priv);
+  /* Register the sensor topic */
+
+  priv = &dev->priv;
+  priv->lower.ops = &g_ms5611_ops;
+  priv->lower.type = SENSOR_TYPE_BAROMETER;
+  priv->lower.nbuffer = 1;
+  priv->dev = dev;
+  priv->interval = 1000000 / CONFIG_MS5611_MEASURE_FREQ;
+  priv->enabled = false;
+  ret = sensor_register(&priv->lower, devno);
   if (ret < 0)
     {
-      snerr("Failed to initialize physical device ms5611:%d\n", ret);
-      nxmutex_destroy(&priv->lock);
-      nxsem_destroy(&priv->run);
-      kmm_free(priv);
-      return ret;
+      goto error;
     }
 
-  /* Register the character driver */
+  /* Reset the chip, to give it an initial configuration. */
 
-  ret = sensor_register(&priv->sensor_lower, devno);
+  ret = ms5611_initialize(dev);
   if (ret < 0)
     {
-      snerr("Failed to register driver: %d\n", ret);
-      nxmutex_destroy(&priv->lock);
-      nxsem_destroy(&priv->run);
-      kmm_free(priv);
-      return ret;
-    }
-
-  /* Create thread for polling sensor data */
-
-  snprintf(arg1, 16, "%p", priv);
-  argv[0] = arg1;
-  argv[1] = NULL;
-  ret = kthread_create("ms5611_thread", SCHED_PRIORITY_DEFAULT,
-                       CONFIG_MS5611_THREAD_STACKSIZE,
-                       ms5611_thread, argv);
-  if (ret < 0)
-    {
-      snerr("Failed to create the notification kthread!\n");
-      sensor_unregister(&priv->sensor_lower, devno);
-      nxmutex_destroy(&priv->lock);
-      nxsem_destroy(&priv->run);
-      kmm_free(priv);
-      return ret;
+      goto error;
     }
 
   sninfo("MS5611 driver loaded successfully!\n");
-  return OK;
+  return ret;
+
+error:
+  sensor_unregister(&dev->priv.lower, devno);
+  nxmutex_destroy(&dev->lock);
+  kmm_free(dev);
+
+  return ret;
 }
 
 #endif

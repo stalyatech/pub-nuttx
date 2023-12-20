@@ -790,36 +790,45 @@ config SENSORS_MS5611
 
 if SENSORS_MS5611
 
-choice
-	prompt "MS5611 Interface"
-	default MS5611_I2C
+config SENSORS_MS5611_UORB
+	bool "MS5611 UORB Interface"
+	default n
+	---help---
+	Enables Work with the UORB or Character Device interface.
+	If not set, the Character Device is used by default.
 
+config MS5611_MEASURE_FREQ
+  int "Default data output rate in Hz"
+  depends on SENSORS_MS5611_UORB
+  default 1000
+  ---help---
+    Default data output rate in Hz
+  
 config MS5611_I2C
 	bool "MS5611 I2C Interface"
+  default y
 	select I2C
 	---help---
 		Enables support for the I2C interface
 
+config MS5611_I2C_FREQ
+  int "MS5611 I2C frequency"
+  default 400000
+  range 1 400000
+  depends on MS5611_I2C
+    
 config MS5611_SPI
 	bool "MS5611 SPI Interface"
+  default n
 	select SPI
 	---help---
 		Enables support for the SPI interface.
 
-endchoice
-
-config MS5611_THREAD_STACKSIZE
-	int "Worker thread stack size"
-	default 1024
-	---help---
-		The stack size for the worker thread
-
-config MS5611_I2C_FREQUENCY
-	int "MS5611 I2C frequency"
-	default 400000
-	range 1 400000
-	depends on MS5611_I2C
-
+config MS5611_SPI_FREQ
+  int "MS5611 SPI frequency"
+  depends on MS5611_SPI
+  default 10000000
+  
 endif # SENSORS_MS5611
 
 config SENSORS_MS58XX
@@ -1116,31 +1125,38 @@ config SENSORS_ICM20689_UORB
 	Enables Work with the UORB or Character Device interface.
 	If not set, the Character Device is used by default.
 
-config ICM20689_SPI
-	bool "ICM20689 SPI Interface"
-  default n
-	select SPI
-	---help---
-		Enables support for the SPI interface
-
-config ICM20689_I2C
-	bool "ICM20689 I2C Interface"
-  default y
-	select I2C
-	---help---
-		Enables support for the I2C interface
-
-config ICM20689_I2C_FREQ
-	int "ICM20689 I2C Frequency"
-	depends on ICM20689_I2C
-	default 400000
-
 config ICM20689_MEASURE_FREQ
-	int "Default data output rate in Hz"
-	default 1000
-	---help---
-		Default data output rate in Hz
+  int "Default data output rate in Hz"
+  depends on SENSORS_ICM20689_UORB
+  default 1000
+  ---help---
+    Default data output rate in Hz
+  
+config ICM20689_I2C
+  bool "ICM20689 I2C Interface"
+  default y
+  select I2C
+  ---help---
+    Enables support for the I2C interface
+  
+config ICM20689_I2C_FREQ
+  int "ICM20689 I2C Frequency"
+  depends on ICM20689_I2C
+  default 400000
+  range 1 400000
+    
+config ICM20689_SPI
+  bool "ICM20689 SPI Interface"
+  default n
+  select SPI
+  ---help---
+    Enables support for the SPI interface
 
+config ICM20689_SPI_FREQ
+  int "ICM20689 SPI Frequency"
+  depends on ICM20689_SPI
+  default 10000000
+  
 config ICM20689_EXT_SYNC_SET
 	int "ICM20689 frame sync bit position"
 	default 0
@@ -1259,14 +1275,14 @@ config SENSORS_LIS3MDL_UORB
 	Enables Work with the UORB or Character Device interface.
 	If not set, the Character Device is used by default.
 
-if SENSORS_LIS3MDL_UORB
-
-config LIS3MDL_SPI
-  bool "LIS3MDL SPI Interface"
-  default n
-  select SPI
+config LIS3MDL_MEASURE_FREQ
+  int "Default data output rate in Hz"
+  depends on SENSORS_LIS3MDL_UORB
+  default 1000
   ---help---
-    Enables support for the SPI interface
+    Default data output rate in Hz
+  
+if SENSORS_LIS3MDL_UORB
 
 config LIS3MDL_I2C
   bool "LIS3MDL I2C Interface"
@@ -1275,6 +1291,24 @@ config LIS3MDL_I2C
   ---help---
     Enables support for the I2C interface
 
+config LIS3MDL_I2C_FREQ
+  int "LIS3MDL I2C Frequency"
+  depends on LIS3MDL_I2C
+  default 400000
+  range 1 400000
+    
+config LIS3MDL_SPI
+  bool "LIS3MDL SPI Interface"
+  default n
+  select SPI
+  ---help---
+    Enables support for the SPI interface
+
+config LIS3MDL_SPI_FREQ
+  int "LIS3MDL SPI Frequency"
+  depends on LIS3MDL_SPI
+  default 10000000
+    
 endif # SENSORS_LIS3MDL_UORB
 
 if !SENSORS_LIS3MDL_UORB
@@ -1284,18 +1318,6 @@ config LIS3MDL_SPI
   select SPI
 
 endif # !SENSORS_LIS3MDL_UORB
-
-config LIS3MDL_I2C_FREQ
-  int "LIS3MDL I2C Frequency"
-  depends on LIS3MDL_I2C
-  default 400000
-
-config LIS3MDL_MEASURE_FREQ
-  int "Default data output rate in Hz"
-  depends on SENSORS_LIS3MDL_UORB
-  default 1000
-  ---help---
-    Default data output rate in Hz
 
 endif # SENSORS_LIS3MDL
 

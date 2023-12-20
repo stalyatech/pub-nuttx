@@ -55,24 +55,29 @@
 
 int board_ms5611_i2c_initialize(int devno, int busno)
 {
-  struct i2c_master_s *i2c;
+  struct ms5611_config_s config;
   int ret = -ENODEV;
 
   sninfo("Initializing MS5611!\n");
+  memset(&config, 0, sizeof(config));
 
+#ifdef CONFIG_MS5611_I2C
   /* Initialize I2C */
 
-  i2c = stm32_i2cbus_initialize(busno);
-  if (i2c != NULL)
+  config.freq = CONFIG_MS5611_I2C_FREQ;
+  config.addr = MS5611_I2CADDR;
+  config.i2c = stm32_i2cbus_initialize(busno);
+  if (config.i2c != NULL)
     {
-      /* Then try to register the barometer sensor on I2C */
+      /* Then try to register the imu sensor on I2C */
 
-      ret = ms5611_register(i2c, devno, MS5611_I2CADDR);
+      ret = ms5611_register(devno, &config);
       if (ret < 0)
         {
           snerr("ERROR: Error registering MS5611 on I2C%d\n", busno);
         }
     }
+#endif /* CONFIG_MS5611_I2C */
 
   return ret;
 }
@@ -94,5 +99,29 @@ int board_ms5611_i2c_initialize(int devno, int busno)
 
 int board_ms5611_spi_initialize(int devno, int busno)
 {
-  return -ENODEV;
+  struct ms5611_config_s config;
+  int ret = -ENODEV;
+
+  sninfo("Initializing MS5611!\n");
+  memset(&config, 0, sizeof(config));
+
+#ifdef CONFIG_MS5611_SPI
+  /* Initialize SPI */
+
+  config.freq = 10000000;
+  config.spi_devid = MS5611_SPIDEV;
+  config.spi = stm32_spibus_initialize(busno);
+  if (config.spi != NULL)
+    {
+      /* Then try to register the imu sensor on SPI */
+
+      ret = ms5611_register(devno, &config);
+      if (ret < 0)
+        {
+          snerr("ERROR: Error registering MS5611 on SPI%d\n", busno);
+        }
+    }
+#endif /* CONFIG_MS5611_SPI */
+
+  return ret;
 }

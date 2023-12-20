@@ -106,33 +106,32 @@ static int icm20689_activate(FAR struct sensor_lowerhalf_s *lower,
     {
       if (!priv->enabled)
         {
-          /* Last update time stamp */
+          /* Enable the sensor */
 
+          priv->enabled = true;
           priv->last_update = sensor_get_timestamp();
         }
 
-    /* Schedule the worker */
+      /* Schedule the worker */
 
-    if (work_available(&dev->work))
-      {
-        ret = work_queue(HPWORK, &dev->work, 
-                        icm20689_worker, dev, 
-                        priv->interval / USEC_PER_TICK);
-        if (ret < 0)
-          {
-            snerr("ERROR: Failed to queue work: %d\n", ret);
-          }
-      }
+      if (work_available(&dev->work))
+        {
+          ret = work_queue(HPWORK, &dev->work, 
+                          icm20689_worker, dev, 
+                          priv->interval / USEC_PER_TICK);
+          if (ret < 0)
+            {
+              snerr("ERROR: Failed to queue work: %d\n", ret);
+            }
+        }
     }
   else
     {
       /* Set suspend mode to sensors. */
 
+      priv->enabled = false;
       work_cancel(HPWORK, &dev->work);
-
     }
-
-  priv->enabled = enable;
 
   return OK;
 }
@@ -154,7 +153,7 @@ static int icm20689_set_interval(FAR struct sensor_lowerhalf_s *lower,
 
   priv->interval = *interval;
 
-  return 0;
+  return OK;
 }
 
 /****************************************************************************

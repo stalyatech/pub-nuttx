@@ -42,15 +42,15 @@
  ****************************************************************************/
 
 #ifdef CONFIG_DEBUG_USB251X
-#  define usb251x_err(x, ...)        _err(x, ##__VA_ARGS__)
-#  define usb251x_info(x, ...)       _info(x, ##__VA_ARGS__)
+#  define usb251x_err(x, ...)       _err(x, ##__VA_ARGS__)
+#  define usb251x_info(x, ...)      _info(x, ##__VA_ARGS__)
 #else
-#  define usb251x_err(x, ...)        uerr(x, ##__VA_ARGS__)
-#  define usb251x_info(x, ...)       uinfo(x, ##__VA_ARGS__)
+#  define usb251x_err(x, ...)       uerr(x, ##__VA_ARGS__)
+#  define usb251x_info(x, ...)      uinfo(x, ##__VA_ARGS__)
 #endif
 
-#ifndef CONFIG_USB251X_I2C_FREQUENCY
-#  define CONFIG_USB251X_I2C_FREQUENCY 100000
+#ifndef CONFIG_USB251X_I2C_FREQ
+#  define CONFIG_USB251X_I2C_FREQ   100000
 #endif
 
 /* Other macros */
@@ -71,8 +71,6 @@
 struct usb251x_dev_s
 {
   FAR struct usb251x_config_s *config;  /* Platform specific configuration */
-  FAR struct i2c_master_s *i2c;         /* I2C interface */
-  uint8_t addr;                         /* I2C address */
   mutex_t devlock;                      /* Manages exclusive access */
 };
 
@@ -84,7 +82,6 @@ static int usb251x_open(FAR struct file *filep);
 static int usb251x_close(FAR struct file *filep);
 static int usb251x_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 
-static int usb251x_portcfg(struct usb251x_dev_s *priv, enum usb251x_ports_e port, bool stat);
 static int usb251x_config_ports(struct usb251x_dev_s *priv);
 static int usb251x_attach(FAR struct usb251x_dev_s *priv);
 static int usb251x_detach(FAR struct usb251x_dev_s *priv);
@@ -232,14 +229,14 @@ static int usb251x_block_read(FAR struct usb251x_dev_s *priv, uint8_t regaddr, u
   int retries;
   int ret = -EIO;
 
-  DEBUGASSERT(priv != NULL && regvals != NULL);
+  DEBUGASSERT(priv != NULL && priv->config != NULL && regvals != NULL);
 
   /* Format two messages: The first is a write which is never terminated
    * with STOP condition.
    */
 
-  msg[0].frequency = CONFIG_USB251X_I2C_FREQUENCY;
-  msg[0].addr      = priv->addr;
+  msg[0].frequency = priv->config->freq;
+  msg[0].addr      = priv->config->addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
@@ -248,8 +245,8 @@ static int usb251x_block_read(FAR struct usb251x_dev_s *priv, uint8_t regaddr, u
    * write (rbuflen < 0) with no restart.
    */
 
-  msg[1].frequency = CONFIG_USB251X_I2C_FREQUENCY;
-  msg[1].addr      = priv->addr;
+  msg[1].frequency = priv->config->freq;
+  msg[1].addr      = priv->config->addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = rxbuffer;
   msg[1].length    = len + 1;
@@ -258,7 +255,7 @@ static int usb251x_block_read(FAR struct usb251x_dev_s *priv, uint8_t regaddr, u
 
   for (retries = 0; retries < USB251X_I2C_RETRIES; retries++)
     {
-      ret = I2C_TRANSFER(priv->i2c, msg, 2);
+      ret = I2C_TRANSFER(priv->config->i2c, msg, 2);
       if (ret >= 0)
         {
           memcpy(regvals, &rxbuffer[1], len);
@@ -274,7 +271,7 @@ static int usb251x_block_read(FAR struct usb251x_dev_s *priv, uint8_t regaddr, u
               break;
             }
 
-          ret = I2C_RESET(priv->i2c);
+          ret = I2C_RESET(priv->config->i2c);
           if (ret < 0)
             {
               usb251x_err("ERROR: I2C_RESET failed: %d\n", ret);
@@ -311,7 +308,7 @@ static int usb251x_block_write(FAR struct usb251x_dev_s *priv, uint8_t regaddr, 
   int retries;
   int ret = -EIO;
 
-  DEBUGASSERT(priv != NULL && regvals != NULL);
+  DEBUGASSERT(priv != NULL && priv->config != NULL && regvals != NULL);
 
   /* Setup to the data to be transferred (register address and values). */
 
@@ -321,8 +318,8 @@ static int usb251x_block_write(FAR struct usb251x_dev_s *priv, uint8_t regaddr, 
 
   /* Set up the I2C configuration */
 
-  msg.frequency = CONFIG_USB251X_I2C_FREQUENCY;
-  msg.addr      = priv->addr;
+  msg.frequency = priv->config->freq;
+  msg.addr      = priv->config->addr;
   msg.flags     = 0;
   msg.buffer    = txbuffer;
   msg.length    = len + 2;
@@ -331,7 +328,7 @@ static int usb251x_block_write(FAR struct usb251x_dev_s *priv, uint8_t regaddr, 
 
   for (retries = 0; retries < USB251X_I2C_RETRIES; retries++)
     {
-      ret = I2C_TRANSFER(priv->i2c, &msg, 1);
+      ret = I2C_TRANSFER(priv->config->i2c, &msg, 1);
       if (ret == OK)
         {
           return OK;
@@ -346,7 +343,7 @@ static int usb251x_block_write(FAR struct usb251x_dev_s *priv, uint8_t regaddr, 
               break;
             }
 
-          ret = I2C_RESET(priv->i2c);
+          ret = I2C_RESET(priv->config->i2c);
           if (ret < 0)
             {
               usb251x_err("ERROR: I2C_RESET failed: %d\n", ret);
@@ -765,13 +762,12 @@ static int usb251x_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Public Functions
  ****************************************************************************/
 
-int usb251x_register(FAR const char *devpath, FAR struct i2c_master_s *i2c,
-                     uint8_t addr, FAR struct usb251x_config_s *config)
+int usb251x_register(FAR const char *devpath, FAR struct usb251x_config_s *config)
 {
   FAR struct usb251x_dev_s *priv;
   int ret;
 
-  DEBUGASSERT(devpath != NULL && i2c != NULL && config != NULL);
+  DEBUGASSERT(devpath != NULL && config != NULL && config->i2c != NULL);
 
   /* Initialize the USB251X device structure */
 
@@ -787,8 +783,8 @@ int usb251x_register(FAR const char *devpath, FAR struct i2c_master_s *i2c,
 
   nxmutex_init(&priv->devlock);
 
-  priv->i2c    = i2c;
-  priv->addr   = addr;
+  /* Save the configuration data */
+
   priv->config = config;
 
   /* Register the character driver */

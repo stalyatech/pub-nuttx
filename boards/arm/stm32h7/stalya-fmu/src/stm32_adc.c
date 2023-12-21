@@ -63,7 +63,7 @@
 #ifdef CONFIG_STM32H7_ADC1
 /* Identifying number of each ADC channel */
 
-static const uint8_t  g_adc1_chanlist[ADC1_NCHANNELS] =
+static const uint8_t g_adc1_chanlist[ADC1_NCHANNELS] =
 {
   4, 5, 8, 9, 10, 11, 18
 };
@@ -111,8 +111,6 @@ int stm32_adc_setup(void)
 
   if (!initialized)
     {
-#endif
-#if defined(CONFIG_STM32H7_ADC1)
       /* Configure the pins as analog inputs for the selected channels */
 
       for (i = 0; i < ADC1_NCHANNELS; i++)
@@ -142,9 +140,7 @@ int stm32_adc_setup(void)
         }
 
       devname[8]++;
-#endif
 
-#if defined(CONFIG_STM32H7_ADC1)
       /* Now we are initialized */
 
       initialized = true;

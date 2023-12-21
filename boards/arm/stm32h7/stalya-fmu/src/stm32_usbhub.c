@@ -182,15 +182,14 @@ static int usbhub_portmap(uint8_t dn_port)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_usbhub_initialize
+ * Name: board_usb251x_initialize
  *
  * Description:
  *
  ****************************************************************************/
 
-int stm32_usbhub_initialize(int bus)
+int board_usb251x_initialize(int bus)
 {
-  FAR struct i2c_master_s *i2c;
   int ret = ERROR;
 
   /* Configure GPIOs */
@@ -205,8 +204,10 @@ int stm32_usbhub_initialize(int bus)
   
   /* Initialize the I2C bus */
 
-  i2c = stm32_i2cbus_initialize(bus);
-  if (i2c == NULL)
+  hub_config.freq = CONFIG_USB251X_I2C_FREQ;
+  hub_config.addr = USB251X_I2CADDR;
+  hub_config.i2c = stm32_i2cbus_initialize(bus);
+  if (hub_config.i2c == NULL)
     {
       syslog(LOG_ERR, "ERROR: Failed to get I2C%d interface\n", bus);
     }
@@ -214,7 +215,7 @@ int stm32_usbhub_initialize(int bus)
     {
       /* register the driver */
 
-      ret = usb251x_register("/dev/usbhub0", i2c, USB251X_I2CADDR, &hub_config);
+      ret = usb251x_register("/dev/hub0", &hub_config);
     }
 
   return ret;

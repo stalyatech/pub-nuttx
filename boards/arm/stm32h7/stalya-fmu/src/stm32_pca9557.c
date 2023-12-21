@@ -52,10 +52,10 @@ struct pca9557_config_s g_pca9557_cfg =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_pca9557_pinscfg
+ * Name: pca9557_pinscfg
  ****************************************************************************/
 
-static void stm32_pca9557_pinscfg(struct ioexpander_dev_s *ioe)
+static void pca9557_pinscfg(struct ioexpander_dev_s *ioe)
 {
   /* Pin 0: XBee Sockets Power (Default: On) */
 
@@ -130,7 +130,7 @@ static void stm32_pca9557_pinscfg(struct ioexpander_dev_s *ioe)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_pca9557_initialize
+ * Name: board_pca9557_initialize
  *
  * Description:
  *   This function is called by board initialization logic to configure the
@@ -145,7 +145,7 @@ static void stm32_pca9557_pinscfg(struct ioexpander_dev_s *ioe)
  *
  ****************************************************************************/
 
-int stm32_pca9557_initialize(void)
+int board_pca9557_initialize(void)
 {
   struct i2c_master_s     *i2c = NULL;
   struct ioexpander_dev_s *ioe = NULL;
@@ -175,7 +175,7 @@ int stm32_pca9557_initialize(void)
 
   /* Register pins */
 
-  stm32_pca9557_pinscfg(ioe);
+  pca9557_pinscfg(ioe);
 
   return OK;
 }

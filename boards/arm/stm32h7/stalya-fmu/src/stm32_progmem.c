@@ -233,7 +233,7 @@ int stm32_progmem_init(void)
 {
   int ret = 0;
 
-  g_progmem_mtd = progmem_initialize();
+  g_progmem_mtd = progmem_initialize(0);
   if (g_progmem_mtd == NULL)
     {
       ferr("ERROR: Failed to get progmem flash MTD\n");

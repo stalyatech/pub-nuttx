@@ -124,7 +124,7 @@
 #define STM32_PLLCFG_PLL2R       0
 
 #define STM32_VCO2_FREQUENCY     ((STM32_HSE_FREQUENCY / 3) * 200)
-#define STM32_PLL2P_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
+#define STM32_PLL2P_FREQUENCY    (STM32_VCO2_FREQUENCY / 40)
 #define STM32_PLL2Q_FREQUENCY
 #define STM32_PLL2R_FREQUENCY
 
@@ -235,6 +235,10 @@
 
 #define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
 
+/* FDCAN 1 2 clock source - PLL2 */
+
+#define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_PLL2   /* FDCAN 1 2 clock source */
+
 /* FLASH wait states
  *
  *  ------------ ---------- -----------
@@ -339,6 +343,16 @@
 
 /* Alternate function pin selections ****************************************/
 
+/*
+ * USART2 	ttyS0	  TEL1
+ * USART3 	ttyS1	  GPS1
+ * UART4 	  ttyS2	  TEL4
+ * UART5 	  ttyS3	  GPS2
+ * USART6 	ttyS4	  IOP1
+ * UART7 	  ttyS5	  TEL2
+ * UART8 	  ttyS6	  TEL3
+*/
+
 /* USART2 (Telemetry 1)*/
 
 #define GPIO_USART2_RX    (GPIO_USART2_RX_1  | GPIO_SPEED_100MHz)   /* PA3 */
@@ -424,11 +438,23 @@
 #define GPIO_SDMMC1_CMD   (GPIO_SDMMC1_CMD_0 | GPIO_SPEED_50MHz)    /* PD2  */
 #define GPIO_SDMMC1_D0    (GPIO_SDMMC1_D0_0  | GPIO_SPEED_50MHz)    /* PC8  */
 
+/* CAN Bus  */
+
+#define GPIO_CAN1_TX      (GPIO_CAN1_TX_3 | GPIO_SPEED_50MHz)       /* PD1  */
+#define GPIO_CAN1_RX      (GPIO_CAN1_RX_3 | GPIO_SPEED_50MHz)       /* PD0  */
+
+#define GPIO_CAN2_TX      (GPIO_CAN2_TX_2 | GPIO_SPEED_50MHz)       /* PB6  */
+#define GPIO_CAN2_RX      (GPIO_CAN2_RX_2 | GPIO_SPEED_50MHz)       /* PB5  */
+
 /* DMA **********************************************************************/
+
+#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0
+#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0
 
 #define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_0
 #define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_0
 
+#if 0
 #define DMAMAP_USART2_RX  DMAMAP_DMA12_USART2RX_0
 #define DMAMAP_USART2_TX  DMAMAP_DMA12_USART2TX_0
 
@@ -449,6 +475,7 @@
 
 #define DMAMAP_UART8_RX   DMAMAP_DMA12_UART8RX_1
 #define DMAMAP_UART8_TX   DMAMAP_DMA12_UART8TX_1
+#endif
 
 /****************************************************************************
  * Public Data

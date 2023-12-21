@@ -40,6 +40,10 @@
 #  include "stm32_usbhost.h"
 #endif
 
+#ifdef CONFIG_STM32H7_FDCAN
+#include "stm32_fdcan_sock.h"
+#endif
+
 #include "stalya-fmu.h"
 
 #ifdef CONFIG_INPUT_BUTTONS
@@ -156,22 +160,7 @@ int stm32_bringup(void)
 #ifdef HAVE_RTC_DRIVER
   struct rtc_lowerhalf_s *lower;
 #endif
-
   UNUSED(ret);
-
-#if defined(CONFIG_I2C) && defined(CONFIG_SYSTEM_I2CTOOL)
-  stm32_i2ctool();
-#endif
-
-#ifdef CONFIG_IOEXPANDER_PCA9557
-  /* Initialize the PCA9557 chip */
-
-  ret = stm32_pca9557_initialize();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: stm32_pca9557_initialize failed: %d\n", ret);
-    }
-#endif /* CONFIG_IOEXPANDER_PCA9557 */
 
 #ifdef CONFIG_FS_PROCFS
   /* Mount the procfs file system */
@@ -184,16 +173,97 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_FS_PROCFS */
 
+#if defined(CONFIG_I2C) && defined(CONFIG_SYSTEM_I2CTOOL)
+  stm32_i2ctool();
+#endif /* CONFIG_I2C && CONFIG_SYSTEM_I2CTOOL */
+
+#ifdef CONFIG_IOEXPANDER_PCA9557
+  /* Initialize the PCA9557 chip */
+
+  ret = board_pca9557_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize PCA9557 driver: %d\n", ret);
+    }
+#endif /* CONFIG_IOEXPANDER_PCA9557 */
+
+#ifdef CONFIG_SENSORS_ICM20689
+  /* Initialize the ICM20689 motion tracker sensor(s). */
+
+  ret = board_icm20689_i2c_initialize(0, ICM20689_I2CBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize ICM20689 over I2C driver: %d\n", ret);
+    }
+
+  ret = board_icm20689_spi_initialize(0, ICM20689_SPIBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize ICM20689 over SPI driver: %d\n", ret);
+    }
+#endif /* CONFIG_SENSORS_ICM20689 */
+
+#ifdef CONFIG_SENSORS_MS5611
+  /* Initialize the MS5611 pressure sensor(s). */
+
+  ret = board_ms5611_i2c_initialize(0, MS5611_I2CBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize MS5611 over I2C driver: %d\n", ret);
+    }
+
+  ret = board_ms5611_spi_initialize(0, MS5611_SPIBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize MS5611 over SPI driver: %d\n", ret);
+    }
+#endif /* CONFIG_SENSORS_MS5611 */
+
+#ifdef CONFIG_SENSORS_LIS3MDL
+  /* Initialize the LIS3MDL e-compass sensor(s). */
+
+  ret = board_lis3mdl_i2c_initialize(0, LIS3MDL_I2CBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize LIS3MDL over I2C driver: %d\n", ret);
+    }
+
+  ret = board_lis3mdl_spi_initialize(0, LIS3MDL_SPIBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize LIS3MDL over SPI driver: %d\n", ret);
+    }
+#endif /* CONFIG_SENSORS_LIS3MDL */
+
+#ifdef CONFIG_USB251X
+  /* Register the usb hub driver */
+  
+  ret = board_usb251x_initialize(USB251X_I2CBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize USB251X driver: %d\n", ret);
+    }
+#endif /* CONFIG_USB251X */
+
 #ifdef CONFIG_STM32_ROMFS
   /* Mount the romfs partition */
 
   ret = stm32_romfs_initialize();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: Failed to mount romfs at %s: %d\n",
+      syslog(LOG_ERR, 
+             "ERROR: Failed to mount romfs at %s: %d\n", 
              CONFIG_STM32_ROMFS_MOUNTPOINT, ret);
     }
-#endif
+#endif /* CONFIG_STM32_ROMFS */
 
 #ifdef HAVE_RTC_DRIVER
   /* Instantiate the STM32 lower-half RTC driver */
@@ -203,7 +273,6 @@ int stm32_bringup(void)
     {
       syslog(LOG_ERR,
              "ERROR: Failed to instantiate the RTC lower-half driver\n");
-      return -ENOMEM;
     }
   else
     {
@@ -216,10 +285,9 @@ int stm32_bringup(void)
         {
           syslog(LOG_ERR,
                  "ERROR: Failed to bind/register the RTC driver: %d\n", ret);
-          return ret;
         }
     }
-#endif
+#endif /* HAVE_RTC_DRIVER */
 
 #ifdef CONFIG_INPUT_BUTTONS
   /* Register the BUTTON driver */
@@ -227,9 +295,75 @@ int stm32_bringup(void)
   ret = btn_lower_initialize("/dev/buttons");
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: btn_lower_initialize() failed: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize button driver: %d\n", ret);
     }
 #endif /* CONFIG_INPUT_BUTTONS */
+
+#ifdef CONFIG_ADC
+  /* Initialize ADC and register the ADC driver. */
+
+  ret = stm32_adc_setup();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize ADC driver: %d\n", ret);
+    }
+#endif /* CONFIG_ADC */
+
+#ifdef CONFIG_DEV_GPIO
+  /* Register the GPIO driver */
+
+  ret = stm32_gpio_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+            "ERROR: Failed to initialize GPIO driver: %d\n", ret);
+    }
+#endif /* CONFIG_DEV_GPIO */
+
+#ifdef CONFIG_PWM
+  /* Initialize PWM and register the PWM device. */
+
+  ret = stm32_pwm_setup();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize PWM driver: %d\n", ret);
+    }
+#endif
+
+#ifdef CONFIG_MTD
+#ifdef HAVE_PROGMEM_CHARDEV
+  ret = stm32_progmem_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize MTD progmem: %d\n", ret);
+    }
+#endif /* HAVE_PROGMEM_CHARDEV */
+
+#ifdef CONFIG_MTD_W25
+  ret = stm32_w25initialize(0);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize W25XXX driver: %d\n", ret);
+    }
+#endif /* CONFIG_MTD_W25 */
+#endif /* CONFIG_MTD */
+
+#ifdef CONFIG_NETDEV_LATEINIT
+  /* Initialize SocketCAN device. */
+
+#ifdef CONFIG_STM32H7_FDCAN1
+  stm32_fdcansockinitialize(0);
+#endif
+
+#ifdef CONFIG_STM32H7_FDCAN2
+  stm32_fdcansockinitialize(1);
+#endif
+#endif /* CONFIG_NETDEV_LATEINIT */
 
 #ifdef HAVE_USBHOST
   /* Initialize USB host operation.  stm32_usbhost_initialize()
@@ -241,10 +375,9 @@ int stm32_bringup(void)
   if (ret != OK)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize USB host: %d\n",
-             ret);
+             "ERROR: Failed to initialize USB host: %d\n", ret);
     }
-#endif
+#endif /* HAVE_USBHOST */
 
 #ifdef HAVE_USBMONITOR
   /* Start the USB Monitor */
@@ -253,85 +386,9 @@ int stm32_bringup(void)
   if (ret != OK)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to start USB monitor: %d\n",
-             ret);
+             "ERROR: Failed to start USB monitor: %d\n", ret);
     }
-#endif
-
-#ifdef CONFIG_ADC
-  /* Initialize ADC and register the ADC driver. */
-
-  ret = stm32_adc_setup();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: stm32_adc_setup failed: %d\n", ret);
-    }
-#endif /* CONFIG_ADC */
-
-#if defined(CONFIG_DEV_GPIO) && !defined(CONFIG_GPIO_LOWER_HALF)
-  /* Register the GPIO driver */
-
-  ret = stm32_gpio_initialize();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "Failed to initialize GPIO Driver: %d\n", ret);
-      return ret;
-    }
-#endif
-
-#ifdef CONFIG_SENSORS_ICM20689
-  /* Initialize the ICM20689 motion tracker sensor(s). */
-
-  ret = board_icm20689_i2c_initialize(0, ICM20689_I2CBUS);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize ICM20689 I2C driver: %d\n",
-             ret);
-    }
-
-  ret = board_icm20689_spi_initialize(0, ICM20689_SPIBUS);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize ICM20689 SPI driver: %d\n",
-             ret);
-    }
-#endif /* CONFIG_SENSORS_ICM20689 */
-
-#ifdef CONFIG_SENSORS_MS5611
-  /* Initialize the MS5611 pressure sensor(s). */
-
-  ret = board_ms5611_i2c_initialize(0, MS5611_I2CBUS);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize MS5611 I2C driver: %d\n",
-             ret);
-    }
-
-  ret = board_ms5611_spi_initialize(0, MS5611_SPIBUS);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize MS5611 I2C driver: %d\n",
-             ret);
-    }
-#endif /* CONFIG_SENSORS_MS5611 */
-
-#ifdef CONFIG_SENSORS_LIS3MDL
-  /* Initialize the LIS3MDL e-compass sensor(s). */
-
-  ret = board_lis3mdl_i2c_initialize(0, LIS3MDL_I2CBUS);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize LIS3MDL I2C driver: %d\n",
-             ret);
-    }
-
-  ret = board_lis3mdl_spi_initialize(0, LIS3MDL_SPIBUS);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize LIS3MDL SPI driver: %d\n",
-             ret);
-    }
-#endif /* CONFIG_SENSORS_LIS3MDL */
+#endif /* HAVE_USBMONITOR */
 
 #if defined(CONFIG_CDCACM) && !defined(CONFIG_CDCACM_CONSOLE) && \
     !defined(CONFIG_CDCACM_COMPOSITE)
@@ -342,7 +399,8 @@ int stm32_bringup(void)
   ret = cdcacm_initialize(0, NULL);
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: cdcacm_initialize failed: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize USB CDC/ACM device: %d\n", ret);
     }
 #endif /* CONFIG_CDCACM & !CONFIG_CDCACM_CONSOLE */
 
@@ -355,7 +413,18 @@ int stm32_bringup(void)
   mac[4] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 1)) & 0xff;
   mac[5] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 0)) & 0xff;
   usbdev_rndis_initialize(mac);
-#endif
+#endif /* CONFIG_RNDIS && !CONFIG_RNDIS_COMPOSITE */
+
+#if defined(CONFIG_FAT_DMAMEMORY)
+  /* Initialize the FAT DMA memory allocator */
+
+  ret = stm32_dma_alloc_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize FAT DMA memory allocator: %d\n", ret);
+    }
+#endif /* CONFIG_FAT_DMAMEMORY */
 
 #ifdef CONFIG_MMCSD
   /* Initialize the SDIO block driver */
@@ -363,55 +432,17 @@ int stm32_bringup(void)
   ret = stm32_mmcsd_initialize(CONFIG_NSH_MMCSDMINOR);
   if (ret < 0)
     {
-      syslog(LOG_ERR, "Failed to initialize SD slot %d: %d\n",
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize SD slot %d: %d\n",
              CONFIG_NSH_MMCSDMINOR, ret);
     }
-#endif
-
-#ifdef CONFIG_PWM
-  /* Initialize PWM and register the PWM device. */
-
-  ret = stm32_pwm_setup();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: stm32_pwm_setup() failed: %d\n", ret);
-    }
-#endif
-
-#ifdef CONFIG_MTD
-#ifdef HAVE_PROGMEM_CHARDEV
-  ret = stm32_progmem_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize MTD progmem: %d\n", ret);
-    }
-#endif /* HAVE_PROGMEM_CHARDEV */
-
-#ifdef CONFIG_MTD_W25
-  ret = stm32_w25initialize(0);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: stm32_w25initialize failed: %d\n", ret);
-    }
-#endif /* CONFIG_MTD_W25 */
-#endif /* CONFIG_MTD */
-
-#ifdef CONFIG_USB251X
-  /* Register the usb hub driver */
-  
-  ret = stm32_usbhub_initialize(USB251X_I2CBUS);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "Failed to initialize USB251X Driver: %d\n", ret);
-      return ret;
-    }
-#endif /* CONFIG_USB251X */
+#endif /* CONFIG_MMCSD */
 
 #ifdef CONFIG_STM32H7_IWDG
   /* Initialize the watchdog timer */
 
   stm32_iwdginitialize("/dev/watchdog0", STM32_LSI_FREQUENCY);
-#endif
+#endif /* CONFIG_STM32H7_IWDG */
 
   return OK;
 }

@@ -110,4 +110,8 @@ ifeq ($(CONFIG_MMCSD),y)
 CSRCS += stm32_mmcsd.c
 endif
 
+ifeq ($(CONFIG_FAT_DMAMEMORY),y)
+CSRCS += stm32_dma_alloc.c
+endif
+
 include $(TOPDIR)/boards/Board.mk

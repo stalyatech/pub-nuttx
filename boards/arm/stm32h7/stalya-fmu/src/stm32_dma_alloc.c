@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32h7/stalya-fmu/src/stm32_pwm.c
+ * boards/arm/stm32h7/stalya-fmu/src/stm32_dma_alloc.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -23,86 +23,83 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
+#include <syslog.h>
+#include <stdint.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/mm/gran.h>
 
-#include <nuttx/timers/pwm.h>
-#include <arch/board/board.h>
-
-#include "chip.h"
-#include "arm_internal.h"
-#include "stm32_pwm.h"
 #include "stalya-fmu.h"
+
+#if defined(CONFIG_FAT_DMAMEMORY)
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Configuration ************************************************************/
-
-#define HAVE_PWM 1
-
-#ifndef CONFIG_PWM
-#  undef HAVE_PWM
+#if !defined(CONFIG_GRAN)
+#  error microSD DMA support requires CONFIG_GRAN
 #endif
 
-#ifndef CONFIG_STM32H7_TIM4
-#  undef HAVE_PWM
-#endif
+#define BOARD_DMA_ALLOC_POOL_SIZE (8*512)
 
-#ifndef CONFIG_STM32H7_TIM4_PWM
-#  undef HAVE_PWM
-#endif
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static GRAN_HANDLE dma_allocator;
+
+/* The DMA heap size constrains the total number of things that can be
+ * ready to do DMA at a time.
+ *
+ * For example, FAT DMA depends on one sector-sized buffer per
+ * filesystem plus one sector-sized buffer per file.
+ *
+ * We use a fundamental alignment / granule size of 64B; this is
+ * sufficient to guarantee alignment for the largest STM32 DMA burst
+ * (16 beats x 32bits).
+ */
+
+static uint8_t g_dma_heap[BOARD_DMA_ALLOC_POOL_SIZE]
+                aligned_data(64);
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_pwm_setup
+ * Name: stm32_dma_alloc_init
  *
  * Description:
- *   Initialize PWM and register the PWM device.
+ *   All boards may optionally provide this API to instantiate a pool of
+ *   memory for uses with FAST FS DMA operations.
  *
  ****************************************************************************/
 
-int stm32_pwm_setup(void)
+int stm32_dma_alloc_init(void)
 {
-#ifdef HAVE_PWM
-  static bool initialized = false;
-  struct pwm_lowerhalf_s *pwm;
-  int ret;
+  dma_allocator = gran_initialize(g_dma_heap,
+                                  sizeof(g_dma_heap),
+                                  7,  /* 128B granule - must be > alignment (XXX bug?) */
+                                  6); /* 64B alignment */
 
-  /* Have we already initialized? */
-
-  if (!initialized)
+  if (dma_allocator == NULL)
     {
-      /* Get an instance of the PWM interface */
-
-      pwm = stm32_pwminitialize(STALYAFMU_PWMTIMER);
-      if (!pwm)
-        {
-          tmrerr("ERROR: Failed to get the STM32 PWM lower half\n");
-          return -ENODEV;
-        }
-
-      /* Register the PWM driver at "/dev/pwm0" */
-
-      ret = pwm_register("/dev/pwm0", pwm);
-      if (ret < 0)
-        {
-          tmrerr("ERROR: pwm_register failed: %d\n", ret);
-          return ret;
-        }
-
-      /* Now we are initialized */
-
-      initialized = true;
+      return -ENOMEM;
     }
 
   return OK;
-#else
-  return -ENODEV;
-#endif
 }
+
+/* DMA-aware allocator stubs for the FAT filesystem. */
+
+void *fat_dma_alloc(size_t size)
+{
+  return gran_alloc(dma_allocator, size);
+}
+
+void fat_dma_free(void *memory, size_t size)
+{
+  gran_free(dma_allocator, memory, size);
+}
+
+#endif /* CONFIG_FAT_DMAMEMORY */

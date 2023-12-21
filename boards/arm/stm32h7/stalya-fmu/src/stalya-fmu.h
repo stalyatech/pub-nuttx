@@ -239,7 +239,7 @@
 
 /* PWM */
 
-#define STALYAFMU_PWMTIMER  1
+#define STALYAFMU_PWMTIMER  4
 
 /* SD/TF Card'detected pin */
 
@@ -251,10 +251,11 @@
 #  undef HAVE_SDIO
 #endif
 
-#define GPIO_SDIO_NCD      (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN9)
+#define GPIO_SDMMC1_NCD   (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI | GPIO_PORTC | GPIO_PIN9)
 
-#define SDIO_SLOTNO        0
-#define SDIO_MINOR         0
+#define SDIO_SLOTNO       0
+#define SDIO_MINOR        0
+
 
 /****************************************************************************
  * Public Function Prototypes
@@ -309,7 +310,7 @@ int stm32_adc_setup(void);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_DEV_GPIO) && !defined(CONFIG_GPIO_LOWER_HALF)
+#if defined(CONFIG_DEV_GPIO)
 int stm32_gpio_initialize(void);
 #endif
 
@@ -401,14 +402,14 @@ int board_ms5611_spi_initialize(int devno, int busno);
 #endif
 
 /****************************************************************************
- * Name: stm32_pca9557_initialize
+ * Name: board_pca9557_initialize
  *
  * Description:
  *   Initialize I2C-based PCA9557 I/O expander.
  ****************************************************************************/
 
 #ifdef CONFIG_IOEXPANDER_PCA9557
-int stm32_pca9557_initialize(void);
+int board_pca9557_initialize(void);
 #endif
 
 /****************************************************************************
@@ -438,14 +439,29 @@ int stm32_progmem_init(void);
 #endif
 
 /****************************************************************************
- * Name: stm32_usbhub_initialize
+ * Name: board_usb251x_initialize
  *
  * Description:
- *   Initialize USB hub drivers.
+ *   Initialize USB251X hub driver.
  *
  ****************************************************************************/
 #ifdef CONFIG_USB251X
-int stm32_usbhub_initialize(int bus);
+int board_usb251x_initialize(int bus);
+#endif
+
+/****************************************************************************
+ * Name: stm32_dma_alloc_init
+ *
+ * Description:
+ *   Called to create a FAT DMA allocator
+ *
+ * Returned Value:
+ *   0 on success or -ENOMEM
+ *
+ ****************************************************************************/
+
+#if defined (CONFIG_FAT_DMAMEMORY)
+int stm32_dma_alloc_init(void);
 #endif
 
 /****************************************************************************

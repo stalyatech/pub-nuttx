@@ -38,11 +38,15 @@
 #include "stm32_gpio.h"
 #include "stalya-fmu.h"
 
-#if defined(CONFIG_DEV_GPIO) && !defined(CONFIG_GPIO_LOWER_HALF)
+#if defined(CONFIG_DEV_GPIO)
 
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+
+/* GPIO 0..7 has been reserved for I/O expander */
+
+#define GPIO_LOWER_HALF_START   (8)
 
 struct stm32gpio_dev_s
 {
@@ -284,7 +288,7 @@ int stm32_gpio_initialize(void)
       g_gpin[i].gpio.gp_pintype = GPIO_INPUT_PIN;
       g_gpin[i].gpio.gp_ops     = &gpin_ops;
       g_gpin[i].id              = i;
-      gpio_pin_register(&g_gpin[i].gpio, pincount);
+      gpio_pin_register(&g_gpin[i].gpio, pincount + GPIO_LOWER_HALF_START);
 
       /* Configure the pin that will be used as input */
 
@@ -302,7 +306,7 @@ int stm32_gpio_initialize(void)
       g_gpout[i].gpio.gp_pintype = GPIO_OUTPUT_PIN;
       g_gpout[i].gpio.gp_ops     = &gpout_ops;
       g_gpout[i].id              = i;
-      gpio_pin_register(&g_gpout[i].gpio, pincount);
+      gpio_pin_register(&g_gpout[i].gpio, pincount + GPIO_LOWER_HALF_START);
 
       /* Configure the pin that will be used as output */
 
@@ -321,7 +325,7 @@ int stm32_gpio_initialize(void)
       g_gpint[i].stm32gpio.gpio.gp_pintype = GPIO_INTERRUPT_PIN;
       g_gpint[i].stm32gpio.gpio.gp_ops     = &gpint_ops;
       g_gpint[i].stm32gpio.id              = i;
-      gpio_pin_register(&g_gpint[i].stm32gpio.gpio, pincount);
+      gpio_pin_register(&g_gpint[i].stm32gpio.gpio, pincount + GPIO_LOWER_HALF_START);
 
       /* Configure the pin that will be used as interrupt input */
 

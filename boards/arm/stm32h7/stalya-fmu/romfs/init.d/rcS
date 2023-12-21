@@ -1,0 +1,45 @@
+# make readable symbolic links
+
+# I/O expander pins
+ln -s /dev/gpio0 /dev/o_pwr_xbe
+ln -s /dev/gpio1 /dev/o_rtk_sel
+ln -s /dev/gpio2 /dev/o_pwr_gps
+ln -s /dev/gpio3 /dev/o_pwr_imu
+ln -s /dev/gpio4 /dev/o_imu_heat
+ln -s /dev/gpio5 /dev/o_pwr_ext
+ln -s /dev/gpio6 /dev/o_pwr_usb
+ln -s /dev/gpio7 /dev/o_pwr_iop
+
+# MCU input pins
+ln -s /dev/gpio8 /dev/i_din1
+ln -s /dev/gpio9 /dev/i_din2
+ln -s /dev/gpio10 /dev/i_pwr_pri
+ln -s /dev/gpio11 /dev/i_pwr_aux
+ln -s /dev/gpio12 /dev/i_pwr_usb
+
+# MCU interrupt pins
+ln -s /dev/gpio13 /dev/i_safety
+
+# Serial ports alias names
+ln -s /dev/ttyS0 /dev/ttyTEL1
+ln -s /dev/ttyS1 /dev/ttyGPS1
+ln -s /dev/ttyS2 /dev/ttyTEL4
+ln -s /dev/ttyS3 /dev/ttyGPS2
+ln -s /dev/ttyS4 /dev/ttyIOP1
+ln -s /dev/ttyS5 /dev/ttyTEL2
+ln -s /dev/ttyS6 /dev/ttyTEL3
+
+# Power on the GPS(s)
+gpio -o 1 /dev/o_pwr_gps
+
+# Power on the XBee socket(s)
+gpio -o 1 /dev/o_pwr_xbe
+
+# Power on the primary IMU system
+gpio -o 1 /dev/o_pwr_imu
+
+# Power on the peripheral interfaces
+gpio -o 1 /dev/o_pwr_ext
+
+# Power on the I/O processor
+gpio -o 1 /dev/o_pwr_iop

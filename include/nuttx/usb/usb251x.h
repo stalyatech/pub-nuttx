@@ -100,10 +100,13 @@ enum usb251x_stcd_e
 
 struct usb251x_config_s
 {
+  FAR struct i2c_master_s *i2c;
+  int addr;
+  int freq;
+  int portnum;
   const char *mfr_str;
   const char *prd_str;
   const char *ser_str;
-  int portnum;
   int (*portmap)(uint8_t);
   uint8_t config[256];
 };
@@ -131,8 +134,7 @@ struct usb251x_config_s
  *
  ****************************************************************************/
 
-int usb251x_register(FAR const char *devpath, FAR struct i2c_master_s *i2c,
-                     uint8_t addr, FAR struct usb251x_config_s *config);
+int usb251x_register(FAR const char *devpath, FAR struct usb251x_config_s *config);
 
 #undef EXTERN
 #if defined(__cplusplus)

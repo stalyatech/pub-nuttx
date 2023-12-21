@@ -90,22 +90,33 @@ void stm32_spidev_initialize(void)
 #if defined(CONFIG_SENSORS_ICM20689) && defined(CONFIG_ICM20689_SPI)
   /* Configure the SPI-based ICM20689 sensor select GPIO */
 
-  stm32_configgpio(GPIO_ICM20689_CS);
-  stm32_gpiowrite(GPIO_ICM20689_CS, true);
+  stm32_configgpio(GPIO_ICM20689_CSN);
+  stm32_gpiowrite(GPIO_ICM20689_CSN, true);
+
+  /* Interrupt GPIO */
+
+  //stm32_configgpio(GPIO_ICM20689_INT);
 #endif
 
 #if defined(CONFIG_SENSORS_LIS3MDL) && defined(CONFIG_LIS3MDL_SPI)
   /* Configure the SPI-based LIS3MDL sensor select GPIO */
 
-  stm32_configgpio(GPIO_LIS3MDL_CS);
-  stm32_gpiowrite(GPIO_LIS3MDL_CS, true);
+  stm32_configgpio(GPIO_LIS3MDL_CSN);
+  stm32_gpiowrite(GPIO_LIS3MDL_CSN, true);
 #endif
 
 #if defined(CONFIG_SENSORS_MS5611) && defined(CONFIG_MS5611_SPI)
   /* Configure the SPI-based MS5611 sensor select GPIO */
 
-  stm32_configgpio(GPIO_MS5611_CS);
-  stm32_gpiowrite(GPIO_MS5611_CS, true);
+  stm32_configgpio(GPIO_MS5611_CSN);
+  stm32_gpiowrite(GPIO_MS5611_CSN, true);
+#endif
+
+#if defined(CONFIG_MTD_RAMTRON)
+  /* Configure the FRAM select GPIO */
+
+  stm32_configgpio(GPIO_FM25V_CSN);
+  stm32_gpiowrite(GPIO_FM25V_CSN, true);
 #endif
 }
 
@@ -168,7 +179,7 @@ void stm32_spi1select(struct spi_dev_s *dev,
 
         /* Set the GPIO low to select and high to de-select */
 
-        stm32_gpiowrite(GPIO_ICM20689_CS, !selected);
+        stm32_gpiowrite(GPIO_ICM20689_CSN, !selected);
         break;
 #endif /* CONFIG_SENSORS_ICM20689 && CONFIG_ICM20689_SPI */
 
@@ -179,7 +190,7 @@ void stm32_spi1select(struct spi_dev_s *dev,
 
         /* Set the GPIO low to select and high to de-select */
 
-        stm32_gpiowrite(GPIO_LIS3MDL_CS, !selected);
+        stm32_gpiowrite(GPIO_LIS3MDL_CSN, !selected);
         break;
 #endif /* CONFIG_SENSORS_LIS3MDL && CONFIG_LIS3MDL_SPI */
 
@@ -190,7 +201,7 @@ void stm32_spi1select(struct spi_dev_s *dev,
 
         /* Set the GPIO low to select and high to de-select */
 
-        stm32_gpiowrite(GPIO_MS5611_CS, !selected);
+        stm32_gpiowrite(GPIO_MS5611_CSN, !selected);
         break;
 #endif /* CONFIG_SENSORS_MS5611 && CONFIG_MS5611_SPI */
     }          
@@ -234,8 +245,14 @@ uint8_t stm32_spi3status(struct spi_dev_s *dev, uint32_t devid)
 void stm32_spi4select(struct spi_dev_s *dev,
                       uint32_t devid, bool selected)
 {
-  spiinfo("devid: %08lx CS: %s\n",
-          (unsigned long)devid, selected ? "assert" : "de-assert");
+#if defined(CONFIG_MTD_RAMTRON)
+  spiinfo("FM25V mtd device %s\n",
+          selected ? "asserted" : "de-asserted");
+
+  /* Set the GPIO low to select and high to de-select */
+
+  stm32_gpiowrite(GPIO_FM25V_CSN, !selected);
+#endif
 }
 
 uint8_t stm32_spi4status(struct spi_dev_s *dev, uint32_t devid)

@@ -65,20 +65,20 @@
 
 static const uint8_t g_adc1_chanlist[ADC1_NCHANNELS] =
 {
-  4, 5, 8, 9, 10, 11, 18
+  10, 11, 8, 4, 5, 9, 18
 };
 
 /* Configurations of pins used by each ADC channels */
 
 static const uint32_t g_adc1_pinlist[ADC1_NCHANNELS] =
 {
-  GPIO_ADC1_INP4,
-  GPIO_ADC1_INP5,
-  GPIO_ADC1_INP8,
-  GPIO_ADC1_INP9,
-  GPIO_ADC1_INP10,
-  GPIO_ADC1_INP11,
-  GPIO_ADC1_INP18,
+  GPIO_ADC1_INP10,  /* VAIN1       */
+  GPIO_ADC1_INP11,  /* VAIN2       */
+  GPIO_ADC1_INP8,   /* BAT1_V_IN   */
+  GPIO_ADC1_INP4,   /* BAT1_I_IN   */
+  GPIO_ADC1_INP5,   /* BAT2_V_IN   */
+  GPIO_ADC1_INP9,   /* BAT2_I_IN   */
+  GPIO_ADC1_INP18,  /* HW_REV_SENS */
 };
 #endif
 

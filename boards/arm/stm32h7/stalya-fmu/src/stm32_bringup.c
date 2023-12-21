@@ -31,6 +31,7 @@
 #include <arch/board/board.h>
 
 #include <nuttx/fs/fs.h>
+#include <nuttx/leds/userled.h>
 
 #ifdef CONFIG_USBMONITOR
 #  include <nuttx/usb/usbmonitor.h>
@@ -300,6 +301,17 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_INPUT_BUTTONS */
 
+#if !defined(CONFIG_ARCH_LEDS) && defined(CONFIG_USERLED_LOWER)
+  /* Register the LED driver */
+
+  ret = userled_lower_initialize(LED_DRIVER_PATH);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize user led driver: %d\n", ret);
+    }
+#endif
+
 #ifdef CONFIG_ADC
   /* Initialize ADC and register the ADC driver. */
 
@@ -343,14 +355,14 @@ int stm32_bringup(void)
     }
 #endif /* HAVE_PROGMEM_CHARDEV */
 
-#ifdef CONFIG_MTD_W25
-  ret = stm32_w25initialize(0);
+#ifdef CONFIG_MTD_RAMTRON
+  ret = board_ramtron_initialize(0);
   if (ret < 0)
     {
       syslog(LOG_ERR, 
-             "ERROR: Failed to initialize W25XXX driver: %d\n", ret);
+             "ERROR: Failed to initialize FM25VXX driver: %d\n", ret);
     }
-#endif /* CONFIG_MTD_W25 */
+#endif /* CONFIG_MTD_RAMTRON */
 #endif /* CONFIG_MTD */
 
 #ifdef CONFIG_NETDEV_LATEINIT

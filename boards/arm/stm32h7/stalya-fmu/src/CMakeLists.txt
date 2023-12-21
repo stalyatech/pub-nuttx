@@ -112,6 +112,10 @@ if(CONFIG_FAT_DMAMEMORY)
   list(APPEND SRCS stm32_dma_alloc.c)
 endif()
 
+if(CONFIG_MTD_RAMTRON)
+  list(APPEND SRCS stm32_ramtron.c)
+endif()
+
 target_sources(board PRIVATE ${SRCS})
 
 if(CONFIG_STM32_APP_FORMAT_MCUBOOT)

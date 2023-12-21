@@ -114,4 +114,8 @@ ifeq ($(CONFIG_FAT_DMAMEMORY),y)
 CSRCS += stm32_dma_alloc.c
 endif
 
+ifeq ($(CONFIG_MTD_RAMTRON),y)
+CSRCS += stm32_ramtron.c
+endif
+
 include $(TOPDIR)/boards/Board.mk

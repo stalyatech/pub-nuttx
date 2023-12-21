@@ -183,13 +183,18 @@
 
 /* ADC pins */
 
-#define GPIO_ADC1_INP4    GPIO_ADC12_INP4_0
-#define GPIO_ADC1_INP5    GPIO_ADC12_INP5_0
-#define GPIO_ADC1_INP8    GPIO_ADC12_INP8_0
-#define GPIO_ADC1_INP9    GPIO_ADC12_INP9_0
-#define GPIO_ADC1_INP10   GPIO_ADC123_INP10_0
-#define GPIO_ADC1_INP11   GPIO_ADC123_INP11_0
-#define GPIO_ADC1_INP18   GPIO_ADC12_INP18_0
+#define GPIO_ADC1_INP4    GPIO_ADC12_INP4_0     /* BAT1_I_IN   */
+#define GPIO_ADC1_INP5    GPIO_ADC12_INP5_0     /* BAT2_V_IN   */
+#define GPIO_ADC1_INP8    GPIO_ADC12_INP8_0     /* BAT1_V_IN   */
+#define GPIO_ADC1_INP9    GPIO_ADC12_INP9_0     /* BAT2_I_IN   */
+#define GPIO_ADC1_INP10   GPIO_ADC123_INP10_0   /* VAIN1       */
+#define GPIO_ADC1_INP11   GPIO_ADC123_INP11_0   /* VAIN2       */
+#define GPIO_ADC1_INP18   GPIO_ADC12_INP18_0    /* HW_REV_SENS */
+
+/* FRAM chip select */
+
+#define GPIO_FM25V_CSN    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                           GPIO_OUTPUT_SET | GPIO_PORTC | GPIO_PIN13)
 
 /* MMC/SD
  * NCD - PC9
@@ -207,6 +212,10 @@
 
 #define ICM20689_SPIBUS     (1)
 #define ICM20689_SPIDEV     SPIDEV_IMU(2)
+#define GPIO_ICM20689_CSN   (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                             GPIO_OUTPUT_SET | GPIO_PORTE | GPIO_PIN14)
+#define GPIO_ICM20689_INT   (GPIO_INPUT | GPIO_PULLUP | GPIO_SPEED_50MHz  \
+                             GPIO_EXTI | GPIO_PORTE | GPIO_PIN13)
 
 /* LIS3MDL I2C configuration */
 
@@ -217,6 +226,8 @@
 
 #define LIS3MDL_SPIBUS      (1)
 #define LIS3MDL_SPIDEV      SPIDEV_IMU(3)
+#define GPIO_LIS3MDL_CSN    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                             GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN2)
 
 /* MS5611 configuration */
 
@@ -227,6 +238,8 @@
 
 #define MS5611_SPIBUS       (1)
 #define MS5611_SPIDEV       SPIDEV_BAROMETER(0)
+#define GPIO_MS5611_CSN     (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                             GPIO_OUTPUT_SET | GPIO_PORTE | GPIO_PIN11)
 
 /* PCA9635 configuration */
 
@@ -468,12 +481,24 @@ int stm32_dma_alloc_init(void);
  * Name: stm32_mmcsd_initialize
  *
  * Description:
- *   Initialize SPI-based SD card and card detect thread.
+ *   Initialize SDIO-based SD card and card detect thread.
  *
  ****************************************************************************/
 
 #ifdef CONFIG_MMCSD
 int stm32_mmcsd_initialize(int minor);
+#endif
+
+/****************************************************************************
+ * Name: board_ramtron_initialize
+ *
+ * Description:
+ *   Initialize SDIO-based SD card and card detect thread.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_MTD_RAMTRON
+int board_ramtron_initialize(int minor);
 #endif
 
 #endif /* __BOARDS_ARM_STM32H7_STALYA_FMU_SRC_STALYA_FMU_H */

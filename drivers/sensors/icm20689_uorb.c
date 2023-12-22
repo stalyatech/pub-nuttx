@@ -32,7 +32,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define  MIN(x, y)      (x) > (y) ? (y) : (x)
+#define MIN(x, y)   (x) > (y) ? (y) : (x)
 
 /****************************************************************************
  * Private Function Function Prototypes
@@ -116,7 +116,7 @@ static int icm20689_activate(FAR struct sensor_lowerhalf_s *lower,
 
       if (work_available(&dev->work))
         {
-          ret = work_queue(HPWORK, &dev->work, 
+          ret = work_queue(LPWORK, &dev->work, 
                           icm20689_worker, dev, 
                           priv->interval / USEC_PER_TICK);
           if (ret < 0)
@@ -130,7 +130,7 @@ static int icm20689_activate(FAR struct sensor_lowerhalf_s *lower,
       /* Set suspend mode to sensors. */
 
       priv->enabled = false;
-      work_cancel(HPWORK, &dev->work);
+      work_cancel(LPWORK, &dev->work);
     }
 
   return OK;
@@ -453,19 +453,7 @@ static int icm20689_initialize(FAR struct icm20689_dev_s *dev)
 {
   int ret = OK;
 
-#ifdef CONFIG_ICM20689_SPI
-  if (dev->config.spi == NULL)
-    {
-      return -EINVAL;
-    }
-#endif /* CONFIG_ICM20689_SPI */ 
-
-#ifdef CONFIG_ICM20689_I2C 
-  if (dev->config.i2c == NULL)
-    {
-      return -EINVAL;
-    }
-#endif /* CONFIG_ICM20689_I2C */
+  /* Lock the device */
 
   nxmutex_lock(&dev->lock);
 
@@ -637,6 +625,8 @@ static int icm20689_initialize(FAR struct icm20689_dev_s *dev)
   nxsig_usleep(1000);
 
 errout:
+  /* Unlock the device */
+
   nxmutex_unlock(&dev->lock);
   return ret;
 }
@@ -774,7 +764,7 @@ static void icm20689_worker(FAR void *arg)
 
   /* Re-schedule the worker */
 
-  work_queue(HPWORK, &dev->work,
+  work_queue(LPWORK, &dev->work,
              icm20689_worker, dev, 
              min_interval / USEC_PER_TICK);
 
@@ -836,9 +826,7 @@ int icm20689_register(int devno, FAR struct icm20689_config_s *config)
       snerr("ERROR: Failed to allocate icm20689 device instance\n");
       return -ENOMEM;
     }
-
   memset(dev, 0, sizeof(*dev));
-  nxmutex_init(&dev->lock);
 
   /* Keep a copy of the config structure, in case the caller discards
    * theirs.
@@ -846,12 +834,16 @@ int icm20689_register(int devno, FAR struct icm20689_config_s *config)
 
   dev->config = *config;
 
+  /* Initialize sensor data access mutex */
+
+  nxmutex_init(&dev->lock);
+
   /* Check the device id */
 
   ret = icm20689_checkid(dev);
   if (ret < 0)
     {
-      goto error;
+      goto err_id;
     }
 
   /* Accelerometer register */
@@ -866,7 +858,7 @@ int icm20689_register(int devno, FAR struct icm20689_config_s *config)
   ret = sensor_register(&tmp->lower, devno);
   if (ret < 0)
     {
-      goto error;
+      goto err_id;
     }
 
   icm20689_accel_scale(tmp, CONFIG_ICM20689_ACCEL_AFS_SEL);
@@ -883,7 +875,7 @@ int icm20689_register(int devno, FAR struct icm20689_config_s *config)
   ret = sensor_register(&tmp->lower, devno);
   if (ret < 0)
     {
-      goto error;
+      goto err_acc;
     }
 
   icm20689_gyro_scale(tmp, CONFIG_ICM20689_GYRO_FS_SEL);
@@ -900,7 +892,9 @@ int icm20689_register(int devno, FAR struct icm20689_config_s *config)
 
 error:
   sensor_unregister(&dev->priv[GYRO_IDX].lower, devno);
+err_acc:
   sensor_unregister(&dev->priv[ACCEL_IDX].lower, devno);
+err_id:
   nxmutex_destroy(&dev->lock);
   kmm_free(dev);
 

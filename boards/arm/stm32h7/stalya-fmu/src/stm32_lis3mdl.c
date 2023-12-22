@@ -64,6 +64,7 @@ int board_lis3mdl_i2c_initialize(int devno, int busno)
 #ifdef CONFIG_LIS3MDL_I2C
   /* Initialize I2C */
 
+  config.freq = CONFIG_LIS3MDL_I2C_FREQ;
   config.addr = LIS3MDL_I2CADDR;
   config.i2c = stm32_i2cbus_initialize(busno);
   if (config.i2c != NULL)
@@ -99,24 +100,22 @@ int board_lis3mdl_i2c_initialize(int devno, int busno)
 int board_lis3mdl_spi_initialize(int devno, int busno)
 {
   struct lis3mdl_config_s config;
-  char devpath[12];
   int ret = -ENODEV;
 
   sninfo("Initializing LIS3MDL!\n");
   memset(&config, 0, sizeof(config));
 
-  UNUSED(devpath);
 #ifdef CONFIG_LIS3MDL_SPI
   /* Initialize SPI */
 
+  config.freq = CONFIG_LIS3MDL_SPI_FREQ;
   config.spi_devid = LIS3MDL_SPIDEV;
   config.spi = stm32_spibus_initialize(busno);
   if (config.spi != NULL)
     {
       /* Then try to register the imu sensor on SPI */
 
-      snprintf(devpath, 12, "/dev/mag%d", devno);
-      ret = lis3mdl_register(devpath, &config);
+      ret = lis3mdl_uorb_register(devno, &config);
       if (ret < 0)
         {
           snerr("ERROR: Error registering LIS3MDL on SPI%d\n", busno);

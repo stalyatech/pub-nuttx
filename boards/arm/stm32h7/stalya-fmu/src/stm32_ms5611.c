@@ -108,7 +108,7 @@ int board_ms5611_spi_initialize(int devno, int busno)
 #ifdef CONFIG_MS5611_SPI
   /* Initialize SPI */
 
-  config.freq = 10000000;
+  config.freq = CONFIG_MS5611_SPI_FREQ;
   config.spi_devid = MS5611_SPIDEV;
   config.spi = stm32_spibus_initialize(busno);
   if (config.spi != NULL)

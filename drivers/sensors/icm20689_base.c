@@ -30,6 +30,10 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Device uses SPI Mode 3: CPOL=1, CPHA=1 */
+
+#define ICM20689_SPI_MODE   (SPIDEV_MODE3)
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -61,26 +65,21 @@ static int icm20689_read_reg_spi(FAR struct icm20689_dev_s *dev,
 {
   FAR struct spi_dev_s *spi = dev->config.spi;
   int id = dev->config.spi_devid;
-  int ret;
 
-  /* We'll probably return the number of bytes asked for. */
-
-  ret = len;
-
-  /* Grab and configure the SPI master device: always mode 0, 20MHz if it's a
+  /* Grab and configure the SPI master device: always mode 0, maximum 8MHz if it's a
    * data register, 1MHz otherwise (per datasheet).
    */
 
   SPI_LOCK(spi, true);
-  SPI_SETMODE(spi, SPIDEV_MODE0);
+  SPI_SETMODE(spi, ICM20689_SPI_MODE);
 
   if ((reg_addr >= ACCEL_XOUT_H) && ((reg_addr + len) <= GYRO_ZOUT_L))
     {
-      SPI_SETFREQUENCY(spi, 20000000);
+      SPI_SETFREQUENCY(spi, dev->config.freq);
     }
   else
     {
-      SPI_SETFREQUENCY(spi, 1000000);
+      SPI_SETFREQUENCY(spi, 100000);
     }
 
   /* Select the chip. */
@@ -103,7 +102,7 @@ static int icm20689_read_reg_spi(FAR struct icm20689_dev_s *dev,
   SPI_SELECT(spi, id, false);
   SPI_LOCK(spi, false);
 
-  return ret;
+  return OK;
 }
 
 /****************************************************************************
@@ -120,16 +119,11 @@ static int icm20689_write_reg_spi(FAR struct icm20689_dev_s *dev,
 {
   FAR struct spi_dev_s *spi = dev->config.spi;
   int id = dev->config.spi_devid;
-  int ret;
-
-  /* Hopefully, we'll return all the bytes they're asking for. */
-
-  ret = len;
 
   /* Grab and configure the SPI master device. */
 
   SPI_LOCK(spi, true);
-  SPI_SETMODE(spi, SPIDEV_MODE0);
+  SPI_SETMODE(spi, ICM20689_SPI_MODE);
   SPI_SETFREQUENCY(spi, 1000000);
 
   /* Select the chip. */
@@ -152,7 +146,7 @@ static int icm20689_write_reg_spi(FAR struct icm20689_dev_s *dev,
   SPI_SELECT(spi, id, false);
   SPI_LOCK(spi, false);
 
-  return ret;
+  return OK;
 }
 
 #endif /* CONFIG_ICM20689_SPI */
@@ -172,13 +166,13 @@ static int icm20689_read_reg_i2c(FAR struct icm20689_dev_s *dev,
   int ret;
   struct i2c_msg_s msg[2];
 
-  msg[0].frequency = CONFIG_ICM20689_I2C_FREQ;
+  msg[0].frequency = dev->config.freq;
   msg[0].addr      = dev->config.addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
 
-  msg[1].frequency = CONFIG_ICM20689_I2C_FREQ;
+  msg[1].frequency = dev->config.freq;
   msg[1].addr      = dev->config.addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = buf;
@@ -208,12 +202,12 @@ static int icm20689_write_reg_i2c(FAR struct icm20689_dev_s *dev,
   int ret;
   struct i2c_msg_s msg[2];
 
-  msg[0].frequency = CONFIG_ICM20689_I2C_FREQ;
+  msg[0].frequency = dev->config.freq;
   msg[0].addr      = dev->config.addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
-  msg[1].frequency = CONFIG_ICM20689_I2C_FREQ;
+  msg[1].frequency = dev->config.freq;
   msg[1].addr      = dev->config.addr;
   msg[1].flags     = I2C_M_NOSTART;
   msg[1].buffer    = (FAR uint8_t *)buf;

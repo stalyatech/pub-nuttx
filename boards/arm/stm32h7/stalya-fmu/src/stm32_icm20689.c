@@ -68,6 +68,7 @@ int board_icm20689_i2c_initialize(int devno, int busno)
 #ifdef CONFIG_ICM20689_I2C
   /* Initialize I2C */
 
+  config.freq = CONFIG_ICM20689_I2C_FREQ;
   config.addr = ICM20689_I2CADDR;
   config.i2c = stm32_i2cbus_initialize(busno);
   if (config.i2c != NULL)
@@ -111,6 +112,7 @@ int board_icm20689_spi_initialize(int devno, int busno)
 #ifdef CONFIG_ICM20689_SPI
   /* Initialize SPI */
 
+  config.freq = CONFIG_ICM20689_SPI_FREQ;
   config.spi_devid = ICM20689_SPIDEV;
   config.spi = stm32_spibus_initialize(busno);
   if (config.spi != NULL)

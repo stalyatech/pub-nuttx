@@ -61,33 +61,24 @@ void stm32_spidev_initialize(void)
    *       architecture.
    */
 
-#ifdef CONFIG_SENSORS_BMI088
-#ifdef CONFIG_BMI088_SPI
+  /* All bus shared sensor VS must be defined */
+
   /* Configure the SPI-based BMI088 sensor selects GPIO */
 
   /* Accel part */
 
-  stm32_configgpio(GPIO_BMI088_CS1);
-  stm32_gpiowrite(GPIO_BMI088_CS1, true);
+  stm32_configgpio(GPIO_BMI088A_CSN);
+  stm32_gpiowrite(GPIO_BMI088A_CSN, true);
 
   /* Gyro part */
   
-  stm32_configgpio(GPIO_BMI088_CS2);
-  stm32_gpiowrite(GPIO_BMI088_CS2, true);
-#endif /* CONFIG_BMI088_SPI */
+  stm32_configgpio(GPIO_BMI088G_CSN);
+  stm32_gpiowrite(GPIO_BMI088G_CSN, true);
 
-  /* Configure the BMI088 sensor interrupt pins */
+  /* Interrupt GPIO */
 
-  /* Accel part */
+  stm32_configgpio(GPIO_BMI088_INT);
 
-  stm32_configgpio(GPIO_BMI088_INT1);
-
-  /* Gyro part */
-  
-  stm32_configgpio(GPIO_BMI088_INT3);
-#endif /* CONFIG_SENSORS_BMI088 */
-
-#if defined(CONFIG_SENSORS_ICM20689) && defined(CONFIG_ICM20689_SPI)
   /* Configure the SPI-based ICM20689 sensor select GPIO */
 
   stm32_configgpio(GPIO_ICM20689_CSN);
@@ -95,22 +86,17 @@ void stm32_spidev_initialize(void)
 
   /* Interrupt GPIO */
 
-  //stm32_configgpio(GPIO_ICM20689_INT);
-#endif
+  stm32_configgpio(GPIO_ICM20689_INT);
 
-#if defined(CONFIG_SENSORS_LIS3MDL) && defined(CONFIG_LIS3MDL_SPI)
   /* Configure the SPI-based LIS3MDL sensor select GPIO */
 
   stm32_configgpio(GPIO_LIS3MDL_CSN);
   stm32_gpiowrite(GPIO_LIS3MDL_CSN, true);
-#endif
 
-#if defined(CONFIG_SENSORS_MS5611) && defined(CONFIG_MS5611_SPI)
   /* Configure the SPI-based MS5611 sensor select GPIO */
 
   stm32_configgpio(GPIO_MS5611_CSN);
   stm32_gpiowrite(GPIO_MS5611_CSN, true);
-#endif
 
 #if defined(CONFIG_MTD_RAMTRON)
   /* Configure the FRAM select GPIO */
@@ -159,7 +145,7 @@ void stm32_spi1select(struct spi_dev_s *dev,
 
         /* Set the GPIO low to select and high to de-select */
 
-        stm32_gpiowrite(GPIO_BMI088_CS1, !selected);
+        stm32_gpiowrite(GPIO_BMI088A_CSN, !selected);
         break;
 
       case SPIDEV_IMU(1):
@@ -168,7 +154,7 @@ void stm32_spi1select(struct spi_dev_s *dev,
 
         /* Set the GPIO low to select and high to de-select */
 
-        stm32_gpiowrite(GPIO_BMI088_CS2, !selected);
+        stm32_gpiowrite(GPIO_BMI088G_CSN, !selected);
         break;
 #endif /* CONFIG_SENSORS_BMI088 && CONFIG_BMI088_SPI */
 

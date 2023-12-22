@@ -68,8 +68,6 @@ struct i2c_master_s;
 
 struct ms5611_config_s
 {
-  uint32_t freq;        /* Bus Frequency I2C/SPI */
-
 #ifdef CONFIG_MS5611_SPI
   /* For users on SPI.
    *
@@ -92,6 +90,10 @@ struct ms5611_config_s
   FAR struct i2c_master_s *i2c;
   int addr;
 #endif /* CONFIG_MS5611_I2C */
+
+  /* Bus Frequency I2C/SPI */
+  
+  uint32_t freq;
 };
 
 struct ms5611_measure_s

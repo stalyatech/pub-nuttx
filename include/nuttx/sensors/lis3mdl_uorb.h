@@ -97,8 +97,7 @@ enum mag_fs_config
 
 /* SPI BUS PARAMETERS *******************************************************/
 
-#define LIS3MDL_SPI_FREQUENCY    (1000000)        /* 1 MHz */
-#define LIS3MDL_SPI_MODE         (SPIDEV_MODE3)   /* Device uses SPI Mode 3: CPOL=1, CPHA=1 */
+#define LIS3MDL_SPI_MODE        (SPIDEV_MODE3)      /* Device uses SPI Mode 3: CPOL=1, CPHA=1 */
 
 /****************************************************************************
  * Public Types
@@ -126,9 +125,6 @@ struct lis3mdl_config_s
 
   int spi_devid;
 
-  /* The IRQ number must be provided for each so LIS3MDL device so that
-   * their interrupts can be distinguished.
-   */
 #endif /* CONFIG_LIS3MDL_SPI */
 
 #ifdef CONFIG_LIS3MDL_I2C
@@ -140,6 +136,14 @@ struct lis3mdl_config_s
 
   int addr;
 #endif /* CONFIG_LIS3MDL_I2C */
+
+  /* Bus Frequency I2C/SPI */
+  
+  uint32_t freq;
+
+  /* The IRQ number must be provided for each so LIS3MDL device so that
+   * their interrupts can be distinguished.
+   */
 
   int irq;
 

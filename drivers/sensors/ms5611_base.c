@@ -30,6 +30,10 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Device uses SPI Mode 0: CPOL=0, CPHA=0 */
+
+#define MS5611_SPI_MODE   (SPIDEV_MODE0)
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -71,8 +75,8 @@ static int ms5611_read_spi(FAR struct ms5611_dev_s *dev,
    */
 
   SPI_LOCK(spi, true);
-  SPI_SETMODE(spi, SPIDEV_MODE0);
-  SPI_SETFREQUENCY(spi, 1000000);
+  SPI_SETMODE(spi, MS5611_SPI_MODE);
+  SPI_SETFREQUENCY(spi, dev->config.freq);
 
   /* Select the chip. */
 
@@ -115,8 +119,8 @@ static int ms5611_write_spi(FAR struct ms5611_dev_s *dev,
   /* Grab and configure the SPI master device. */
 
   SPI_LOCK(spi, true);
-  SPI_SETMODE(spi, SPIDEV_MODE0);
-  SPI_SETFREQUENCY(spi, 1000000);
+  SPI_SETMODE(spi, MS5611_SPI_MODE);
+  SPI_SETFREQUENCY(spi, dev->config.freq);
 
   /* Select the chip. */
 
@@ -137,6 +141,53 @@ static int ms5611_write_spi(FAR struct ms5611_dev_s *dev,
   return ret;
 }
 
+
+/****************************************************************************
+ * Name: ms5611_transfer_spi
+ *
+ * Description:
+ *   Write/Read to/from MS5611 with SPI bus
+ *
+ ****************************************************************************/
+
+static int ms5611_transfer_spi(FAR struct ms5611_dev_s *dev,
+                               FAR const uint8_t *txbuf, uint8_t txlen,
+                               FAR uint8_t *rxbuf, uint8_t rxlen)
+{
+  FAR struct spi_dev_s *spi = dev->config.spi;
+  int id = dev->config.spi_devid;
+
+  /* Grab and configure the SPI master device. */
+
+  SPI_LOCK(spi, true);
+  SPI_SETMODE(spi, MS5611_SPI_MODE);
+  SPI_SETFREQUENCY(spi, dev->config.freq);
+
+  /* Select the chip. */
+
+  SPI_SELECT(spi, id, true);
+
+  /* Send the data. */
+
+  while (0 != txlen--)
+    {
+      SPI_SEND(spi, *txbuf++);
+    }
+
+  /* Receive the data. */
+
+  while (0 != rxlen--)
+    {
+      *rxbuf++ = (uint8_t) (SPI_SEND(spi, 0xff));
+    }
+
+  /* Release the chip and SPI master. */
+
+  SPI_SELECT(spi, id, false);
+  SPI_LOCK(spi, false);
+
+  return OK;
+}
 #endif /* CONFIG_MS5611_SPI */
 
 #ifdef CONFIG_MS5611_I2C
@@ -277,4 +328,40 @@ int ms5611_write(FAR struct ms5611_dev_s *dev,
   return -ENODEV;
 }
 
+/****************************************************************************
+ * Name: ms5611_transfer
+ *
+ * Description:
+ *   Send/receive data to/from MS5611 device
+ *
+ ****************************************************************************/
+
+int ms5611_transfer(FAR struct ms5611_dev_s *dev,
+                    FAR const uint8_t *txbuf, uint8_t txlen,
+                    FAR uint8_t *rxbuf, uint8_t rxlen)
+{
+#ifdef CONFIG_MS5611_SPI
+  /* If we're connected to SPI, use that function. */
+
+  if (dev->config.spi != NULL)
+    {
+      return ms5611_transfer_spi(dev, txbuf, txlen, rxbuf, rxlen);
+    }
+#endif /* CONFIG_MS5611_SPI */
+
+#ifdef CONFIG_MS5611_I2C
+  int ret = 0;
+
+  if (dev->config.i2c != NULL)
+    {
+      ret += ms5611_write_i2c(dev, txbuf, txlen);
+      ret += ms5611_read_i2c(dev, rxbuf, rxlen);
+      return ret;
+    }
+#endif /* CONFIG_MS5611_I2C */
+
+  /* If we get this far, it's because we can't "find" our device. */
+
+  return -ENODEV;
+}
 #endif /* CONFIG_SENSORS_MS5611 */

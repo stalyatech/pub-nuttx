@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/sensors/lis3mdl.c
+ * drivers/sensors/lis3mdl_uorb.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -192,7 +192,7 @@ static int lis3mdl_activate(FAR struct sensor_lowerhalf_s *lower,
 
       if (work_available(&dev->work))
         {
-          ret = work_queue(HPWORK, &dev->work, 
+          ret = work_queue(LPWORK, &dev->work, 
                           lis3mdl_worker, dev, 
                           priv->interval / USEC_PER_TICK);
           if (ret < 0)
@@ -206,7 +206,7 @@ static int lis3mdl_activate(FAR struct sensor_lowerhalf_s *lower,
       /* Set suspend mode to sensors. */
 
       priv->enabled = false;
-      work_cancel(HPWORK, &dev->work);
+      work_cancel(LPWORK, &dev->work);
     }
 
   return OK;
@@ -332,17 +332,15 @@ static int lis3mdl_read_reg_spi(FAR struct lis3mdl_dev_s *dev,
 {
   FAR struct spi_dev_s *spi = dev->config.spi;
   int id = dev->config.spi_devid;
-  int ret;
-
-  /* We'll probably return the number of bytes asked for. */
-
-  ret = len;
+  uint8_t reg;
 
   /* Lock the SPI bus so that only one device can access it at the same
    * time
    */
 
   SPI_LOCK(spi, true);
+  SPI_SETMODE(dev->config.spi, LIS3MDL_SPI_MODE); 
+  SPI_SETFREQUENCY(dev->config.spi, dev->config.freq);
 
   /* Set CS to low which selects the LIS3MDL */
 
@@ -352,7 +350,16 @@ static int lis3mdl_read_reg_spi(FAR struct lis3mdl_dev_s *dev,
    * needs to be set to indicate the read indication.
    */
 
-  SPI_SEND(spi, reg_addr | 0x80);
+  reg = reg_addr | 0x80;
+
+  /* If multiple read is requested than set the address increment bit */
+
+  if (len > 1)
+    {
+      reg |= 0x40;      
+    }
+
+  SPI_SEND(spi, reg);
 
   /* Write an idle byte while receiving the required data */
 
@@ -382,25 +389,30 @@ static int lis3mdl_write_reg_spi(FAR struct lis3mdl_dev_s *dev,
 {
   FAR struct spi_dev_s *spi = dev->config.spi;
   int id = dev->config.spi_devid;
-  int ret;
-
-  /* Hopefully, we'll return all the bytes they're asking for. */
-
-  ret = len;
+  uint8_t reg = reg_addr;
 
   /* Lock the SPI bus so that only one device can access it at the same
    * time
    */
 
   SPI_LOCK(spi, true);
+  SPI_SETMODE(dev->config.spi, LIS3MDL_SPI_MODE); 
+  SPI_SETFREQUENCY(dev->config.spi, dev->config.freq);
 
   /* Set CS to low which selects the LIS3MDL */
 
   SPI_SELECT(spi, id, true);
 
+  /* If multiple write is requested than set the address increment bit */
+
+  if (len > 1)
+    {
+      reg |= 0x40;      
+    }
+
   /* Transmit the register address from where we want to read */
 
-  SPI_SEND(spi, reg_addr);
+  SPI_SEND(spi, reg);
 
   /* Transmit the content which should be written in the register */
 
@@ -726,6 +738,7 @@ static void lis3mdl_mag_data(FAR struct lis3mdl_sensor_s *priv,
   priv->last_update = now;
 
   mag.timestamp = now;
+  mag.status = 0;
   mag.x = buf->x_mag * priv->scale;
   mag.y = buf->y_mag * priv->scale;
   mag.z = buf->z_mag * priv->scale;
@@ -747,7 +760,7 @@ static void lis3mdl_worker(FAR void *arg)
 
   /* Re-schedule the worker */
 
-  work_queue(HPWORK, &dev->work,
+  work_queue(LPWORK, &dev->work,
              lis3mdl_worker, dev, 
              priv->interval / USEC_PER_TICK);
 
@@ -777,19 +790,7 @@ static int lis3mdl_initialize(FAR struct lis3mdl_dev_s *dev)
   uint8_t reg_content;
   uint8_t reg_addr;
 
-#ifdef CONFIG_LIS3MDL_SPI
-  if (dev->config.spi == NULL)
-    {
-      return -EINVAL;
-    }
-#endif /* CONFIG_LIS3MDL_SPI */ 
-
-#ifdef CONFIG_LIS3MDL_I2C 
-  if (dev->config.i2c == NULL)
-    {
-      return -EINVAL;
-    }
-#endif /* CONFIG_LIS3MDL_I2C */
+  /* Lock the device */
 
   nxmutex_lock(&dev->lock);
 
@@ -862,6 +863,8 @@ static int lis3mdl_initialize(FAR struct lis3mdl_dev_s *dev)
   lis3mdl_read_register(dev, LIS3MDL_STATUS_REG, &reg_content, 1);
   sninfo("STATUS_REG = %04x\n", reg_content);
 
+  /* Unlock the device */
+
   nxmutex_unlock(&dev->lock);
 
   return OK;
@@ -922,15 +925,6 @@ int lis3mdl_uorb_register(int devno, FAR struct lis3mdl_config_s const *config)
 
   nxmutex_init(&dev->lock);
 
-  /* Setup SPI frequency and mode */
-
-#ifdef CONFIG_LIS3MDL_SPI
-  if (config.spi != NULL)
-    {
-      SPI_SETFREQUENCY(config.spi, LIS3MDL_SPI_FREQUENCY);
-      SPI_SETMODE(config.spi, LIS3MDL_SPI_MODE);      
-    }
-#endif /* CONFIG_LIS3MDL_SPI */
 
   /* Check the device id */
 

@@ -158,6 +158,7 @@ static void stm32_i2ctool(void)
 int stm32_bringup(void)
 {
   int ret = OK;
+  int devno;
 #ifdef HAVE_RTC_DRIVER
   struct rtc_lowerhalf_s *lower;
 #endif
@@ -192,14 +193,19 @@ int stm32_bringup(void)
 #ifdef CONFIG_SENSORS_ICM20689
   /* Initialize the ICM20689 motion tracker sensor(s). */
 
-  ret = board_icm20689_i2c_initialize(0, ICM20689_I2CBUS);
+  devno = 0;
+  ret = board_icm20689_i2c_initialize(devno, ICM20689_I2CBUS);
   if (ret < 0)
     {
       syslog(LOG_ERR, 
              "ERROR: Failed to initialize ICM20689 over I2C driver: %d\n", ret);
-    }
+    } 
+  else
+    {
+      devno++;
+    } 
 
-  ret = board_icm20689_spi_initialize(0, ICM20689_SPIBUS);
+  ret = board_icm20689_spi_initialize(devno, ICM20689_SPIBUS);
   if (ret < 0)
     {
       syslog(LOG_ERR, 
@@ -210,14 +216,19 @@ int stm32_bringup(void)
 #ifdef CONFIG_SENSORS_MS5611
   /* Initialize the MS5611 pressure sensor(s). */
 
-  ret = board_ms5611_i2c_initialize(0, MS5611_I2CBUS);
+  devno = 0;
+  ret = board_ms5611_i2c_initialize(devno, MS5611_I2CBUS);
   if (ret < 0)
     {
       syslog(LOG_ERR, 
              "ERROR: Failed to initialize MS5611 over I2C driver: %d\n", ret);
     }
+  else
+    {
+      devno++;
+    } 
 
-  ret = board_ms5611_spi_initialize(0, MS5611_SPIBUS);
+  ret = board_ms5611_spi_initialize(devno, MS5611_SPIBUS);
   if (ret < 0)
     {
       syslog(LOG_ERR, 
@@ -228,14 +239,19 @@ int stm32_bringup(void)
 #ifdef CONFIG_SENSORS_LIS3MDL
   /* Initialize the LIS3MDL e-compass sensor(s). */
 
-  ret = board_lis3mdl_i2c_initialize(0, LIS3MDL_I2CBUS);
+  devno = 0;
+  ret = board_lis3mdl_i2c_initialize(devno, LIS3MDL_I2CBUS);
   if (ret < 0)
     {
       syslog(LOG_ERR, 
              "ERROR: Failed to initialize LIS3MDL over I2C driver: %d\n", ret);
     }
+  else
+    {
+      devno++;
+    } 
 
-  ret = board_lis3mdl_spi_initialize(0, LIS3MDL_SPIBUS);
+  ret = board_lis3mdl_spi_initialize(devno, LIS3MDL_SPIBUS);
   if (ret < 0)
     {
       syslog(LOG_ERR, 

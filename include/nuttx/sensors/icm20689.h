@@ -127,7 +127,11 @@ struct icm20689_config_s
   FAR struct i2c_master_s *i2c;
   int addr;
 #endif /* CONFIG_ICM20689_I2C */
-  };
+
+  /* Bus Frequency I2C/SPI */
+  
+  uint32_t freq;
+};
 
 /* Describes the icm20689 sensor register file. This structure reflects
  * the underlying hardware, so don't change it!

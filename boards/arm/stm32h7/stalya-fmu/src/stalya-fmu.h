@@ -203,6 +203,20 @@
 #define GPIO_MMCSD_NCD    (GPIO_INPUT | GPIO_PULLUP | GPIO_EXTI |  \
                            GPIO_PORTC | GPIO_PIN9)
 
+/* BMI088 SPI configuration */
+
+#define BMI088A_SPIBUS      (1)
+#define BMI088A_SPIDEV      SPIDEV_IMU(0)
+#define GPIO_BMI088A_CSN    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                             GPIO_OUTPUT_SET | GPIO_PORTC | GPIO_PIN2)
+#define GPIO_BMI088_INT     (GPIO_INPUT | GPIO_PULLUP | GPIO_SPEED_50MHz | \
+                             GPIO_EXTI | GPIO_PORTE | GPIO_PIN12)
+
+#define BMI088G_SPIBUS      (1)
+#define BMI088G_SPIDEV      SPIDEV_IMU(1)
+#define GPIO_BMI088G_CSN    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                             GPIO_OUTPUT_SET | GPIO_PORTC | GPIO_PIN3)
+
 /* ICM20689 I2C configuration */
 
 #define ICM20689_I2CBUS     (4)
@@ -214,7 +228,7 @@
 #define ICM20689_SPIDEV     SPIDEV_IMU(2)
 #define GPIO_ICM20689_CSN   (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                              GPIO_OUTPUT_SET | GPIO_PORTE | GPIO_PIN14)
-#define GPIO_ICM20689_INT   (GPIO_INPUT | GPIO_PULLUP | GPIO_SPEED_50MHz  \
+#define GPIO_ICM20689_INT   (GPIO_INPUT | GPIO_PULLUP | GPIO_SPEED_50MHz | \
                              GPIO_EXTI | GPIO_PORTE | GPIO_PIN13)
 
 /* LIS3MDL I2C configuration */

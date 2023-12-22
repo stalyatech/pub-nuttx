@@ -98,22 +98,8 @@ int ms5611_read(FAR struct ms5611_dev_s *dev,
 int ms5611_write(FAR struct ms5611_dev_s *dev,
                  FAR const uint8_t *buf, uint8_t len);
 
-/****************************************************************************
- * Name: ms5611_configspi
- *
- * Description:
- *
- ****************************************************************************/
+int ms5611_transfer(FAR struct ms5611_dev_s *dev,
+                    FAR const uint8_t *txbuf, uint8_t txlen,
+                    FAR uint8_t *rxbuf, uint8_t rxlen);
 
-#ifdef CONFIG_SENSORS_MS5611_SPI
-inline void ms5611_configspi(FAR struct spi_dev_s *spi)
-{
-  /* Configure SPI for the MS5611 */
-
-  SPI_SETMODE(spi, SPIDEV_MODE0);
-  SPI_SETBITS(spi, 8);
-  SPI_HWFEATURES(spi, 0);
-  SPI_SETFREQUENCY(spi, MS5611_SPI_MAXFREQUENCY);
-}
-#endif
 #endif /* __INCLUDE_NUTTX_SENSORS_MS5611_COMMOM_H */

@@ -59,10 +59,11 @@
 
 static int ms5611_sendcmd(FAR struct ms5611_dev_s *dev,
                           uint8_t cmd);
-static int ms5611_read16(FAR struct ms5611_dev_s *dev,
-                         FAR uint8_t *regval);
-static int ms5611_read24(FAR struct ms5611_dev_s *dev,
-                         FAR uint8_t *regval);
+static int ms5611_readadc(FAR struct ms5611_dev_s *dev,
+                          FAR uint8_t *regval);
+static int ms5611_readprom(FAR struct ms5611_dev_s *dev, 
+                           uint8_t regaddr,
+                           FAR uint8_t *regval);
 
 static int32_t ms5611_compensate_temp(FAR struct ms5611_dev_s *dev,
                                       uint32_t temp, int32_t *deltat);
@@ -134,29 +135,30 @@ static int ms5611_sendcmd(FAR struct ms5611_dev_s *dev, uint8_t cmd)
 }
 
 /****************************************************************************
- * Name: ms5611_read16
+ * Name: ms5611_readprom
  *
  * Description:
- *   Read 16-bit from a MS5611 register
+ *   Read 16-bit PROM data from a MS5611 register
  *
  ****************************************************************************/
 
-static int ms5611_read16(FAR struct ms5611_dev_s *dev, FAR uint8_t *regval)
+static int ms5611_readprom(FAR struct ms5611_dev_s *dev, uint8_t regaddr, uint8_t *regval)
 {
-  return ms5611_read(dev, regval, 2);
+  return ms5611_transfer(dev, &regaddr, 1, regval, 2);
 }
 
 /****************************************************************************
- * Name: ms5611_read24
+ * Name: ms5611_readadc
  *
  * Description:
- *   Read 24-bit from a MS5611 register
+ *   Read 24-bit ADC calue from the MS5611
  *
  ****************************************************************************/
 
-static int ms5611_read24(FAR struct ms5611_dev_s *dev, uint8_t *regval)
+static int ms5611_readadc(FAR struct ms5611_dev_s *dev, uint8_t *regval)
 {
-  return ms5611_read(dev, regval, 3);
+  uint8_t cmd = MS5611_CMD_START_ADC_READ;
+  return ms5611_transfer(dev, &cmd, 1, regval, 3);
 }
 
 static inline void baro_measure_read(FAR struct ms5611_dev_s *dev,
@@ -191,23 +193,14 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *dev,
 
   /* Send command to start a read sequence */
 
-  ret = ms5611_sendcmd(dev, MS5611_CMD_START_ADC_READ);
+  ret = ms5611_readadc(dev, buffer);
   if (ret < 0)
     {
-      snerr("Fail to send cmd MS5611_CMD_START_ADC_READ!\n");
+      snerr("Fail to read adc!\n");
       return;
     }
 
-  /* Wait data get ready */
-
-  up_udelay(10000);
-
-  ret = ms5611_read24(dev, buffer);
-  if (ret < 0)
-    {
-      snerr("Fail to read pressure!\n");
-      return;
-    }
+  /* get ready data */
 
   press = (uint32_t) buffer[0] << 16 |
           (uint32_t) buffer[1] << 8 |
@@ -228,23 +221,14 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *dev,
 
   /* Send command to start a read sequence */
 
-  ret = ms5611_sendcmd(dev, MS5611_CMD_START_ADC_READ);
+  ret = ms5611_readadc(dev, buffer);
   if (ret < 0)
     {
-      snerr("Fail to send cmd MS5611_CMD_START_ADC_READ!\n");
+      snerr("Fail to read adc!\n");
       return;
     }
 
-  /* Wait data get ready */
-
-  up_udelay(10000);
-
-  ret = ms5611_read24(dev, buffer);
-  if (ret < 0)
-    {
-      snerr("Fail to read temperature!\n");
-      return;
-    }
+  /* get ready data */
 
   temp = (uint32_t) buffer[0] << 16 |
          (uint32_t) buffer[1] << 8 |
@@ -296,17 +280,10 @@ static int ms5611_initialize(FAR struct ms5611_dev_s *dev)
 
   for (i = 0; i < 8; i++)
     {
-      ret = ms5611_sendcmd(dev, MS5611_CMD_ADC_PROM_READ(i));
+      ret = ms5611_readprom(dev, MS5611_CMD_ADC_PROM_READ(i), data);
       if (ret < 0)
         {
-          snerr("ms5611_sendcmd failed\n");
-          return ret;
-        }
-
-      ret = ms5611_read16(dev, data);
-      if (ret < 0)
-        {
-          snerr("ms5611_read16 failed\n");
+          snerr("ms5611_readprom failed\n");
           return ret;
         }
 
@@ -442,7 +419,7 @@ static int ms5611_activate(FAR struct sensor_lowerhalf_s *lower,
 
       if (work_available(&dev->work))
         {
-          ret = work_queue(HPWORK, &dev->work, 
+          ret = work_queue(LPWORK, &dev->work, 
                           ms5611_worker, dev, 
                           priv->interval / USEC_PER_TICK);
           if (ret < 0)
@@ -456,7 +433,7 @@ static int ms5611_activate(FAR struct sensor_lowerhalf_s *lower,
       /* Set suspend mode to sensors. */
 
       priv->enabled = false;
-      work_cancel(HPWORK, &dev->work);
+      work_cancel(LPWORK, &dev->work);
     }
 
   return OK;
@@ -527,7 +504,7 @@ static void ms5611_worker(FAR void *arg)
 
   /* Re-schedule the worker */
 
-  work_queue(HPWORK, &dev->work,
+  work_queue(LPWORK, &dev->work,
              ms5611_worker, dev, 
              priv->interval / USEC_PER_TICK);
 

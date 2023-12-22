@@ -33,7 +33,6 @@
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sensors/sensor.h>
 #include <nuttx/sensors/ms5611.h>
-#include <nuttx/sensors/msxxxx_crc4.h>
 
 #include <stdlib.h>
 #include <assert.h>

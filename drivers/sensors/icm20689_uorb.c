@@ -843,7 +843,7 @@ int icm20689_register(int devno, FAR struct icm20689_config_s *config)
   ret = icm20689_checkid(dev);
   if (ret < 0)
     {
-      goto err_id;
+      goto error_id;
     }
 
   /* Accelerometer register */
@@ -858,7 +858,7 @@ int icm20689_register(int devno, FAR struct icm20689_config_s *config)
   ret = sensor_register(&tmp->lower, devno);
   if (ret < 0)
     {
-      goto err_id;
+      goto error_id;
     }
 
   icm20689_accel_scale(tmp, CONFIG_ICM20689_ACCEL_AFS_SEL);
@@ -875,7 +875,7 @@ int icm20689_register(int devno, FAR struct icm20689_config_s *config)
   ret = sensor_register(&tmp->lower, devno);
   if (ret < 0)
     {
-      goto err_acc;
+      goto error_acc;
     }
 
   icm20689_gyro_scale(tmp, CONFIG_ICM20689_GYRO_FS_SEL);
@@ -892,9 +892,9 @@ int icm20689_register(int devno, FAR struct icm20689_config_s *config)
 
 error:
   sensor_unregister(&dev->priv[GYRO_IDX].lower, devno);
-err_acc:
+error_acc:
   sensor_unregister(&dev->priv[ACCEL_IDX].lower, devno);
-err_id:
+error_id:
   nxmutex_destroy(&dev->lock);
   kmm_free(dev);
 

@@ -931,7 +931,7 @@ int lis3mdl_uorb_register(int devno, FAR struct lis3mdl_config_s const *config)
   ret = lis3mdl_checkid(dev);
   if (ret < 0)
     {
-      goto error;
+      goto error_id;
     }
 
   /* Magnetic field register */
@@ -947,7 +947,7 @@ int lis3mdl_uorb_register(int devno, FAR struct lis3mdl_config_s const *config)
   tmp->scale = 1;
   if (ret < 0)
     {
-      goto error;
+      goto error_id;
     }
 
   /* Reset the chip, to give it an initial configuration. */
@@ -966,6 +966,7 @@ int lis3mdl_uorb_register(int devno, FAR struct lis3mdl_config_s const *config)
 
 error:
   sensor_unregister(&dev->priv.lower, devno);
+error_id:
   nxmutex_destroy(&dev->lock);
   kmm_free(dev);
 

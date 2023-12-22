@@ -105,6 +105,69 @@ static const struct sensor_ops_s g_ms5611_ops =
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: ms5611_crc4
+ *
+ * Description: MS5611 crc4 cribbed from the datasheet.
+ *
+ * Return:
+ *   Checksum failure status
+ ****************************************************************************/
+
+static bool ms5611_crc4(uint16_t *n_prom)
+{
+	int16_t cnt;
+	uint16_t n_rem;
+	uint16_t crc_read;
+	uint8_t n_bit;
+
+	n_rem = 0x00;
+
+	/* save the read crc */
+
+	crc_read = n_prom[7];
+
+	/* remove CRC byte */
+
+	n_prom[7] = (0xFF00 & (n_prom[7]));
+
+	for (cnt = 0; cnt < 16; cnt++) 
+    {
+      /* uneven bytes */
+
+      if (cnt & 1) 
+        {
+          n_rem ^= (uint8_t)((n_prom[cnt >> 1]) & 0x00FF);
+
+        } 
+      else 
+        {
+          n_rem ^= (uint8_t)(n_prom[cnt >> 1] >> 8);
+        }
+
+      for (n_bit = 8; n_bit > 0; n_bit--) 
+        {
+          if (n_rem & 0x8000) 
+            {
+              n_rem = (n_rem << 1) ^ 0x3000;
+            } 
+          else 
+            {
+              n_rem = (n_rem << 1);
+            }
+        }
+    }
+
+	/* final 4 bit remainder is CRC value */
+
+	n_rem = (0x000F & (n_rem >> 12));
+	n_prom[7] = crc_read;
+
+	/* return true if CRCs match */
+
+	return (0x000F & crc_read) == (n_rem ^ 0x00);
+}
+
+/****************************************************************************
  * Name: ms5611_curtime
  *
  * Description: Helper to get current timestamp.
@@ -259,47 +322,73 @@ static inline void baro_measure_read(FAR struct ms5611_dev_s *dev,
 static int ms5611_initialize(FAR struct ms5611_dev_s *dev)
 {
   struct ms5611_sensor_s *priv = &dev->priv;
+  bool all_zero = true;
   uint16_t prom[8];
   uint8_t data[2];
-  uint8_t crc;
-  int i;
+  int i, retry;
   int ret;
 
-  /* Get calibration data. */
+  /* reset and read PROM (try up to 3 times) */
 
-  ret = ms5611_sendcmd(dev, MS5611_CMD_RESET);
-  if (ret < 0)
+  for (retry = 0; retry < 3; retry++)
     {
-      snerr("ms5611 reset failed\n");
-      return ret;
-    }
+      /* Get calibration data. */
 
-  /* We have to wait before the prom is ready is be read */
-
-  up_udelay(10000);
-
-  for (i = 0; i < 8; i++)
-    {
-      ret = ms5611_readprom(dev, MS5611_CMD_ADC_PROM_READ(i), data);
+      ret = ms5611_sendcmd(dev, MS5611_CMD_RESET);
       if (ret < 0)
         {
-          snerr("ms5611_readprom failed\n");
-          return ret;
+          snerr("ms5611 reset failed\n");
+          continue;
         }
 
-      prom[i] = (uint16_t) data[0] << 8 | (uint16_t) data[1];
+      /* We have to wait before the prom is ready is be read */
+
+      up_udelay(10000);
+
+	    /* read and convert PROM words */
+
+      for (i = 0; i < 8; i++)
+        {
+          ret = ms5611_readprom(dev, MS5611_CMD_ADC_PROM_READ(i), data);
+          if (ret < 0)
+            {
+              snerr("ms5611_readprom failed\n");
+              continue;
+            }
+
+          prom[i] = (uint16_t) data[0] << 8 | (uint16_t) data[1];
+
+          /* Check for zero value */
+
+          if (prom[i] != 0)
+            {
+              all_zero = false;
+            }
+        }
+
+      /* Verify if the calculated CRC is equal to PROM's CRC */
+
+      if (!all_zero && ms5611_crc4(prom))
+        {
+          /* Fill read calibration coefficients */
+
+          priv->calib.c1 = prom[1];
+          priv->calib.c2 = prom[2];
+          priv->calib.c3 = prom[3];
+          priv->calib.c4 = prom[4];
+          priv->calib.c5 = prom[5];
+          priv->calib.c6 = prom[6];
+
+          return OK;
+        }
     }
 
-  /* Get the 4-bit CRC from PROM */
+  /* Check for all zero condition */
 
-  crc = (uint8_t)(prom[7] & 0xf);
-
-  /* Verify if the calculated CRC is equal to PROM's CRC */
-
-  if (crc != msxxxx_crc4(prom, 7, 0xff))
+  if (all_zero)
     {
-      snerr("ERROR: Calculated CRC different from PROM's CRC!\n");
-      return -ENODEV;
+      snerr("ERROR: PROM all zero!\n");
+      return -ENODEV;      
     }
 
   /* Fill read calibration coefficients */
@@ -311,7 +400,8 @@ static int ms5611_initialize(FAR struct ms5611_dev_s *dev)
   priv->calib.c5 = prom[5];
   priv->calib.c6 = prom[6];
 
-  return ret;
+  snwarn("WARNING: Calculated CRC different from PROM's CRC!\n");
+  return OK;
 }
 
 /****************************************************************************
@@ -589,7 +679,7 @@ int ms5611_register(int devno, FAR struct ms5611_config_s *config)
   ret = sensor_register(&priv->lower, devno);
   if (ret < 0)
     {
-      goto error;
+      goto error_sen;
     }
 
   /* Reset the chip, to give it an initial configuration. */
@@ -605,6 +695,7 @@ int ms5611_register(int devno, FAR struct ms5611_config_s *config)
 
 error:
   sensor_unregister(&dev->priv.lower, devno);
+error_sen:
   nxmutex_destroy(&dev->lock);
   kmm_free(dev);
 

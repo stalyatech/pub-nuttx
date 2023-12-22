@@ -250,6 +250,43 @@ static int ms5611_write_i2c(FAR struct ms5611_dev_s *dev,
 
   return OK;
 }
+
+/****************************************************************************
+ * Name: icm20689_read_reg_i2c
+ *
+ * Description:
+ *   Read from ICM20689 registers with I2C bus
+ *
+ ****************************************************************************/
+
+static int ms5611_transfer_i2c(FAR struct ms5611_dev_s *dev,
+                               FAR const uint8_t *txbuf, uint8_t txlen,
+                               FAR uint8_t *rxbuf, uint8_t rxlen)
+{
+  struct i2c_msg_s msg[2];
+  int ret;
+
+  msg[0].frequency = dev->config.freq;
+  msg[0].addr      = dev->config.addr;
+  msg[0].flags     = I2C_M_NOSTOP;
+  msg[0].buffer    = (FAR uint8_t *)txbuf;
+  msg[0].length    = txlen;
+
+  msg[1].frequency = dev->config.freq;
+  msg[1].addr      = dev->config.addr;
+  msg[1].flags     = I2C_M_READ;
+  msg[1].buffer    = rxbuf;
+  msg[1].length    = rxlen;
+
+  ret = I2C_TRANSFER(dev->config.i2c, msg, 2);
+  if (ret < 0)
+    {
+      snerr("ERROR: I2C_TRANSFER(write/read) failed: %d\n", ret);
+      return ret;
+    }
+
+  return OK;
+}
 #endif /* CONFIG_MS5611_I2C */
 
 /* ms5611_read()
@@ -350,13 +387,9 @@ int ms5611_transfer(FAR struct ms5611_dev_s *dev,
 #endif /* CONFIG_MS5611_SPI */
 
 #ifdef CONFIG_MS5611_I2C
-  int ret = 0;
-
   if (dev->config.i2c != NULL)
     {
-      ret += ms5611_write_i2c(dev, txbuf, txlen);
-      ret += ms5611_read_i2c(dev, rxbuf, rxlen);
-      return ret;
+      return ms5611_transfer_i2c(dev, txbuf, txlen, rxbuf, rxlen);
     }
 #endif /* CONFIG_MS5611_I2C */
 

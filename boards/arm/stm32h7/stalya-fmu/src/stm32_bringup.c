@@ -162,6 +162,7 @@ int stm32_bringup(void)
 #ifdef HAVE_RTC_DRIVER
   struct rtc_lowerhalf_s *lower;
 #endif
+  UNUSED(devno);
   UNUSED(ret);
 
 #ifdef CONFIG_FS_PROCFS

@@ -18,7 +18,7 @@
 #
 # ##############################################################################
 
-set(SRCS stm32_boot.c stm32_bringup.c)
+set(SRCS stm32_boot.c stm32_bringup.c stm32_platform.c)
 
 if(CONFIG_ADC)
   list(APPEND SRCS stm32_adc.c)

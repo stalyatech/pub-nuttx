@@ -2,5 +2,5 @@ ifdown can0
 ifdown can1
 
 if [ -b "/dev/mmcsd0" ]; then
-mount -t vfat /dev/mmcsd0 /sdc
+mount -t vfat /dev/mmcsd0 /mnt/tmp1
 fi

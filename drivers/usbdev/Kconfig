@@ -220,7 +220,7 @@ config COMPOSITE_VENDORID
 	default 0x0000
 
 config COMPOSITE_VENDORSTR
-	string "Composite vendor ID"
+	string "Composite vendor string"
 	default "NuttX"
 	---help---
 		The vendor ID code/string

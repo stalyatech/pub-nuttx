@@ -68,17 +68,40 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define FLASH_KEY1         0x45670123
-#define FLASH_KEY2         0xcdef89ab
-#define FLASH_OPTKEY1      0x08192a3b
-#define FLASH_OPTKEY2      0x4c5d6e7f
-#define FLASH_ERASEDVALUE  0xff
+#define FLASH_PAGE_SIZE       32
+#define FLASH_NPAGES          (STM32_FLASH_SIZE / FLASH_PAGE_SIZE)
+#define FLASH_NBLOCKS         STM32_FLASH_NPAGES
+
+#define FLASH_KEY1            0x45670123
+#define FLASH_KEY2            0xcdef89ab
+#define FLASH_OPTKEY1         0x08192a3b
+#define FLASH_OPTKEY2         0x4c5d6e7f
+#define FLASH_ERASEDVALUE     0xff
+#define FLASH_ERASEDVALUE_DW  0xffffffffu
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+struct stm32f7_flash_priv_s
+{
+  mutex_t  lock;    /* Bank exclusive */
+  uint32_t base;    /* FLASH base address */
+  uint32_t stblock; /* The first Block Number */
+  uint32_t stpage;  /* The first Page Number */
+};
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static mutex_t g_lock = NXMUTEX_INITIALIZER;
+static struct stm32f7_flash_priv_s stm32f7_flash_bank_priv =
+{
+  .lock    = NXMUTEX_INITIALIZER,
+  .base    = STM32_FLASH_BASE,
+  .stblock = 0,
+  .stpage  = 0,
+};
 
 /****************************************************************************
  * Private Functions
@@ -106,37 +129,104 @@ static void flash_lock(void)
 }
 
 /****************************************************************************
+ * Name: stm32_israngeerased
+ *
+ * Description:
+ *   Returns count of non-erased words
+ *
+ ****************************************************************************/
+
+static int stm32_israngeerased(size_t startaddress, size_t size)
+{
+  struct stm32f7_flash_priv_s *priv = &stm32f7_flash_bank_priv;
+  uint32_t *addr;
+  uint8_t *baddr;
+  size_t count = 0;
+  size_t bwritten = 0;
+
+  if (startaddress < priv->base ||
+      startaddress + size >= priv->base + STM32_FLASH_SIZE)
+    {
+      return -EIO;
+    }
+
+  addr = (uint32_t *)startaddress;
+  while (count + 4 <= size)
+    {
+      if (getreg32(addr) != FLASH_ERASEDVALUE)
+        {
+          bwritten++;
+        }
+
+      addr++;
+      count += 4;
+    }
+
+  baddr = (uint8_t *)addr;
+  while (count < size)
+    {
+      if (getreg8(baddr) != FLASH_ERASEDVALUE)
+        {
+          bwritten++;
+        }
+
+      baddr++;
+      count++;
+    }
+
+  return bwritten;
+}
+
+/****************************************************************************
  * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: stm32_flash_unlock
+ *
+ * Description:
+ *   Unlock the Bank
+ *
  ****************************************************************************/
 
 int stm32_flash_unlock(void)
 {
+  struct stm32f7_flash_priv_s *priv = &stm32f7_flash_bank_priv;
   int ret;
 
-  ret = nxmutex_lock(&g_lock);
+  ret = nxmutex_lock(&priv->lock);
   if (ret < 0)
     {
       return ret;
     }
 
   flash_unlock();
-  nxmutex_unlock(&g_lock);
+  nxmutex_unlock(&priv->lock);
 
   return ret;
 }
 
+/****************************************************************************
+ * Name: stm32_flash_lock
+ *
+ * Description:
+ *   Lock the Bank
+ *
+ ****************************************************************************/
+
 int stm32_flash_lock(void)
 {
+  struct stm32f7_flash_priv_s *priv = &stm32f7_flash_bank_priv;
   int ret;
 
-  ret = nxmutex_lock(&g_lock);
+  ret = nxmutex_lock(&priv->lock);
   if (ret < 0)
     {
       return ret;
     }
 
   flash_lock();
-  nxmutex_unlock(&g_lock);
+  nxmutex_unlock(&priv->lock);
 
   return ret;
 }
@@ -149,19 +239,19 @@ int stm32_flash_lock(void)
  *
  ****************************************************************************/
 
-int stm32_flash_writeprotect(size_t page, bool enabled)
+int stm32_flash_writeprotect(size_t block, bool enabled)
 {
   uint32_t reg;
   uint32_t val;
 
-  if (page >= STM32_FLASH_NPAGES)
+  if (block >= FLASH_NBLOCKS)
     {
       return -EFAULT;
     }
 
   /* Select the register that contains the bit to be changed */
 
-  if (page < 12)
+  if (block < 12)
     {
       reg = STM32_FLASH_OPTCR;
     }
@@ -169,7 +259,7 @@ int stm32_flash_writeprotect(size_t page, bool enabled)
   else
     {
       reg = STM32_FLASH_OPTCR1;
-      page -= 12;
+      block -= 12;
     }
 #else
   else
@@ -186,11 +276,11 @@ int stm32_flash_writeprotect(size_t page, bool enabled)
 
   if (enabled)
     {
-      val &= ~(1 << (16 + page));
+      val &= ~(1 << (16 + block));
     }
   else
     {
-      val |=  (1 << (16 + page));
+      val |=  (1 << (16 + block));
     }
 
   /* Unlock options */
@@ -219,69 +309,129 @@ int stm32_flash_writeprotect(size_t page, bool enabled)
   return 0;
 }
 
+/****************************************************************************
+ * Name: up_progmem_pagesize
+ *
+ * Description:
+ *   Return page size
+ *
+ ****************************************************************************/
+
 size_t up_progmem_pagesize(size_t page)
 {
-  static const size_t page_sizes[STM32_FLASH_NPAGES] = STM32_FLASH_SIZES;
-
-  if (page >= sizeof(page_sizes) / sizeof(*page_sizes))
-    {
-      return 0;
-    }
-  else
-    {
-      return page_sizes[page];
-    }
+  return FLASH_PAGE_SIZE;
 }
+
+/****************************************************************************
+ * Name: up_progmem_getpage
+ *
+ * Description:
+ *   Address to page conversion
+ *
+ * Input Parameters:
+ *   addr - Address to be converted
+ *
+ * Returned Value:
+ *   Page or negative value on error.  The following errors are reported
+ *   (errno is not set!):
+ *
+ *     -EFAULT: On invalid address
+ *
+ ****************************************************************************/
 
 ssize_t up_progmem_getpage(size_t addr)
 {
-  size_t page_end = 0;
-  size_t i;
+  struct stm32f7_flash_priv_s *priv = &stm32f7_flash_bank_priv;
 
-  if (addr >= STM32_FLASH_BASE)
-    {
-      addr -= STM32_FLASH_BASE;
-    }
+  return  priv->stpage + ((addr - priv->base) / FLASH_PAGE_SIZE);
+}
 
-  if (addr >= STM32_FLASH_SIZE)
-    {
-      return -EFAULT;
-    }
+/****************************************************************************
+ * Name: up_progmem_geteraseblock
+ *
+ * Description:
+ *   Address to erase block conversion
+ *
+ * Input Parameters:
+ *   addr - Address to be converted
+ *
+ * Returned Value:
+ *   Page or negative value on error.  The following errors are reported
+ *   (errno is not set!):
+ *
+ *     -EFAULT: On invalid address
+ *
+ ****************************************************************************/
 
-  for (i = 0; i < STM32_FLASH_NPAGES; ++i)
+ssize_t up_progmem_geteraseblock(size_t addr)
+{
+  static const size_t block_sizes[FLASH_NBLOCKS] = STM32_FLASH_SIZES;
+  struct stm32f7_flash_priv_s *priv = &stm32f7_flash_bank_priv;
+  uint32_t start_addr = priv->base;
+  uint32_t end_addr;
+  addr += priv->base;
+
+  for (int i = 0; i < FLASH_NBLOCKS; i++)
     {
-      page_end += up_progmem_pagesize(i);
-      if (page_end > addr)
+      end_addr = start_addr + block_sizes[i];
+
+      if ((addr >= start_addr) && (addr < end_addr))
         {
           return i;
         }
+      
+      start_addr = end_addr;
     }
 
   return -EFAULT;
 }
 
+/****************************************************************************
+ * Name: up_progmem_getaddress
+ *
+ * Description:
+ *   Page to address conversion
+ *
+ * Input Parameters:
+ *   page - Page to be converted
+ *
+ * Returned Value:
+ *   Base address of given page, maximum size if page is not valid.
+ *
+ ****************************************************************************/
+
 size_t up_progmem_getaddress(size_t page)
 {
-  size_t base_address = STM32_FLASH_BASE;
-  size_t i;
+  struct stm32f7_flash_priv_s *priv = &stm32f7_flash_bank_priv;
 
-  if (page >= STM32_FLASH_NPAGES)
+  if (page >= FLASH_NPAGES)
     {
       return SIZE_MAX;
     }
 
-  for (i = 0; i < page; ++i)
-    {
-      base_address += up_progmem_pagesize(i);
-    }
-
-  return base_address;
+  return priv->base + (page - priv->stpage) * FLASH_PAGE_SIZE;
 }
+
+/****************************************************************************
+ * Name: up_progmem_neraseblocks
+ *
+ * Description:
+ *   Return number of erase blocks in the available FLASH memory.
+ *
+ ****************************************************************************/
 
 size_t up_progmem_neraseblocks(void)
 {
-  return STM32_FLASH_NPAGES;
+  return FLASH_NBLOCKS;
 }
+
+/****************************************************************************
+ * Name: up_progmem_isuniform
+ *
+ * Description:
+ *   Block size is uniform? 
+ *
+ ****************************************************************************/
 
 bool up_progmem_isuniform(void)
 {
@@ -292,13 +442,31 @@ bool up_progmem_isuniform(void)
 #endif
 }
 
+/****************************************************************************
+ * Name: up_progmem_ispageerased
+ *
+ * Description:
+ *   Checks whether a page is erased
+ *
+ * Input Parameters:
+ *    page - Page to be checked
+ *
+ * Returned Value:
+ *   Returns number of bytes erased or negative value on error. If it
+ *   returns zero then complete page is empty (erased).
+ *
+ *   The following errors are reported (errno is not set!)
+ *     -EFAULT: On invalid page
+ *
+ ****************************************************************************/
+
 ssize_t up_progmem_ispageerased(size_t page)
 {
   size_t addr;
   size_t count;
   size_t bwritten = 0;
 
-  if (page >= STM32_FLASH_NPAGES)
+  if (page >= FLASH_NBLOCKS)
     {
       return -EFAULT;
     }
@@ -317,16 +485,62 @@ ssize_t up_progmem_ispageerased(size_t page)
   return bwritten;
 }
 
+/****************************************************************************
+ * Name: up_progmem_erasesize
+ *
+ * Description:
+ *   Return erase block size
+ *
+ ****************************************************************************/
+
+size_t up_progmem_erasesize(size_t block)
+{
+  static const size_t block_sizes[FLASH_NBLOCKS] = STM32_FLASH_SIZES;
+
+  if (block >= sizeof(block_sizes) / sizeof(*block_sizes))
+    {
+      return 0;
+    }
+  else
+    {
+      return block_sizes[block];
+    }
+}
+
+/****************************************************************************
+ * Name: up_progmem_eraseblock
+ *
+ * Description:
+ *   Erase selected block.
+ *
+ * Input Parameters:
+ *   block - Block to be erased
+ *
+ * Returned Value:
+ *   Page size or negative value on error.  The following errors are reported
+ *   (errno is not set!):
+ *
+ *     -EFAULT: On invalid page
+ *     -EIO:    On unsuccessful erase
+ *     -EROFS:  On access to write protected area
+ *     -EACCES: Insufficient permissions (read/write protected)
+ *     -EPERM:  If operation is not permitted due to some other constraints
+ *              (i.e. some internal block is not running etc.)
+ *
+ ****************************************************************************/
+
 ssize_t up_progmem_eraseblock(size_t block)
 {
+  struct stm32f7_flash_priv_s *priv = &stm32f7_flash_bank_priv;
   int ret;
+  size_t block_address = priv->base + up_progmem_erasesize(block);
 
-  if (block >= STM32_FLASH_NPAGES)
+  if (block >= FLASH_NBLOCKS)
     {
       return -EFAULT;
     }
 
-  ret = nxmutex_lock(&g_lock);
+  ret = nxmutex_lock(&priv->lock);
   if (ret < 0)
     {
       return (ssize_t)ret;
@@ -346,22 +560,55 @@ ssize_t up_progmem_eraseblock(size_t block)
     }
 
   modifyreg32(STM32_FLASH_CR, FLASH_CR_SER, 0);
-  nxmutex_unlock(&g_lock);
+  nxmutex_unlock(&priv->lock);
 
   /* Verify */
 
-  if (up_progmem_ispageerased(block) == 0)
+  if (stm32_israngeerased(block_address, up_progmem_erasesize(block)) == 0)
     {
-      return up_progmem_pagesize(block); /* success */
+      /* success */
+
+      ret = up_progmem_erasesize(block);
     }
   else
     {
-      return -EIO; /* failure */
+      /* failure */
+
+      ret = -EIO; 
     }
+
+  return ret;
 }
+
+/****************************************************************************
+ * Name: up_progmem_write
+ *
+ * Description:
+ *   Program data at given address
+ *
+ * Input Parameters:
+ *   addr  - Address with or without flash offset
+ *   buf   - Pointer to buffer
+ *   count - Number of bytes to write
+ *
+ * Returned Value:
+ *   Bytes written or negative value on error.  The following errors are
+ *   reported (errno is not set!)
+ *
+ *     EINVAL: If buflen is not aligned with the flash boundaries (i.e.
+ *             some MCU's require per half-word or even word access)
+ *     EFAULT: On invalid address
+ *     EIO:    On unsuccessful write
+ *     EROFS:  On access to write protected area
+ *     EACCES: Insufficient permissions (read/write protected)
+ *     EPERM:  If operation is not permitted due to some other constraints
+ *             (i.e. some internal block is not running etc.)
+ *
+ ****************************************************************************/
 
 ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
 {
+  struct stm32f7_flash_priv_s *priv = &stm32f7_flash_bank_priv;
   uint8_t *byte = (uint8_t *)buf;
   size_t written = count;
   uintptr_t flash_base;
@@ -369,10 +616,10 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
 
   /* Check for valid address range */
 
-  if (addr >= STM32_FLASH_BASE &&
-      addr + count <= STM32_FLASH_BASE + STM32_FLASH_SIZE)
+  if (addr >= priv->base &&
+      addr + count <= priv->base + STM32_FLASH_SIZE)
     {
-      flash_base = STM32_FLASH_BASE;
+      flash_base = priv->base;
     }
   else if (addr >= STM32_OPT_BASE &&
            addr + count <= STM32_OPT_BASE + STM32_OPT_SIZE)
@@ -386,7 +633,7 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
 
   addr -= flash_base;
 
-  ret = nxmutex_lock(&g_lock);
+  ret = nxmutex_lock(&priv->lock);
   if (ret < 0)
     {
       return (ssize_t)ret;
@@ -425,23 +672,31 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
       if (getreg32(STM32_FLASH_SR) & FLASH_CR_SER)
         {
           modifyreg32(STM32_FLASH_CR, FLASH_CR_PG, 0);
-          nxmutex_unlock(&g_lock);
+          nxmutex_unlock(&priv->lock);
           return -EROFS;
         }
 
       if (getreg8(addr) != *byte)
         {
           modifyreg32(STM32_FLASH_CR, FLASH_CR_PG, 0);
-          nxmutex_unlock(&g_lock);
+          nxmutex_unlock(&priv->lock);
           return -EIO;
         }
     }
 
   modifyreg32(STM32_FLASH_CR, FLASH_CR_PG, 0);
 
-  nxmutex_unlock(&g_lock);
+  nxmutex_unlock(&priv->lock);
   return written;
 }
+
+/****************************************************************************
+ * Name: up_progmem_erasestate
+ *
+ * Description:
+ *   Return value of erase state.
+ *
+ ****************************************************************************/
 
 uint8_t up_progmem_erasestate(void)
 {

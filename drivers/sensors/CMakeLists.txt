@@ -19,6 +19,9 @@
 # ##############################################################################
 
 if(CONFIG_SENSORS)
+
+  nuttx_add_subdirectory(ceva)
+
   set(SRCS sensor.c)
 
   if(CONFIG_USENSOR)
@@ -62,6 +65,10 @@ if(CONFIG_SENSORS)
 
   if(CONFIG_SENSORS_BMI270)
     list(APPEND SRCS bmi270.c)
+  endif()
+
+  if(CONFIG_SENSORS_BNO085)
+    list(APPEND SRCS bno085.c)
   endif()
 
   # These drivers depend on I2C support
@@ -199,7 +206,9 @@ if(CONFIG_SENSORS)
     endif()
 
     if(CONFIG_SENSORS_MS56XX)
-      list(APPEND SRCS ms56xx_uorb.c)
+	  if(CONFIG_SENSORS_MS56XX_UORB)
+        list(APPEND SRCS ms56xx_uorb.c)
+	  endif()
     endif()
 
     if(CONFIG_SENSORS_MS58XX)
@@ -372,6 +381,10 @@ if(CONFIG_SENSORS)
 
   if(CONFIG_SENSORS_HDC1008)
     list(APPEND SRCS hdc1008.c)
+  endif()
+
+  if(CONFIG_SENSORS_ICM20689)
+    list(APPEND SRCS icm20689.c)
   endif()
 
   target_sources(drivers PRIVATE ${SRCS})

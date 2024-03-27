@@ -1106,12 +1106,46 @@ config STM32F7_FLASH_ART_ACCELERATOR
 		Enable if code and/or read-only data is accessed through ITCM bus instead of
 		AXIM bus.
 
+config STM32F7_HAVE_OTA_PARTITION
+  bool
+  default n
+    
 config STM32F7_PROGMEM
 	bool "Flash progmem support"
 	default n
 	---help---
 		Add progmem support, start block and end block options are provided to
 		obtain an uniform flash memory mapping.
+
+menu "Application Image Configuration"
+choice
+  prompt "Application Image Format"
+  default STM32F7_APP_FORMAT_LEGACY
+  ---help---
+    Depending on the chosen 2nd stage bootloader, the application may
+    be required to be perform a specific startup routine. Furthermore,
+    the image binary must be formatted according to the definition from
+    the 2nd stage bootloader.
+
+config STM32F7_APP_FORMAT_LEGACY
+  bool "Legacy format"
+  ---help---
+    This is the legacy application image format.
+
+config STM32F7_APP_FORMAT_MINIBOOT
+  bool "Miniboot bootable format"
+  select STM32F7_HAVE_OTA_PARTITION
+  ---help---
+    The Miniboot support of loading the firmware images.
+
+config STM32F7_APP_FORMAT_MCUBOOT
+  bool "MCUboot bootable format"
+  select STM32F7_HAVE_OTA_PARTITION
+  ---help---
+    The MCUboot support of loading the firmware images.
+
+endchoice # Application Image Format
+endmenu # Application Image Configuration
 
 menu "STM32 Peripheral Support"
 
@@ -7275,5 +7309,67 @@ config STM32F7_FOC_USE_ADC3
 	select STM32F7_ADC3_JEXTSEL
 
 endif #STM32F7_FOC
+
+menu "Progmem MTD configuration"
+
+if STM32F7_HAVE_OTA_PARTITION
+
+comment "Application Image OTA Update support"
+
+config STM32F7_PROGMEM_OTA_PARTITION
+  bool "MTD driver"
+  default n
+  select BCH
+  select MTD
+  select MTD_BYTE_WRITE
+  select MTD_PARTITION
+  select MTD_PROGMEM
+  select STM32F7_PROGMEM
+  ---help---
+    Initialize an MTD driver for the Flash, which will
+    add an entry at /dev for application access from userspace.
+
+if STM32F7_PROGMEM_OTA_PARTITION
+if STM32F7_APP_FORMAT_MINIBOOT
+config STM32_MINIBOOT_HEADER_SIZE
+  hex
+  default 0x200
+
+config STM32_OTA_PRIMARY_SLOT_DEVPATH
+  string "Application image slot device path"
+  default "/dev/ota0"
+
+config STM32_OTA_PRIMARY_SLOT_OFFSET
+  hex "Miniboot application image slot offset"
+  default "0x20000"
+
+config STM32_OTA_SLOT_SIZE
+  hex "Miniboot application image slot size (in bytes)"
+  default "0xE0000"
+
+endif # STM32F7_APP_FORMAT_MINIBOOT
+
+if STM32F7_APP_FORMAT_MCUBOOT
+config STM32_MCUBOOT_HEADER_SIZE
+  hex
+  default 0x200
+
+config STM32_OTA_PRIMARY_SLOT_DEVPATH
+  string "Application image slot device path"
+  default "/dev/ota0"
+
+config STM32_OTA_PRIMARY_SLOT_OFFSET
+  hex "MCUboot application image slot offset"
+  default "0x20000"
+
+config STM32_OTA_SLOT_SIZE
+  hex "MCUboot application image slot size (in bytes)"
+  default "0xE0000"
+
+endif # STM32F7_APP_FORMAT_MCUBOOT
+endif # STM32F7_PROGMEM_OTA_PARTITION
+endif # STM32F7_HAVE_OTA_PARTITION
+
+endmenu # Progmem configuration
 
 endif # ARCH_CHIP_STM32F7

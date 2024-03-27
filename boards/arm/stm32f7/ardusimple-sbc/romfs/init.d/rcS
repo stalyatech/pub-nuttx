@@ -1,0 +1,25 @@
+# make readable symbolic links
+ln -s /dev/gpio0 /dev/din1
+ln -s /dev/gpio1 /dev/din2
+ln -s /dev/gpio2 /dev/din3
+ln -s /dev/gpio3 /dev/rtkin
+ln -s /dev/gpio4 /dev/geoin
+ln -s /dev/gpio5 /dev/dout1
+ln -s /dev/gpio6 /dev/dout2
+ln -s /dev/gpio7 /dev/dout3
+ln -s /dev/gpio8 /dev/dout4
+ln -s /dev/gpio9 /dev/led1
+ln -s /dev/gpio10 /dev/led2
+ln -s /dev/gpio11 /dev/led3
+ln -s /dev/gpio12 /dev/gpsp
+ln -s /dev/gpio13 /dev/xbap
+ln -s /dev/gpio14 /dev/xbbp
+ln -s /dev/gpio15 /dev/rsel
+ln -s /dev/gpio16 /dev/qerr
+
+# Power on the XBee sockets
+gpio -o 1 /dev/xbap
+gpio -o 1 /dev/xbbp
+
+# Start the webserver
+webserver &

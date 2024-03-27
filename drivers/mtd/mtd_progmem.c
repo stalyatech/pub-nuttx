@@ -405,7 +405,7 @@ static int progmem_ioctl(FAR struct mtd_dev_s *dev, int cmd,
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *progmem_initialize(void)
+FAR struct mtd_dev_s *progmem_initialize(size_t offset)
 {
   FAR struct progmem_dev_s *priv = (FAR struct progmem_dev_s *)&g_progmem;
   int32_t blkshift;
@@ -416,11 +416,10 @@ FAR struct mtd_dev_s *progmem_initialize(void)
   if (!g_progmem.initialized)
     {
       /* Get the size of one block.  Here we assume that the block size is
-       * uniform and that the size of block0 is the same as the size of any
-       * other block.
+       * non-uniform.
        */
 
-      size_t blocksize = up_progmem_pagesize(0);
+      size_t blocksize = up_progmem_pagesize(up_progmem_getpage(offset));
 
       /* Calculate Log2 of the flash read/write block size */
 
@@ -432,7 +431,7 @@ FAR struct mtd_dev_s *progmem_initialize(void)
 
       /* Calculate Log2 of the flash erase block size */
 
-      blocksize = up_progmem_erasesize(0);
+      blocksize = up_progmem_erasesize(up_progmem_geteraseblock(offset));
 
       ersshift = progmem_log2(blocksize);
       if (ersshift < 0)

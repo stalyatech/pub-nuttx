@@ -1,0 +1,289 @@
+{
+	"folders": [
+		{
+			"name": "nuttx",
+			"path": "../../../.."
+		},
+		{
+			"name": "apps",
+			"path": "../../../../../apps"
+		},
+		{
+			"name": "stalya",
+			"path": "."
+		}
+    ],
+    "settings": {
+
+        // The number of spaces a tab is equal to. This setting is overridden
+		// based on the file contents when `editor.detectIndentation` is true.
+		"editor.tabSize": 4,
+
+		// Insert spaces when pressing Tab. This setting is overriden
+		// based on the file contents when `editor.detectIndentation` is true.
+		"editor.insertSpaces": false,
+
+		// When opening a file, `editor.tabSize` and `editor.insertSpaces`
+		// will be detected based on the file contents. Set to false to keep
+		// the values you've explicitly set, above.
+		"editor.detectIndentation": false,
+		"editor.rulers": [80],
+
+		"editor.cursorBlinking": "smooth",
+	
+		"files.trimFinalNewlines": true,
+		"editor.formatOnSave": false,
+		"editor.codeActionsOnSave": [],
+
+		"search.exclude": {
+			"**/.git/objects/**": true,
+			"**/.git/subtree-cache/**": true,
+			"**/node_modules/**": true,
+			"**/tmp/**": true,
+			"**/.git": true,
+			"**/.svn": true,
+			"**/.hg": true,
+			"**/CVS": true,
+			"**/.DS_Store": true,
+			"**/node_modules": true,
+			"**/bower_components": true,
+			"**/dist/**": true,
+			"**/log/**": true,
+			"**/.west/**": true
+		},
+
+        "files.associations": {
+            "ardusimple-sbc.h": "c",
+            "board.h": "c",
+            "config.h": "c",
+            "builtin_list.h": "c",
+            "thread": "c",
+            "fusb301.h": "c",
+            "crc32.h": "c",
+            "usb2517.h": "c",
+            "cstdlib": "c",
+            "typeindex": "c",
+            "typeinfo": "c",
+            "array": "c",
+            "bitset": "c",
+            "string_view": "c",
+            "initializer_list": "c",
+            "utility": "c",
+            "bmp180_base.h": "c",
+            "bmp180.h": "c",
+            "i2c_master.h": "c",
+            "sh2_util.h": "c",
+            "sh2_err.h": "c",
+            "sh2_sensorvalue.h": "c",
+            "syslog.h": "c",
+            "syslog_console.h": "c",
+            "virtio.h": "c",
+            "usrsock_rpmsg.h": "c",
+            "uart_ram.h": "c",
+            "sensor.h": "c",
+            "ds18b20.h": "c",
+            "euler.h": "c",
+            "sh2.h": "c",
+            "shtp.h": "c",
+            "bno085.h": "c",
+            "sh2_hal.h": "c",
+            "lis3mdl.h": "c",
+            "bmi270.h": "c",
+            "bmg160.h": "c",
+            "ioctl.h": "c",
+            "istream": "c",
+            "ostream": "c",
+            "ratio": "c",
+            "functional": "c",
+            "tuple": "c",
+            "type_traits": "c",
+            "variant": "c",
+            "random": "c",
+            "algorithm": "c",
+            "compiler.h": "c",
+            "fcntl.h": "c",
+            "stdlib.h": "c",
+            "stdio.h": "c",
+            "poll.h": "c",
+            "cstdio": "c",
+            "lcp.h": "c",
+            "complex": "c",
+            "stm32_uart.h": "c",
+            "misc.h": "c",
+            "serial.h": "c",
+            "irq.h": "c",
+            "stdint.h": "c",
+            "netlib.h": "c",
+            "httpd.h": "c",
+            "in.h": "c",
+            "inet.h": "c",
+            "if.h": "c",
+            "webserver.h": "c",
+            "socketscon.h": "c",
+            "stm32_gpio.h": "c",
+            "chip.h": "c",
+            "stm32_flash.h": "c",
+            "stm32f74xx75xx_flash.h": "c",
+            "stm32f72xx73xx_flash.h": "c",
+            "pca9557.h": "c",
+            "stm32_sdmmc.h": "c",
+            "sx1509.h": "c",
+            "usb251x.h": "c",
+            "bmi160.h": "c",
+            "spi.h": "c",
+            "icm20689.h": "c",
+            "ms5611.h": "c",
+            "stalya-fmu.h": "c",
+            "bmi160_base.h": "c",
+            "lis3mdl_base.h": "c",
+            "lis3mdl_uorb.h": "c",
+            "mutex": "c",
+            "condition_variable": "c",
+            "msxxxx_crc4.h": "c",
+            "baro.h": "c",
+            "system_error": "c",
+            "temp.h": "c",
+            "uorb.h": "c",
+            "nucleo-h743zi2.h": "c",
+            "string": "c",
+            "ms5611_base.h": "c",
+            "time.h": "c"
+        },
+        "cortex-debug.variableUseNaturalFormat": true
+    },
+
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Build",
+				"type": "shell",
+				"command": "make -j4",
+				"options": {
+					"cwd": "${workspaceFolder:nuttx}"
+				}, 
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				},
+				"presentation": {
+					"clear": true,
+					"reveal": "always",
+					"panel": "dedicated",
+				},            
+				"problemMatcher": [ "$gcc" ]
+			},
+			{
+				"label": "Clean",
+				"type": "shell",
+				"command": "make clean",
+				"options": {
+					"cwd": "${workspaceFolder:nuttx}"
+				}, 
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				},
+				"presentation": {
+					"clear": true,
+					"reveal": "always",
+					"panel": "dedicated"
+				},            
+				"problemMatcher": [ "$gcc" ]
+			  },
+			  {
+				"label": "Config",
+				"type": "shell",
+				"command": "./tools/configure.sh -E ardusimple-sbc:${input:config}",
+				"options": {
+					"cwd": "${workspaceFolder:nuttx}"
+				}, 
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				},
+				"presentation": {
+					"clear": true,
+					"reveal": "always",
+					"panel": "dedicated"
+				},            
+				"problemMatcher": []
+			},
+			{
+				"label": "Menuconfig",
+				"type": "process",
+				"command": "gnome-terminal",
+				"args": [
+					"--",
+					"bash",
+					"-c",
+					"make menuconfig; exec bash",
+				],
+				"options": {
+					"cwd": "${workspaceFolder:nuttx}"
+				}, 
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				},
+				"presentation": {
+					"reveal": "silent",
+					"panel": "dedicated",
+					"close": true
+				},            
+				"problemMatcher": []
+			},
+		],
+		"inputs": [
+			{
+				"id": "config",
+				"description": "Config:",
+				"default": "f745-nsh",
+				"type": "pickString",
+				"options": [
+					"f745-nsh",
+					"f745-netnsh",
+					"f745-rndis"
+				]
+			},
+		]
+	},
+
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "FMU Debug",
+				"device": "STM32H743VI",
+				"svdFile": "",
+				"request": "launch",
+				"type": "cortex-debug",
+				"servertype": "jlink",
+				"interface": "swd",
+				"cwd": "${workspaceFolder:nuttx}",
+				"executable": "${workspaceFolder:nuttx}/nuttx",
+				"internalConsoleOptions": "openOnSessionStart",
+				"preLaunchCommands": [
+					"set mem inaccessible-by-default off",
+					"set print pretty"
+				]
+			},
+			{
+				"name": "SBC Debug",
+				"device": "STM32F745VG",
+				"svdFile": "",
+				"request": "launch",
+				"type": "cortex-debug",
+				"servertype": "jlink",
+				"interface": "swd",
+				"cwd": "${workspaceFolder:nuttx}",
+				"executable": "${workspaceFolder:nuttx}/nuttx",
+				"internalConsoleOptions": "openOnSessionStart",
+				"preLaunchCommands": [
+					"set mem inaccessible-by-default off",
+					"set print pretty"
+				]
+			}
+		]
+	}
+}

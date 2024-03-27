@@ -339,6 +339,56 @@ config SENSORS_BME680_THREAD_STACKSIZE
 	---help---
 		The stack size for the worker thread.
 
+config SENSORS_BNO085
+	bool "Bosch BNO085 Smart Sensor support"
+	default n
+	---help---
+		Enable driver for the Bosch BNO085 smart sensor combining 
+		accelerometer,gyroscope,magnetometer and orientation software.
+	
+if SENSORS_BNO085
+
+config BNO085_NPOLLWAITERS
+	int "Number of waiters to poll"
+	default 2
+	---help---
+		Maximum number of threads that can be waiting on poll()
+
+choice
+	prompt "BNO085 Interface"
+	default SENSORS_BNO085_I2C
+
+config SENSORS_BNO085_I2C
+	bool "BNO085 I2C Interface"
+	select I2C
+	---help---
+		Enables support for the I2C interface
+
+if SENSORS_BNO085_I2C
+
+config BNO085_I2C_FREQUENCY
+	int "BNO085 I2C frequency"
+	default 100000
+
+endif # SENSORS_BNO085_I2C
+
+config SENSORS_BNO085_SPI
+	bool "BNO085 SPI Interface"
+	select SPI
+	---help---
+		Enables support for the SPI interface
+    
+if SENSORS_BNO085_SPI
+
+config BNO085_SPI_FREQUENCY
+	int "BNO085 SPI frequency"
+	default 10000000
+
+endif # SENSORS_BNO085_SPI
+
+endchoice
+endif # SENSORS_BNO085
+
 config SENSORS_DHTXX
 	bool "DHTxx humidity/temperature Sensor support"
 	default n
@@ -772,27 +822,48 @@ config SENSORS_MS56XX
 	bool "MS56XX Barometric Pressure Sensor support"
 	default n
 	---help---
-		Enable driver support for MS5611 Barometric Pressure Sensor.
+		Enable driver support for MS56XX Barometric Pressure Sensor.
 
 if SENSORS_MS56XX
 
-choice
-	prompt "MS56XX Interface"
-	default MS56XX_I2C
+config SENSORS_MS56XX_UORB
+	bool "MS56XX UORB Interface"
+	default n
+	---help---
+		Enables Work with the UORB or Character Device interface.
+		If not set, the Character Device is used by default.
+ 
+config MS56XX_MEASURE_FREQ
+	int "Default data output rate in Hz"
+	depends on SENSORS_MS56XX_UORB
+	default 1000
+	---help---
+		Default data output rate in Hz
 
 config MS56XX_I2C
 	bool "MS56XX I2C Interface"
+	default y
 	select I2C
 	---help---
 		Enables support for the I2C interface
 
+config MS56XX_I2C_FREQUENCY
+	int "MS56XX I2C frequency"
+	default 400000
+	range 1 400000
+	depends on MS56XX_I2C
+		
 config MS56XX_SPI
 	bool "MS56XX SPI Interface"
+	default n
 	select SPI
 	---help---
 		Enables support for the SPI interface.
 
-endchoice # MS5611 Interface
+config MS56XX_SPI_FREQ
+	int "MS56XX SPI frequency"
+	depends on MS56XX_SPI
+	default 10000000  
 
 config MS56XX_SECOND_ORDER_COMPENSATE
 	bool "MS56XX second order compensation support"
@@ -802,18 +873,6 @@ config MS56XX_SECOND_ORDER_COMPENSATE
 		In order to obtain best accuracy over temperature range,
 		particularly in low temperature, it is recommended to
 		compensate the non-linearity over the temperature.
-
-config MS56XX_THREAD_STACKSIZE
-	int "Worker thread stack size"
-	default 1024
-	---help---
-		The stack size for the worker thread
-
-config MS56XX_I2C_FREQUENCY
-	int "MS56XX I2C frequency"
-	default 400000
-	range 1 400000
-	depends on MS56XX_I2C
 
 endif # SENSORS_MS56XX
 
@@ -1096,6 +1155,114 @@ config MPU9250_ACCEL_AFS_SEL
 
 endif # SENSORS_MPU9250
 
+config SENSORS_ICM20689
+	bool "TDK Invensense ICM20689 Sensor support"
+	default n
+	---help---
+		Enable driver support for TDK Invensense ICM20689 MotionTracker device.
+
+if SENSORS_ICM20689
+
+config SENSORS_ICM20689_UORB
+	bool "ICM20689 UORB Interface"
+	default n
+	---help---
+	Enables Work with the UORB or Character Device interface.
+	If not set, the Character Device is used by default.
+
+config ICM20689_MEASURE_FREQ
+  int "Default data output rate in Hz"
+  depends on SENSORS_ICM20689_UORB
+  default 1000
+  ---help---
+    Default data output rate in Hz
+  
+config ICM20689_I2C
+  bool "ICM20689 I2C Interface"
+  default y
+  select I2C
+  ---help---
+    Enables support for the I2C interface
+  
+config ICM20689_I2C_FREQ
+  int "ICM20689 I2C Frequency"
+  depends on ICM20689_I2C
+  default 400000
+  range 1 400000
+    
+config ICM20689_SPI
+  bool "ICM20689 SPI Interface"
+  default n
+  select SPI
+  ---help---
+    Enables support for the SPI interface
+
+config ICM20689_SPI_FREQ
+  int "ICM20689 SPI Frequency"
+  depends on ICM20689_SPI
+  default 10000000
+  
+config ICM20689_EXT_SYNC_SET
+	int "ICM20689 frame sync bit position"
+	default 0
+	---help---
+		EXT_SYNC_SET[2..0]
+		EXT_SYNC_SET: frame sync bit position
+
+config ICM20689_DLPF_CFG
+	int "ICM20689 gyroscope and temperature low-pass filter setting"
+	default 1
+	---help---
+		DLPF_CFG[2..0]
+		DLPF_CFG: digital low-pass filter bandwidth
+
+config ICM20689_ACCEL_FCHOICE_B
+	int "Inverted version of accel_fchoice"
+	default 0
+	---help---
+		The data output rate of the DLPF filter block can be further
+		reduced by a factor of 1/(1+SMPLRT_DIV).
+		where SMPLRT_DIV is an 8-bit integer
+
+config ICM20689_A_DLPF_CFG
+	int "ICM20689 Accelerometer low pass filter setting"
+	default 1
+	---help---
+		A_DLPF_CFG[2..0]
+		A_DLPF_CFG: Accelerometer digital low-pass filter bandwidth
+
+config ICM20689_GYRO_FS_SEL
+	int "ICM20689 Gyro FS_SEL"
+	default 2
+	---help---
+		Sets the @fs_sel bit in GYRO_CONFIG to the value provided. Per
+		the datasheet, the meaning of @fs_sel is as follows:
+		GYRO_CONFIG(0x1b) :   XG_ST YG_ST ZG_ST FS_SEL1 FS_SEL0 x  x  x
+		XG_ST, YG_ST, ZG_ST  :  self-test (unsupported in this driver)
+				1 -> activate self-test on X, Y, and/or Z gyros
+		FS_SEL[10] : full-scale range select
+				0 -> ±  250 deg/sec
+				1 -> ±  500 deg/sec
+				2 -> ± 1000 deg/sec
+				3 -> ± 2000 deg/sec
+
+config ICM20689_ACCEL_AFS_SEL
+	int "ICM20689 Accelerometer AFS_SEL"
+	default 2
+	---help---
+		Sets the @afs_sel bit in ACCEL_CONFIG to the value provided. Per
+		the datasheet, the meaning of @afs_sel is as follows:
+		ACCEL_CONFIG(0x1c) :   XA_ST YA_ST ZA_ST AFS_SEL1 AFS_SEL0 x  x  x
+		XA_ST, YA_ST, ZA_ST  :  self-test (unsupported in this driver)
+				1 -> activate self-test on X, Y, and/or Z accelerometers
+		AFS_SEL[10] : full-scale range select
+				0 -> ±  2 g
+				1 -> ±  4 g
+				2 -> ±  8 g
+				3 -> ± 16 g
+
+endif # SENSORS_ICM20689
+
 config SENSORS_MAX44009
 	bool "Maxim MAX44009 ALS sensor"
 	default n
@@ -1148,9 +1315,63 @@ config SENSORS_MAX6675
 config SENSORS_LIS3MDL
 	bool "STMicro LIS3MDL 3-Axis magnetometer support"
 	default n
-	select SPI
 	---help---
 		Enable driver support for the STMicro LIS3MDL 3-axis magnetometer.
+
+if SENSORS_LIS3MDL
+
+config SENSORS_LIS3MDL_UORB
+	bool "LIS3MDL UORB Interface"
+	default n
+	---help---
+	Enables Work with the UORB or Character Device interface.
+	If not set, the Character Device is used by default.
+
+config LIS3MDL_MEASURE_FREQ
+  int "Default data output rate in Hz"
+  depends on SENSORS_LIS3MDL_UORB
+  default 1000
+  ---help---
+    Default data output rate in Hz
+  
+if SENSORS_LIS3MDL_UORB
+
+config LIS3MDL_I2C
+  bool "LIS3MDL I2C Interface"
+  default y
+  select I2C
+  ---help---
+    Enables support for the I2C interface
+
+config LIS3MDL_I2C_FREQ
+  int "LIS3MDL I2C Frequency"
+  depends on LIS3MDL_I2C
+  default 400000
+  range 1 400000
+    
+config LIS3MDL_SPI
+  bool "LIS3MDL SPI Interface"
+  default n
+  select SPI
+  ---help---
+    Enables support for the SPI interface
+
+config LIS3MDL_SPI_FREQ
+  int "LIS3MDL SPI Frequency"
+  depends on LIS3MDL_SPI
+  default 10000000
+    
+endif # SENSORS_LIS3MDL_UORB
+
+if !SENSORS_LIS3MDL_UORB
+
+config LIS3MDL_SPI
+  default y
+  select SPI
+
+endif # !SENSORS_LIS3MDL_UORB
+
+endif # SENSORS_LIS3MDL
 
 config LM75_I2C
 	bool

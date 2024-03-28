@@ -1,0 +1,219 @@
+{
+	"folders": [
+		{
+			"name": "nuttx",
+			"path": "."
+		},
+		{
+			"name": "apps",
+			"path": "../apps"
+		}
+	],
+
+	"settings": {
+		"C_Cpp.errorSquiggles": "enabled",
+		"C_Cpp.enhancedColorization": "enabled",
+		"ctags.languages": [
+			"Kconfig",
+			"Make"
+		],
+		"nuttx.checkPatch": true,
+		"nuttx.checkPatchPath": "${workspaceFolder}/tools/checkpatch.sh",
+		"nuttx.configureScriptPath": "${workspaceFolder}/tools/configure.sh",
+	
+		// The number of spaces a tab is equal to. This setting is overridden
+		// based on the file contents when `editor.detectIndentation` is true.
+		"editor.tabSize": 4,
+	
+		// Insert spaces when pressing Tab. This setting is overriden
+		// based on the file contents when `editor.detectIndentation` is true.
+		"editor.insertSpaces": false,
+	
+		// When opening a file, `editor.tabSize` and `editor.insertSpaces`
+		// will be detected based on the file contents. Set to false to keep
+		// the values you've explicitly set, above.
+		"editor.detectIndentation": false,
+		"editor.rulers": [80],
+	
+		"editor.cursorBlinking": "smooth",
+	
+		"files.trimFinalNewlines": true,
+		"editor.formatOnSave": false,
+		"editor.codeActionsOnSave": [],
+	
+		"search.exclude": {
+			"**/.git/objects/**": true,
+			"**/.git/subtree-cache/**": true,
+			"**/node_modules/**": true,
+			"**/tmp/**": true,
+			"**/.git": true,
+			"**/.svn": true,
+			"**/.hg": true,
+			"**/CVS": true,
+			"**/.DS_Store": true,
+			"**/node_modules": true,
+			"**/bower_components": true,
+			"**/dist/**": true,
+			"**/log/**": true,
+			"**/.west/**": true
+		},
+	
+		"cortex-debug.variableUseNaturalFormat": true,
+
+		// C/C++ Properties
+		"C_Cpp.default.includePath": [
+			"${workspaceFolder:nuttx}/**",
+			"${workspaceFolder:nuttx}/include/**",
+		],
+		"C_Cpp.default.defines": [
+			"FAR=",
+			"ERROR=-1",
+			"OK=0"			
+		],
+		"C_Cpp.default.browse.path": [
+			"${workspaceFolder:nuttx}",
+			"${workspaceFolder:apps}"			
+		],
+		"C_Cpp.default.cStandard": "c11",
+		"C_Cpp.default.compilerPath": "/opt/gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-gcc",
+		"C_Cpp.default.dotConfig": "${workspaceFolder:nuttx}/.config"
+	},
+
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Configure",
+				"command": "${workspaceFolder:nuttx}/tools/configure.sh",
+				"type": "shell",
+				"args": [
+					"-l",
+					"${command:nuttx.chooseFromConfigureList}"
+				],
+				"problemMatcher": [],
+				"presentation": {
+					"reveal": "always"
+				},
+				"icon": {
+					"id": "list-selection",
+					"color": "terminal.ansiBlue"
+				},
+				"group": "build"
+			},
+			{
+				"label": "Build",
+				"type": "shell",
+				"command": "make",
+				"args": [
+					"-j",
+					"$(nproc)"
+				],
+				"options": {
+					"cwd": "${workspaceFolder:nuttx}"
+				},
+				"problemMatcher": [],
+				"icon": {
+					"id": "flame",
+					"color": "terminal.ansiRed"
+				},
+				"group": "build"
+			},
+			{
+				"label": "Clean",
+				"type": "shell",
+				"command": "make",
+				"args": [
+					"distclean"
+				],
+				"options": {
+					"cwd": "${workspaceFolder:nuttx}"
+				},
+				"problemMatcher": [],
+				"icon": {
+					"id": "flame",
+					"color": "terminal.ansiRed"
+				},
+				"group": "build"
+			},
+			{
+				"label": "Settings",
+				"type": "process",
+				"command": "gnome-terminal",
+				"args": [
+					"--",
+					"bash",
+					"-c",
+					"make menuconfig; exec bash",
+				],
+				"options": {
+					"cwd": "${workspaceFolder:nuttx}"
+				}, 
+				"group": "build",
+				"presentation": {
+					"reveal": "silent",
+					"panel": "dedicated",
+					"close": true
+				},            
+				"icon": {
+					"id": "settings",
+					"color": "terminal.ansiYellow"
+				},
+				"problemMatcher": []
+			},
+			{
+				"label": "run-ctags",
+				"type": "shell",
+				"command": "echo",
+				"args": [
+					"${command:embeddedLinuxDev.regenerateCTags}"
+				],
+				"problemMatcher": [],
+				"icon": {
+					"color": "terminal.ansiGreen",
+					"id": "variable"
+				},
+				"runOptions": {
+					"runOn": "folderOpen"
+				}
+			}
+		]
+	},
+
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "STM32H7 Debug (jlink)",
+				"device": "STM32H743VI",
+				"svdFile": "",
+				"request": "launch",
+				"type": "cortex-debug",
+				"servertype": "jlink",
+				"interface": "swd",
+				"cwd": "${workspaceFolder:nuttx}",
+				"executable": "${workspaceFolder:nuttx}/nuttx",
+				"internalConsoleOptions": "openOnSessionStart",
+				"preLaunchCommands": [
+					"set mem inaccessible-by-default off",
+					"set print pretty"
+				]
+			},
+			{
+				"name": "STM32F7 Debug (jlink)",
+				"device": "STM32F745VG",
+				"svdFile": "",
+				"request": "launch",
+				"type": "cortex-debug",
+				"servertype": "jlink",
+				"interface": "swd",
+				"cwd": "${workspaceFolder:nuttx}",
+				"executable": "${workspaceFolder:nuttx}/nuttx",
+				"internalConsoleOptions": "openOnSessionStart",
+				"preLaunchCommands": [
+					"set mem inaccessible-by-default off",
+					"set print pretty"
+				]
+			}
+		]
+	}
+}

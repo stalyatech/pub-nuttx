@@ -44,7 +44,6 @@
 /defconfig
 /Make.defs
 /nuttx
-/nuttx-*
 /nuttx.*
 /staging
 /tags
@@ -60,6 +59,7 @@ uImage
 .dirlinks
 .fakelnk
 .vscode
+.vscode-ctags
 .DS_Store
 tools/gdb/__pycache__
 /build

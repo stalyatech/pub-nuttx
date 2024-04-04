@@ -115,6 +115,10 @@ if(CONFIG_SENSORS_BNO085)
   list(APPEND SRCS stm32_bno085.c)
 endif()
 
+if(CONFIG_ETC_ROMFS)
+  list(APPEND SRCS etc_romfs.c)
+endif()
+
 target_sources(board PRIVATE ${SRCS})
 
 if(CONFIG_STM32F7_APP_FORMAT_MCUBOOT)

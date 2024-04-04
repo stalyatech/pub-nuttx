@@ -7,6 +7,14 @@
 		{
 			"name": "apps",
 			"path": "../apps"
+		},
+		{
+			"name": "sbc",
+			"path": "./boards/arm/stm32f7/ardusimple-sbc"
+		},
+		{
+			"name": "fmu",
+			"path": "./boards/arm/stm32h7/stalya-fmu"
 		}
 	],
 

@@ -116,6 +116,10 @@ if(CONFIG_MTD_RAMTRON)
   list(APPEND SRCS stm32_ramtron.c)
 endif()
 
+if(CONFIG_ETC_ROMFS)
+  list(APPEND SRCS etc_romfs.c)
+endif()
+
 target_sources(board PRIVATE ${SRCS})
 
 if(CONFIG_STM32_APP_FORMAT_MCUBOOT)

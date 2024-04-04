@@ -118,4 +118,8 @@ ifeq ($(CONFIG_MTD_RAMTRON),y)
 CSRCS += stm32_ramtron.c
 endif
 
+ifeq ($(CONFIG_ETC_ROMFS),y)
+CSRCS += etc_romfs.c
+endif
+
 include $(TOPDIR)/boards/Board.mk

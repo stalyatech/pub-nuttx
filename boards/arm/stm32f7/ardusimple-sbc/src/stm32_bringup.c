@@ -83,6 +83,17 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_FS_PROCFS */
 
+#ifdef CONFIG_USB251X
+  /* Register the usb hub driver */
+  
+  ret = board_usb251x_initialize(USB251X_I2CBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize USB251X driver: %d\n", ret);
+    }
+#endif /* CONFIG_USB251X */
+
 #ifdef CONFIG_STM32_ROMFS
   /* Mount the romfs partition */
 

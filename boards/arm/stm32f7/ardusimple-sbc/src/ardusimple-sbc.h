@@ -167,7 +167,7 @@
 #define GPIO_USB251X_NRST (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | \
                            GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN9)
 
-#define USB251X_I2CBUS    2
+#define USB251X_I2CBUS    3
 #define USB251X_I2CADDR   0x2C
 
 
@@ -433,6 +433,17 @@ int stm32_usbhub_initialize(int bus);
 
 #ifdef CONFIG_SENSORS_BNO085
 int stm32_bno085_initialize(int bus);
+#endif
+
+/****************************************************************************
+ * Name: board_usb251x_initialize
+ *
+ * Description:
+ *   Initialize USB251X hub driver.
+ *
+ ****************************************************************************/
+#ifdef CONFIG_USB251X
+int board_usb251x_initialize(int bus);
 #endif
 
 /****************************************************************************

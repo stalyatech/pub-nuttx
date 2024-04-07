@@ -129,6 +129,10 @@ void stm32_usbinitialize(void)
    * Power On, and Overcurrent GPIOs
    */
 
+#ifdef CONFIG_USB251X
+	stm32_configgpio(GPIO_USB251X_PWR);
+#endif
+
 #ifdef CONFIG_STM32F7_OTGFS
     stm32_configgpio(GPIO_OTGFS_VBUS);
 #endif

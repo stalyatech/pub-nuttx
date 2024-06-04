@@ -221,6 +221,29 @@
 					"set mem inaccessible-by-default off",
 					"set print pretty"
 				]
+			},
+			{
+				"name": "ESP32 Debug (openocd)",
+				"type": "cppdbg",
+				"request": "launch",
+				"cwd": "${workspaceFolder:nuttx}",
+				"program": "${workspaceFolder:nuttx}/nuttx",
+				"MIMode": "gdb",
+				"miDebuggerPath": "/home/tmk/stalya/espressif/tools/riscv32-esp-elf-gdb/12.1_20231023/riscv32-esp-elf-gdb/bin/riscv32-esp-elf-gdb",
+				"setupCommands": [
+					{ "text": "set remotetimeout 120" },
+					{ "text": "target remote 192.168.253.1:3333" },
+					{ "text": "set remote hardware-watchpoint-limit 4" },
+					{ "text": "mon reset halt" },
+					//{ "text": "mon program_esp d:/nuttx.bin 0x10000 verify" },
+					//{ "text": "mon reset halt" },
+					{ "text": "thb esp32c6_bringup" },
+					{ "text": "flushregs" },
+				],
+				"externalConsole": false,
+				"logging": {
+					"engineLogging": true
+				}
 			}
 		]
 	}

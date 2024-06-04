@@ -52,6 +52,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define ESP32_IGNORE_CHIP_REVISION_CHECK
+
 #ifdef CONFIG_DEBUG_FEATURES
 #  define showprogress(c)     up_putc(c)
 #else

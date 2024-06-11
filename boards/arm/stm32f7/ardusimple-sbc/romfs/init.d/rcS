@@ -21,5 +21,5 @@ ln -s /dev/gpio16 /dev/qerr
 gpio -o 1 /dev/xbap
 gpio -o 1 /dev/xbbp
 
-# Start the webserver
-webserver &
+# Start the Mongoose webserver
+mg_httpd &

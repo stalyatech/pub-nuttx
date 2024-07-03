@@ -39,7 +39,7 @@
 
 /* Clocking */
 
-/* The STM32F7 Discovery board provides the following clock sources:
+/* The Ardusimple-SBC provides the following clock sources:
  *
  *   X1:  12 MHz oscillator for STM32F745VGT6 microcontroller and
  *        Ethernet PHY.

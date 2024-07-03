@@ -50,6 +50,10 @@ ifeq ($(CONFIG_SENSORS_GOLDFISH_GPS),y)
   CSRCS += goldfish_gps_uorb.c
 endif
 
+ifeq ($(CONFIG_SENSORS_UBLOX_GPS),y)
+  CSRCS += ublox_gps_uorb.c
+endif
+
 ifeq ($(CONFIG_SENSORS_GOLDFISH_SENSOR),y)
   CSRCS += goldfish_sensor_uorb.c
 endif
@@ -71,7 +75,11 @@ ifeq ($(CONFIG_SENSORS_BMI270),y)
 endif
 
 ifeq ($(CONFIG_SENSORS_BNO085),y)
-  CSRCS += bno085.c
+  ifeq ($(CONFIG_SENSORS_BNO085_UORB),y)
+    CSRCS += bno085_uorb.c
+  else
+    CSRCS += bno085.c
+  endif
 endif
 
 # These drivers depend on I2C support

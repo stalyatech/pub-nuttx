@@ -52,7 +52,7 @@
 
 #define GPS_FLAG_GGA          (1 << 0)
 #define GPS_FLAG_RMC          (1 << 1)
-#define GPS_FLAG_MARK         (GPS_FLAG_GGA | GPS_FLAG_RMC)
+#define GPS_FLAG_MARK         (0)
 
 /****************************************************************************
  * Private Types
@@ -520,7 +520,9 @@ static void gps_parse_nmea(FAR struct gps_upperhalf_s *upper,
          break;
     }
 
+#if (GPS_FLAG_MARK != 0)
   if (GPS_FLAG_MARK == upper->flags)
+#endif
     {
       upper->flags &= ~GPS_FLAG_MARK;
       lower = &upper->dev[GPS_IDX].lower;

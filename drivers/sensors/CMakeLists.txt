@@ -51,6 +51,10 @@ if(CONFIG_SENSORS)
     list(APPEND SRCS goldfish_gps_uorb.c)
   endif()
 
+  if(CONFIG_SENSORS_UBLOX_GPS)
+    list(APPEND SRCS ublox_gps_uorb.c)
+  endif()
+
   if(CONFIG_SENSORS_HCSR04)
     list(APPEND SRCS hc_sr04.c)
   endif()
@@ -68,7 +72,11 @@ if(CONFIG_SENSORS)
   endif()
 
   if(CONFIG_SENSORS_BNO085)
-    list(APPEND SRCS bno085.c)
+	if(CONFIG_SENSORS_BNO085_UORB)
+	  list(APPEND SRCS bno085_uorb.c)
+    else()
+	  list(APPEND SRCS bno085.c)
+    endif()
   endif()
 
   # These drivers depend on I2C support

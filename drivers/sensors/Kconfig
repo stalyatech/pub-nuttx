@@ -56,6 +56,19 @@ config SENSORS_FAKESENSOR
 		2.1234,3.23443,2.23456
 		...
 
+config SENSORS_UBLOX_GPS
+	bool "u-blox GPS Support"
+	depends on SENSORS_GPS
+	default y
+
+if SENSORS_UBLOX_GPS
+config SENSORS_UBLOX_GPS_DEVPATH
+	string "u-blox GPS device path"
+	default "/dev/ttyS5"
+	---help---
+		The default path to the u-blox GPS device
+endif
+
 config SENSORS_GOLDFISH_GPS
 	bool "Goldfish GPS Support"
 	depends on SENSORS_GPS
@@ -353,6 +366,13 @@ config BNO085_NPOLLWAITERS
 	default 2
 	---help---
 		Maximum number of threads that can be waiting on poll()
+
+config SENSORS_BNO085_UORB
+	bool "BNO085 UORB Interface"
+	default n
+	---help---
+		Enables Work with the UORB or Character Device interface.
+		If not set, the Character Device is used by default.
 
 choice
 	prompt "BNO085 Interface"

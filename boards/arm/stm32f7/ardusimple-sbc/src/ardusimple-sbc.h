@@ -436,6 +436,14 @@ int stm32_bno085_initialize(int bus);
 #endif
 
 /****************************************************************************
+ * Name: board_gnss_initialize
+ ****************************************************************************/
+
+#ifdef CONFIG_SENSORS_GPS
+int board_gnss_initialize(FAR const char *name, int devno, uint32_t nbuffer);
+#endif
+
+/****************************************************************************
  * Name: board_usb251x_initialize
  *
  * Description:

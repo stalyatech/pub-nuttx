@@ -85,11 +85,11 @@ int stm32_bringup(void)
 
 #ifdef CONFIG_USB251X
   /* Register the usb hub driver */
-  
+
   ret = board_usb251x_initialize(USB251X_I2CBUS);
   if (ret < 0)
     {
-      syslog(LOG_ERR, 
+      syslog(LOG_ERR,
              "ERROR: Failed to initialize USB251X driver: %d\n", ret);
     }
 #endif /* CONFIG_USB251X */
@@ -100,7 +100,8 @@ int stm32_bringup(void)
   ret = stm32_romfs_initialize();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: Failed to mount romfs at %s: %d\n",
+      syslog(LOG_ERR,
+             "ERROR: Failed to mount romfs at %s: %d\n",
              CONFIG_STM32_ROMFS_MOUNTPOINT, ret);
     }
 #endif /* CONFIG_STM32_ROMFS */
@@ -126,7 +127,6 @@ int stm32_bringup(void)
         {
           syslog(LOG_ERR,
                  "ERROR: Failed to bind/register the RTC driver: %d\n", ret);
-          return ret;
         }
     }
 #endif /* HAVE_RTC_DRIVER */
@@ -137,7 +137,8 @@ int stm32_bringup(void)
   ret = stm32_gpio_initialize();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "Failed to initialize GPIO Driver: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize GPIO driver: %d\n", ret);
       return ret;
     }
 #endif /* CONFIG_DEV_GPIO */
@@ -148,7 +149,8 @@ int stm32_bringup(void)
   ret = userled_lower_initialize(LED_DRIVER_PATH);
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: userled_lower_initialize() failed: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize LED lower driver: %d\n", ret);
     }
 #endif /* !CONFIG_ARCH_LEDS && CONFIG_USERLED_LOWER */
 
@@ -158,7 +160,8 @@ int stm32_bringup(void)
   ret = stm32_adc_setup();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: stm32_adc_setup failed: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize ADC driver: %d\n", ret);
     }
 #endif /* CONFIG_ADC */
 
@@ -171,7 +174,8 @@ int stm32_bringup(void)
 #ifdef CONFIG_FAT_DMAMEMORY
   if (stm32_dma_alloc_init() < 0)
     {
-      syslog(LOG_ERR, "DMA alloc FAILED");
+      syslog(LOG_ERR, 
+             "ERROR: Failed to allocate DMA buffer");
     }
 #endif /* CONFIG_FAT_DMAMEMORY */
 
@@ -180,7 +184,8 @@ int stm32_bringup(void)
   ret = stm32_progmem_init();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: Failed to initialize MTD progmem: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize MTD progmem: %d\n", ret);
     }
 #endif /* HAVE_PROGMEM_CHARDEV */
 
@@ -188,7 +193,8 @@ int stm32_bringup(void)
   ret = stm32_w25initialize(0);
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: stm32_w25initialize failed: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize W25 driver: %d\n", ret);
     }
 #endif /* CONFIG_MTD_W25 */
 #endif /* CONFIG_MTD */
@@ -199,8 +205,8 @@ int stm32_bringup(void)
   ret = stm32_sdio_initialize();
   if (ret != OK)
     {
-      ferr("ERROR: Failed to initialize MMC/SD driver: %d\n", ret);
-      return ret;
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize MMC/SD driver: %d\n", ret);
     }
 #endif /* CONFIG_MMCSD */
 
@@ -210,7 +216,8 @@ int stm32_bringup(void)
   ret = stm32_pwm_setup();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: stm32_pwm_setup() failed: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize PWM driver: %d\n", ret);
     }
 #endif /* CONFIG_PWM */
 
@@ -218,8 +225,8 @@ int stm32_bringup(void)
   ret = stm32_can_setup();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: stm32f7_can_setup failed: %d\n", ret);
-      return ret;
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize CAN driver: %d\n", ret);
     }
 #endif /* CONFIG_STM32F7_CAN_CHARDRIVER */
 
@@ -227,7 +234,8 @@ int stm32_bringup(void)
   ret = stm32_cansock_setup();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: stm32_cansock_setup failed: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize CAN Socket driver: %d\n", ret);
     }
 #endif /* CONFIG_STM32F7_CAN_SOCKET */
 
@@ -239,8 +247,8 @@ int stm32_bringup(void)
   ret = stm32_usbhub_initialize(3);
   if (ret < 0)
     {
-      syslog(LOG_ERR, "Failed to initialize USB2517 Driver: %d\n", ret);
-      return ret;
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize USB2517 driver: %d\n", ret);
     }
 #endif /* CONFIG_STM32F7_I2C3 */
 #endif /* CONFIG_USB2517 */
@@ -252,18 +260,34 @@ int stm32_bringup(void)
   ret = stm32_bno085_initialize(3);
   if (ret < 0)
     {
-      syslog(LOG_ERR, "Failed to initialize BNO085 Driver: %d\n", ret);
-      return ret;
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize BNO085 driver: %d\n", ret);
     }
 #endif /* CONFIG_STM32F7_I2C3 */
 #endif /* CONFIG_SENSORS_BNO085 */
+
+#ifdef CONFIG_SENSORS_GPS
+  /* Initialize GNSS uORB service. */
+
+#ifdef CONFIG_SENSORS_UBLOX_GPS_DEVPATH
+  ret = board_gnss_initialize(CONFIG_SENSORS_UBLOX_GPS_DEVPATH, 0, 4);
+#else
+  ret = board_gnss_initialize("/dev/ttyS0", 0, 4);
+#endif /* CONFIG_SENSORS_UBLOX_GPS_DEVPATH */
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize GNSS uORB driver: %d\n", ret);
+    }
+#endif /* CONFIG_SENSORS_GPS */
 
 #ifdef CONFIG_STM32F7_I2C1
   i2c_bus = 1;
   i2c = stm32_i2cbus_initialize(i2c_bus);
   if (i2c == NULL)
     {
-      syslog(LOG_ERR, "ERROR: Failed to get I2C%d interface\n", i2c_bus);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to get I2C%d interface\n", i2c_bus);
     }
   else
     {
@@ -271,7 +295,8 @@ int stm32_bringup(void)
       ret = i2c_register(i2c, i2c_bus);
       if (ret < 0)
         {
-          syslog(LOG_ERR, "ERROR: Failed to register I2C%d driver: %d\n",
+          syslog(LOG_ERR, 
+                 "ERROR: Failed to register I2C%d driver: %d\n",
                  i2c_bus, ret);
         }
 #endif /* CONFIG_SYSTEM_I2CTOOL */
@@ -286,13 +311,15 @@ int stm32_bringup(void)
   ret = board_composite_initialize(0);
   if (ret != OK)
     {
-      syslog(LOG_ERR, "ERROR: Failed to initialize composite: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize composite device: %d\n", ret);
       return ret;
     }
 
   if (board_composite_connect(0, 0) == NULL)
     {
-      syslog(LOG_ERR, "ERROR: Failed to connect composite: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to connect composite device: %d\n", ret);
       return ret;
     }
 #endif /* !CONFIG_BOARDCTL_USBDEVCTRL */
@@ -305,7 +332,9 @@ int stm32_bringup(void)
   ret = cdcacm_initialize(0, NULL);
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: cdcacm_initialize failed: %d\n", ret);
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize CDC/ACM device: %d\n", ret);
+      return ret;
     }
 #endif /* CONFIG_CDCACM & !CONFIG_CDCACM_CONSOLE */
 #if defined(CONFIG_RNDIS)

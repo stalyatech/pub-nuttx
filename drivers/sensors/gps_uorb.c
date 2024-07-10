@@ -416,6 +416,8 @@ static void gps_init_data(FAR struct sensor_gps *gps)
   gps->ground_speed = NAN;
   gps->course = NAN;
   gps->satellites_used = UINT_MAX;
+  gps->raw_len = 0;
+  memset(gps->raw_buf, 0, sizeof(gps->raw_buf));
 }
 
 static void gps_parse_nmea(FAR struct gps_upperhalf_s *upper,
@@ -552,6 +554,12 @@ static void gps_parse(FAR struct gps_upperhalf_s *upper,
             }
 
           upper->parsebuffer[upper->parsenext] = '\0';
+
+          /* Update the raw data */
+
+          memcpy(upper->gps.raw_buf, upper->parsebuffer, upper->parsenext);
+          upper->gps.raw_len = upper->parsenext;
+
           gps_parse_nmea(upper, upper->parsebuffer);
           upper->parsenext = 0;
           newline = false;
@@ -575,6 +583,23 @@ static void gps_push_data(FAR void *priv, FAR const void *data,
     {
       gps_parse(upper, data, bytes);
     }
+    else
+      {
+        FAR struct sensor_lowerhalf_s *lower = &upper->dev[GPS_IDX].lower;
+        
+        /* Update the raw data */
+
+        memcpy(upper->gps.raw_buf, data, bytes);
+        upper->gps.raw_len = bytes;
+
+        /* Trigger the event */
+
+        lower->push_event(lower->priv, &upper->gps, sizeof(upper->gps));
+
+        /* Initialize the GPS data */
+
+        gps_init_data(&upper->gps);
+      }
 
   circbuf_overwrite(&upper->buffer, data, bytes);
   nxmutex_unlock(&upper->lock);

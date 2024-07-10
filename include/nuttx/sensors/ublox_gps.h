@@ -44,6 +44,7 @@ extern "C"
  *
  * Input Parameters:
  *   name    - Serial port name that connected to the GPS device.
+ *   baud    - Serial port name baudrate of the GPS device.
  *   devno   - The user specifies which device of this type, from 0.
  *   nbuffer - The number of events that the circular buffer can hold.
  *
@@ -52,7 +53,7 @@ extern "C"
  *
  ****************************************************************************/
 
-int ublox_gps_init(FAR const char *name, int devno, uint32_t nbuffer);
+int ublox_gps_init(FAR const char *name, uint32_t baud, uint32_t devno, uint32_t nbuffer);
 
 #ifdef __cplusplus
 }

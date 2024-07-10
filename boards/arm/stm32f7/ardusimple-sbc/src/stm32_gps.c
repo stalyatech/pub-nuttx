@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32f7/ardusimple-sbc/src/stm32_bno085_i2c.c
+ * boards/arm/stm32f7/ardusimple-sbc/src/stm32_gps.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -34,7 +34,7 @@
 
 #include "ardusimple-sbc.h"
 
-#if defined(CONFIG_SENSORS_GPS)
+#ifdef CONFIG_SENSORS_GPS
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -61,24 +61,86 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_gnss_initialize
+ * Name: board_gps_initialize
  *
  * Description:
- *   GNSS driver registration
+ *   GPS driver registration
  *
  * Input Parameters:
- *   name    - Serial port name that connected to the GPS device.
- *   devno   - The user specifies which device of this type, from 0.
- *   nbuffer - The number of events that the circular buffer can hold.
+ *   None.
  *
  * Returned Value:
  *   Zero (OK) or positive on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-int board_gnss_initialize(FAR const char *name, int devno, uint32_t nbuffer)
+int board_gps_initialize(void)
 {
-  return ublox_gps_init(name, devno, nbuffer);
+  int ret = ERROR;
+
+#ifdef CONFIG_SENSORS_UBLOX_GPS
+#ifdef CONFIG_SENSORS_UBLOX_GPS1_PORT
+  ret = ublox_gps_init(CONFIG_SENSORS_UBLOX_GPS1_DEVPATH, 
+                       CONFIG_SENSORS_UBLOX_GPS1_BAUDRATE,
+                       0, 4);
+
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize GPS1 uORB driver: %d\n", ret);
+    }
+#endif /* CONFIG_SENSORS_UBLOX_GPS1_PORT */
+
+#ifdef CONFIG_SENSORS_UBLOX_GPS2_PORT
+  ret = ublox_gps_init(CONFIG_SENSORS_UBLOX_GPS2_DEVPATH, 
+                       CONFIG_SENSORS_UBLOX_GPS2_BAUDRATE,
+                       1, 4);
+
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize GPS2 uORB driver: %d\n", ret);
+    }
+#endif /* CONFIG_SENSORS_UBLOX_GPS2_PORT */
+
+#ifdef CONFIG_SENSORS_UBLOX_GPS3_PORT
+  ret = ublox_gps_init(CONFIG_SENSORS_UBLOX_GPS3_DEVPATH, 
+                       CONFIG_SENSORS_UBLOX_GPS3_BAUDRATE,
+                       2, 4);
+
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize GPS3 uORB driver: %d\n", ret);
+    }
+#endif /* CONFIG_SENSORS_UBLOX_GPS1_PORT */
+
+#ifdef CONFIG_SENSORS_UBLOX_GPS4_PORT
+  ret = ublox_gps_init(CONFIG_SENSORS_UBLOX_GPS4_DEVPATH, 
+                       CONFIG_SENSORS_UBLOX_GPS4_BAUDRATE,
+                       0, 4);
+
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize GPS4 uORB driver: %d\n", ret);
+    }
+#endif /* CONFIG_SENSORS_UBLOX_GPS4_PORT */
+
+#ifdef CONFIG_SENSORS_UBLOX_GPS5_PORT
+  ret = ublox_gps_init(CONFIG_SENSORS_UBLOX_GPS5_DEVPATH, 
+                       CONFIG_SENSORS_UBLOX_GPS5_BAUDRATE,
+                       0, 4);
+
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize GPS5 uORB driver: %d\n", ret);
+    }
+#endif /* CONFIG_SENSORS_UBLOX_GPS5_PORT */
+#endif /* CONFIG_SENSORS_UBLOX_GPS */
+
+  return ret;
 }
 
 #endif /* CONFIG_SENSORS_GPS */

@@ -118,7 +118,7 @@ CSRCS += stm32_bno085.c
 endif
 
 ifeq ($(CONFIG_SENSORS_GPS),y)
-CSRCS += stm32_gnss.c
+CSRCS += stm32_gps.c
 endif
 
 ifeq ($(CONFIG_ETC_ROMFS),y)

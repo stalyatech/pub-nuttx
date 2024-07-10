@@ -30,12 +30,16 @@
 #include <stdbool.h>
 #include <string.h>
 #include <debug.h>
+#include <termios.h>
+
 #include <nuttx/kmalloc.h>
 #include <nuttx/kthread.h>
 #include <nuttx/nuttx.h>
 #include <nuttx/semaphore.h>
-#include <nuttx/sensors/ublox_gps.h>
+#include <nuttx/sensors/sensor.h>
 #include <nuttx/sensors/gps.h>
+#include <nuttx/sensors/ublox_gps.h>
+#include <nuttx/serial/tioctl.h>
 
 /****************************************************************************
  * Private Types
@@ -53,7 +57,20 @@ struct ublox_gps_s
  ****************************************************************************/
 
 static int ublox_gps_activate(FAR struct gps_lowerhalf_s *lower,
-                              FAR struct file *filep, bool enabled);
+                              FAR struct file *filep, 
+                              bool enabled);
+static int ublox_gps_set_interval(FAR struct gps_lowerhalf_s *lower,
+                                  FAR struct file *filep,
+                                  unsigned long *period_us);
+static int ublox_gps_control(FAR struct gps_lowerhalf_s *lower,
+                             FAR struct file *filep,
+                             int cmd, 
+                             unsigned long arg);
+static ssize_t ublox_gps_inject_data(FAR struct gps_lowerhalf_s *lower,
+                                     FAR struct file *filep,
+                                     const void *buffer, 
+                                     size_t buflen);
+
 static int ublox_gps_thread(int argc, FAR char** argv);
 
 /****************************************************************************
@@ -62,11 +79,18 @@ static int ublox_gps_thread(int argc, FAR char** argv);
 
 static struct gps_ops_s g_ublox_gps_ops =
 {
-  .activate = ublox_gps_activate,
+  .activate     = ublox_gps_activate,
+  .set_interval = ublox_gps_set_interval,
+  .control      = ublox_gps_control,
+  .inject_data  = ublox_gps_inject_data,
 };
 
 /****************************************************************************
  * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: ublox_gps_write
  ****************************************************************************/
 
 static inline int ublox_gps_write(FAR struct file *filep,
@@ -90,10 +114,16 @@ static inline int ublox_gps_write(FAR struct file *filep,
   return 0;
 }
 
+/****************************************************************************
+ * Name: ublox_gps_open
+ ****************************************************************************/
+
 static inline int ublox_gps_open(FAR struct file *filep,
                                  FAR const char *name,
-                                 int flags)
+                                 uint32_t baud,
+                                 uint32_t flags)
 {
+  struct termios opt;
   int ret;
 
   ret = file_open(filep, name, flags);
@@ -103,8 +133,75 @@ static inline int ublox_gps_open(FAR struct file *filep,
       return ret;
     }
 
+  file_ioctl(filep, TCGETS, &opt);
+  cfmakeraw(&opt);
+
+  /* Configure a baud rate.
+   * NuttX doesn't support different baud rates for RX and TX.
+   * So, both cfisetospeed() and cfisetispeed() are overwritten
+   * by cfsetspeed.
+   */
+#ifdef CONFIG_SERIAL_TERMIOS
+  switch (baud)
+    {
+      case 921600: 
+        baud = B921600;
+        break;
+
+      case 460800: 
+        baud = B460800;
+        break;
+
+      case 230400: 
+        baud = B230400;
+        break;
+
+      case 115200: 
+        baud = B115200;
+        break;
+
+      case 57600: 
+        baud = B57600;
+        break;
+
+      case 38400: 
+        baud = B38400;
+        break;
+
+      case 19200: 
+        baud = B19200;
+        break;
+
+      case 9600: 
+        baud = B9600;
+        break;
+
+      default: 
+        baud = B38400;
+    }
+
+  cfsetspeed(&opt, baud);
+
+  /* Change the attributes now. */
+
+  file_ioctl(filep, TCSETS, &opt);
+#endif
+
   return OK;
 }
+
+/****************************************************************************
+ * Name: ublox_gps_enable
+ ****************************************************************************/
+
+static int ublox_gps_enable(struct ublox_gps_s *priv, bool enable)
+{
+  return OK;
+}
+
+/****************************************************************************
+ * Name: ublox_gps_activate
+ ****************************************************************************/
 
 static int ublox_gps_activate(FAR struct gps_lowerhalf_s *gps,
                               FAR struct file *filep,
@@ -116,6 +213,100 @@ static int ublox_gps_activate(FAR struct gps_lowerhalf_s *gps,
 
   return OK;
 }
+
+/****************************************************************************
+ * Name: ublox_gps_set_interval
+ ****************************************************************************/
+
+static int ublox_gps_set_interval(FAR struct gps_lowerhalf_s *gps,
+                                  FAR struct file *filep,
+                                  unsigned long *period_us)
+{
+  FAR struct ublox_gps_s *priv =
+    container_of(gps, struct ublox_gps_s, gps);
+  uint16_t fix_interval = 0;
+  int      ret          = OK;
+  bool     running      = priv->running;
+
+  /* GNSS must be disabled when fix interval change */
+
+  if (running == true)
+    {
+      ublox_gps_enable(priv, false);
+    }
+
+  /* Fix interval in seconds */
+
+  fix_interval = (*period_us) / 1000000;
+
+  /* Handle GNSS mode */
+
+  if (fix_interval == 1)
+    {
+      /* Continuous navigation with 1 Hz rate */
+    }
+  else if (fix_interval == 0)
+    {
+      /* Single fix */
+
+    }
+  else if (fix_interval < 10)
+    {
+      /* Periodic navigation, minimum interval is 10s */
+
+      fix_interval = 10;
+      *period_us   = fix_interval * 1000000;
+    }
+  else if (fix_interval > 65535)
+    {
+      /* Periodic navigation, maximum interval is 65535s */
+
+      fix_interval = 65535;
+      *period_us   = fix_interval * 1000000;
+    }
+
+  /* TODO */
+  /* Inverval set */
+
+  if (running == true)
+    {
+      ublox_gps_enable(priv, true);
+    }
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: ublox_gps_control
+ ****************************************************************************/
+
+static int ublox_gps_control(FAR struct gps_lowerhalf_s *gps,
+                             FAR struct file *filep,
+                             int cmd, 
+                             unsigned long arg)
+{
+  /* TODO */
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: ublox_gps_inject_data
+ ****************************************************************************/
+
+static ssize_t ublox_gps_inject_data(FAR struct gps_lowerhalf_s *gps,
+                                     FAR struct file *filep,
+                                     const void *buffer, 
+                                     size_t buflen)
+{
+  /* TODO */
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: ublox_gps_thread
+ ****************************************************************************/
 
 static int ublox_gps_thread(int argc, FAR char** argv)
 {
@@ -147,7 +338,8 @@ static int ublox_gps_thread(int argc, FAR char** argv)
  *   u-blox GPS driver entrypoint.
  *
  * Input Parameters:
- *   name    - Serial port name that connected to the GPS device.
+ *   dev     - Serial port name that connected to the GPS device.
+ *   baud    - Serial baudrate of the GPS device.
  *   devno   - The user specifies which device of this type, from 0.
  *   nbuffer - The number of events that the circular buffer can hold.
  *
@@ -156,11 +348,12 @@ static int ublox_gps_thread(int argc, FAR char** argv)
  *
  ****************************************************************************/
 
-int ublox_gps_init(FAR const char *name, int devno, uint32_t nbuffer)
+int ublox_gps_init(FAR const char *devname, uint32_t baud, uint32_t devno, uint32_t nbuffer)
 {
   FAR struct ublox_gps_s *gps;
   FAR char *argv[2];
   char arg1[32];
+  char name[32];
   int ret;
 
   /* Alloc memory for sensor */
@@ -171,7 +364,7 @@ int ublox_gps_init(FAR const char *name, int devno, uint32_t nbuffer)
       return -ENOMEM;
     }
 
-  ret = ublox_gps_open(&gps->dev, name, O_RDWR | O_CLOEXEC);
+  ret = ublox_gps_open(&gps->dev, devname, baud, O_RDWR | O_CLOEXEC);
   if (ret < 0)
     {
       kmm_free(gps);
@@ -180,10 +373,11 @@ int ublox_gps_init(FAR const char *name, int devno, uint32_t nbuffer)
  
   /* Create thread for sensor */
 
+  snprintf(name, sizeof(name), "sensor_gps%lu_thread", devno);
   snprintf(arg1, 32, "%p", gps);
   argv[0] = arg1;
   argv[1] = NULL;
-  ret = kthread_create("ublox_gps_thread",
+  ret = kthread_create(name,
                        SCHED_PRIORITY_DEFAULT,
                        CONFIG_DEFAULT_TASK_STACKSIZE,
                        ublox_gps_thread, argv);

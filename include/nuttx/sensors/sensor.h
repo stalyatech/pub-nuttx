@@ -439,6 +439,11 @@
 
 #define SENSOR_GPS_SAT_INFO_MAX                     4
 
+/* GPS raw data bufer size */
+
+#define SENSOR_GPS_RAWDATA_SIZE                     128
+
+
 /****************************************************************************
  * Inline Functions
  ****************************************************************************/
@@ -572,6 +577,11 @@ struct sensor_gps           /* Type: Gps */
   float course;
 
   uint32_t satellites_used; /* Number of satellites used */
+
+  /* Raw data information */
+
+  uint32_t raw_len;
+  uint8_t  raw_buf[SENSOR_GPS_RAWDATA_SIZE];
 };
 
 struct sensor_uv            /* Type: Ultraviolet Light */

@@ -116,7 +116,7 @@ if(CONFIG_SENSORS_BNO085)
 endif()
 
 if(CONFIG_SENSORS_GPS)
-  list(APPEND SRCS stm32_gnss.c)
+  list(APPEND SRCS stm32_gps.c)
 endif()
 
 if(CONFIG_ETC_ROMFS)

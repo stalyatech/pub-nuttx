@@ -64,7 +64,7 @@ int stm32_bringup(void)
 {
   int ret = OK;
 #ifdef CONFIG_I2C
-  int i2c_bus;
+  int i2c_bus; 
   struct i2c_master_s *i2c;
 #endif /* CONFIG_I2C */
 #ifdef HAVE_RTC_DRIVER
@@ -267,18 +267,9 @@ int stm32_bringup(void)
 #endif /* CONFIG_SENSORS_BNO085 */
 
 #ifdef CONFIG_SENSORS_GPS
-  /* Initialize GNSS uORB service. */
+  /* Initialize GPS uORB service. */
 
-#ifdef CONFIG_SENSORS_UBLOX_GPS_DEVPATH
-  ret = board_gnss_initialize(CONFIG_SENSORS_UBLOX_GPS_DEVPATH, 0, 4);
-#else
-  ret = board_gnss_initialize("/dev/ttyS0", 0, 4);
-#endif /* CONFIG_SENSORS_UBLOX_GPS_DEVPATH */
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, 
-             "ERROR: Failed to initialize GNSS uORB driver: %d\n", ret);
-    }
+  board_gps_initialize();
 #endif /* CONFIG_SENSORS_GPS */
 
 #ifdef CONFIG_STM32F7_I2C1

@@ -436,11 +436,11 @@ int stm32_bno085_initialize(int bus);
 #endif
 
 /****************************************************************************
- * Name: board_gnss_initialize
+ * Name: board_gps_initialize
  ****************************************************************************/
 
 #ifdef CONFIG_SENSORS_GPS
-int board_gnss_initialize(FAR const char *name, int devno, uint32_t nbuffer);
+int board_gps_initialize(void);
 #endif
 
 /****************************************************************************

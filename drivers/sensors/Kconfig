@@ -27,7 +27,7 @@ config SENSORS_RPMSG
 config SENSORS_GPS
 	bool "GPS Support"
 	default n
-	depends on GPSUTILS_MINMEA_LIB
+  select GPSUTILS_MINMEA_LIB
 	---help---
 		Allow application to use gps by /dev/uorb/gps or /dev/ttyGPS
 
@@ -62,12 +62,108 @@ config SENSORS_UBLOX_GPS
 	default y
 
 if SENSORS_UBLOX_GPS
-config SENSORS_UBLOX_GPS_DEVPATH
-	string "u-blox GPS device path"
+
+config SENSORS_UBLOX_GPS1_PORT
+	bool "Enable GPS1 Port"
+	default y
+
+if SENSORS_UBLOX_GPS1_PORT
+
+config SENSORS_UBLOX_GPS1_DEVPATH
+	string "GPS1 port"
 	default "/dev/ttyS5"
 	---help---
-		The default path to the u-blox GPS device
-endif
+		Choose u-blox GPS1 serial port.
+
+config SENSORS_UBLOX_GPS1_BAUDRATE
+	int "GPS1 baudrate"
+	default 38400
+	---help---
+		Choose u-blox GPS1 baudrate.
+
+endif # SENSORS_UBLOX_GPS1_PORT
+
+config SENSORS_UBLOX_GPS2_PORT
+	bool "Enable GPS2 Port"
+	default n
+
+if SENSORS_UBLOX_GPS2_PORT
+
+config SENSORS_UBLOX_GPS2_DEVPATH
+	string "GPS2 port"
+	default "/dev/ttyS0"
+	---help---
+		Choose u-blox GPS2 serial port.
+
+config SENSORS_UBLOX_GPS2_BAUDRATE
+	int "GPS2 baudrate"
+	default 38400
+	---help---
+		Choose u-blox GPS2 baudrate.
+
+endif # SENSORS_UBLOX_GPS2_PORT
+
+config SENSORS_UBLOX_GPS3_PORT
+	bool "Enable GPS3 Port"
+	default n
+
+if SENSORS_UBLOX_GPS3_PORT
+
+config SENSORS_UBLOX_GPS3_DEVPATH
+	string "GPS3 port"
+	default "/dev/ttyS1"
+	---help---
+		Choose u-blox GPS3 serial port.
+
+config SENSORS_UBLOX_GPS3_BAUDRATE
+	int "GPS3 baudrate"
+	default 38400
+	---help---
+		Choose u-blox GPS3 baudrate.
+
+endif # SENSORS_UBLOX_GPS3_PORT
+
+config SENSORS_UBLOX_GPS4_PORT
+	bool "Enable GPS4 Port"
+	default n
+
+if SENSORS_UBLOX_GPS4_PORT
+
+config SENSORS_UBLOX_GPS4_DEVPATH
+	string "GPS4 port"
+	default "/dev/ttyS3"
+	---help---
+		Choose u-blox GPS4 serial port.
+
+config SENSORS_UBLOX_GPS4_BAUDRATE
+	int "GPS4 baudrate"
+	default 38400
+	---help---
+		Choose u-blox GPS4 baudrate.
+
+endif # SENSORS_UBLOX_GPS4_PORT
+
+config SENSORS_UBLOX_GPS5_PORT
+	bool "Enable GPS5 Port"
+	default n
+
+if SENSORS_UBLOX_GPS5_PORT
+
+config SENSORS_UBLOX_GPS5_DEVPATH
+	string "GPS5 port"
+	default "/dev/ttyS4"
+	---help---
+		Choose u-blox GPS5 serial port.
+
+config SENSORS_UBLOX_GPS5_BAUDRATE
+	int "GPS5 baudrate"
+	default 38400
+	---help---
+		Choose u-blox GPS5 baudrate.
+
+endif # SENSORS_UBLOX_GPS5_PORT
+
+endif # SENSORS_UBLOX_GPS
 
 config SENSORS_GOLDFISH_GPS
 	bool "Goldfish GPS Support"

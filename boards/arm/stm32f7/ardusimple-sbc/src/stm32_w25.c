@@ -27,8 +27,8 @@
 #ifdef CONFIG_STM32F7_SPI3
 #  include <nuttx/spi/spi.h>
 #  include <nuttx/mtd/mtd.h>
+#  include <nuttx/drivers/drivers.h>
 #  include <nuttx/fs/fs.h>
-#  include <nuttx/fs/nxffs.h>
 #endif
 #include <arch/board/board.h>
 
@@ -95,19 +95,24 @@
 int stm32_w25initialize(int minor)
 {
 #ifdef HAVE_W25
-  struct spi_dev_s *spi;
+  struct mtd_dev_s *part[CONFIG_ARDUSIMPLE_SPIFLASH_NPARTITIONS];
   struct mtd_dev_s *mtd;
-#ifdef CONFIG_FS_NXFFS
-  char devname[12];
-#endif
-  int ret;
+  struct spi_dev_s *spi;
+  struct mtd_geometry_s geo;
+  int ret, i;
+  off_t offset;
+  off_t nblocks;
+  uint32_t blkpererase;
+  char blockname[32];
+  char charname[32];
+  char mntpoint[32];
 
   /* Get the SPI port */
 
   spi = stm32_spibus_initialize(W25_SPI_PORT);
   if (!spi)
     {
-      ferr("ERROR: Failed to initialize SPI port %d\n", W25_SPI_PORT);
+      syslog(LOG_ERR, "ERROR: Failed to initialize SPI port %d\n", W25_SPI_PORT);
       return -ENODEV;
     }
 
@@ -116,40 +121,83 @@ int stm32_w25initialize(int minor)
   mtd = w25_initialize(spi);
   if (!mtd)
     {
-      ferr("ERROR: Failed to bind SPI port %d to the W25 FLASH driver\n", W25_SPI_PORT);
+      syslog(LOG_ERR, "ERROR: Failed to bind SPI port %d to the W25 FLASH driver\n", W25_SPI_PORT);
       return -ENODEV;
     }
 
-#ifndef CONFIG_FS_NXFFS
-  /* And use the FTL layer to wrap the MTD driver as a block driver */
+  /* Get the device geometry */
 
-  ret = ftl_initialize(minor, mtd);
+  ret = mtd->ioctl(mtd, MTDIOC_GEOMETRY,
+                        (unsigned long)((uintptr_t)&geo));
   if (ret < 0)
     {
-      ferr("ERROR: Initialize the FTL layer\n");
-      return ret;
-    }
-#else
-  /* Initialize to provide NXFFS on the MTD interface */
-
-  ret = nxffs_initialize(mtd);
-  if (ret < 0)
-    {
-      ferr("ERROR: NXFFS initialization failed: %d\n", -ret);
+      syslog(LOG_ERR, "ERROR: mtd->ioctl failed: %d\n", ret);
       return ret;
     }
 
-  /* Mount the file system at /nor */
+  /* Determine the size of each partition.  Make each partition an even
+   * multiple of the erase block size (perhaps not using some space at the
+   * end of the FLASH).
+   */
 
-  snprintf(devname, 12, "/nor");
-  ret = nx_mount(NULL, devname, "nxffs", 0, NULL);
-  if (ret < 0)
+  blkpererase = geo.erasesize / geo.blocksize;
+  nblocks     = (geo.neraseblocks / CONFIG_ARDUSIMPLE_SPIFLASH_NPARTITIONS) * 
+                blkpererase;
+
+  /* Now create MTD FLASH partitions */
+
+  syslog(LOG_ERR, "INFO: Creating partitions\n");
+
+  for (offset = 0, i = 0;
+       i < CONFIG_ARDUSIMPLE_SPIFLASH_NPARTITIONS;
+       offset += nblocks, i++)
     {
-      ferr("ERROR: Failed to mount the NXFFS volume: %d\n", ret);
-      return ret;
+      syslog(LOG_INFO, "INFO: Partition %d. Block offset=%lu, size=%lu\n",
+                       i, (unsigned long)offset, (unsigned long)nblocks);
+
+      /* Create the partition */
+
+      part[i] = mtd_partition(mtd, offset, nblocks);
+      if (!part[i])
+        {
+          syslog(LOG_ERR, "ERROR: Failed to create first MTD partition\n");
+          return -ENODEV;
+        }
+
+      /* Initialize to provide an FTL block driver on the MTD FLASH
+       * interface
+       */
+
+      snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", i);
+      snprintf(charname, sizeof(charname), "/dev/mtd%d", i);
+      snprintf(mntpoint, sizeof(mntpoint), "/data%d", i);
+
+      ret = ftl_initialize(i, part[i]);
+      if (ret < 0)
+        {
+          syslog(LOG_ERR, "ERROR: ftl_initialize %s failed: %d\n", blockname, ret);
+          return ret;
+        }
+
+      /* Now create a character device on the block device */
+
+      ret = bchdev_register(blockname, charname, false);
+      if (ret < 0)
+        {
+          syslog(LOG_ERR, "ERROR: bchdev_register %s failed: %d\n", charname, ret);
+          return ret;
+        }
+
+      /* Initialize to provide flash file system on the MTD partitions */
+
+      ret = board_spiflash_init(part[i], blockname, mntpoint);
+      if (ret < 0)
+        {
+          syslog(LOG_ERR, "ERROR: Flash file system initialization failed: %d\n", -ret);
+          return ret;
+        }
     }
-#endif
-#endif
+#endif /* HAVE_W25 */
 
   return OK;
 }

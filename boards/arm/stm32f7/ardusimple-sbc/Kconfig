@@ -5,6 +5,30 @@
 
 if ARCH_BOARD_ARDUSIMPLE_SBC
 
+choice
+	prompt "Select SPI Flash File System"
+	default ARDUSIMPLE_SPIFLASH_LITTLEFS
+
+config ARDUSIMPLE_SPIFLASH_SMARTFS
+	bool "Smart FS"
+
+config ARDUSIMPLE_SPIFLASH_LITTLEFS
+	bool "Little FS"
+
+config ARDUSIMPLE_SPIFLASH_SPIFFS
+	bool "SPI FFS"
+
+config ARDUSIMPLE_SPIFLASH_NXFFS
+	bool "NuttX FS"
+
+endchoice
+
+config ARDUSIMPLE_SPIFLASH_NPARTITIONS
+	int "Number of partitions"
+	default 2
+	---help---
+		This setting provides the number of partitions.
+
 config STM32_ROMFS
 	bool "Automount baked-in ROMFS image"
 	default n

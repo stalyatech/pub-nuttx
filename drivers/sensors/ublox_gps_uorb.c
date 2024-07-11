@@ -378,7 +378,7 @@ int ublox_gps_init(FAR const char *devname, uint32_t baud, uint32_t devno, uint3
   argv[0] = arg1;
   argv[1] = NULL;
   ret = kthread_create(name,
-                       SCHED_PRIORITY_DEFAULT,
+                       50,
                        CONFIG_DEFAULT_TASK_STACKSIZE,
                        ublox_gps_thread, argv);
   if (ret < 0)

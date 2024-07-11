@@ -104,7 +104,7 @@ if(CONFIG_USBDEV_COMPOSITE)
 endif()
 
 if(CONFIG_MTD_W25)
-  list(APPEND SRCS stm32_w25.c)
+  list(APPEND SRCS stm32_w25.c stm32_spiflash.c)
 endif()
 
 if(CONFIG_USB251X)

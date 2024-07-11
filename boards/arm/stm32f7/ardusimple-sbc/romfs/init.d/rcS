@@ -21,8 +21,8 @@ ln -s /dev/gpio16 /dev/qerr
 gpio -o 1 /dev/xbap
 gpio -o 1 /dev/xbbp
 
-# Start the Telnet service
-telnetd &
-
 # Start the Mongoose services
-mg_smart &
+mg_smart -p 8001 -r /data0/web_smart_dist -g &
+
+# Start the FTP service
+ftpd_start -4 &

@@ -106,7 +106,7 @@ CSRCS += stm32_composite.c
 endif
 
 ifeq ($(CONFIG_MTD_W25),y)
-CSRCS += stm32_w25.c
+CSRCS += stm32_w25.c stm32_spiflash.c
 endif
 
 ifeq ($(CONFIG_USB251X),y)

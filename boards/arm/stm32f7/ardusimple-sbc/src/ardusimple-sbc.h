@@ -455,6 +455,25 @@ int board_usb251x_initialize(int bus);
 #endif
 
 /****************************************************************************
+ * Name: board_spiflash_init
+ *
+ * Description:
+ *   Initialize the SPI Flash and register the MTD device.
+ *
+ * Input Parameters:
+ *   mtd - The MTD device that supports the FLASH interface.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; A negated errno value is returned
+ *   to indicate the nature of any failure.
+ *
+ ****************************************************************************/
+#ifdef CONFIG_MTD
+struct mtd_dev_s;
+int board_spiflash_init(struct mtd_dev_s *mtd, const char *path, const char *mnt_pt);
+#endif
+
+/****************************************************************************
  * Name:  board_composite_initialize
  *
  * Description:

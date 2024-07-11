@@ -56,6 +56,10 @@ ifeq ($(CONFIG_MMCSD),y)
 CSRCS += stm32_sdio.c
 endif
 
+ifeq ($(CONFIG_FAT_DMAMEMORY),y)
+CSRCS += stm32_dma_alloc.c
+endif
+
 ifeq ($(CONFIG_USBMSC),y)
 CSRCS += stm32_usbmsc.c
 endif

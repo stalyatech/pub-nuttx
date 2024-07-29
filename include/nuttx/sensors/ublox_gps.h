@@ -37,7 +37,7 @@ extern "C"
 #endif
 
 /****************************************************************************
- * Name: ublox_gps_init
+ * Name: ublox_gps_register
  *
  * Description:
  *   u-blox GPS driver entrypoint.
@@ -53,7 +53,7 @@ extern "C"
  *
  ****************************************************************************/
 
-int ublox_gps_init(FAR const char *name, uint32_t baud, uint32_t devno, uint32_t nbuffer);
+int ublox_gps_register(FAR const char *name, uint32_t baud, uint32_t devno, uint32_t nbuffer);
 
 #ifdef __cplusplus
 }

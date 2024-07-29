@@ -307,9 +307,15 @@
 
 #define SENSOR_TYPE_FORCE                           34
 
+/* GPS Raw
+ * A sensor of this type returns gps raw data. 
+ */
+
+#define SENSOR_TYPE_GPS_RAW                         35
+
 /* The total number of sensor */
 
-#define SENSOR_TYPE_COUNT                           35
+#define SENSOR_TYPE_COUNT                           36
 
 /* The additional sensor open flags */
 
@@ -441,7 +447,7 @@
 
 /* GPS raw data bufer size */
 
-#define SENSOR_GPS_RAWDATA_SIZE                     128
+#define SENSOR_GPS_RAWDATA_SIZE                     84
 
 
 /****************************************************************************
@@ -577,11 +583,13 @@ struct sensor_gps           /* Type: Gps */
   float course;
 
   uint32_t satellites_used; /* Number of satellites used */
+};
 
-  /* Raw data information */
-
-  uint32_t raw_len;
-  uint8_t  raw_buf[SENSOR_GPS_RAWDATA_SIZE];
+struct sensor_gps_raw       /* Type: Gps raw */
+{
+  uint64_t timestamp;       /* Time since system start, Units is microseconds */
+  uint32_t len;             /* Raw data buffer & length */
+  uint8_t  buf[SENSOR_GPS_RAWDATA_SIZE];
 };
 
 struct sensor_uv            /* Type: Ultraviolet Light */

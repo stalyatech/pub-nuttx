@@ -163,6 +163,12 @@ config SENSORS_UBLOX_GPS5_BAUDRATE
 
 endif # SENSORS_UBLOX_GPS5_PORT
 
+config SENSORS_UBLOX_NBUFFERS
+	int "u-blox GPS buffer count"
+	default 40
+	---help---
+		Choose u-blox GPS buffers.
+
 endif # SENSORS_UBLOX_GPS
 
 config SENSORS_GOLDFISH_GPS

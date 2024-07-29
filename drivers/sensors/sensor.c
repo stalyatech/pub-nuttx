@@ -182,6 +182,7 @@ static const struct sensor_info_s g_sensor_info[] =
   {sizeof(struct sensor_cap),             "cap"},
   {sizeof(struct sensor_gas),             "gas"},
   {sizeof(struct sensor_force),           "force"},
+  {sizeof(struct sensor_gps_raw),         "gps_raw"},
 };
 
 static const struct file_operations g_sensor_fops =

@@ -80,9 +80,9 @@ int board_gps_initialize(void)
 
 #ifdef CONFIG_SENSORS_UBLOX_GPS
 #ifdef CONFIG_SENSORS_UBLOX_GPS1_PORT
-  ret = ublox_gps_init(CONFIG_SENSORS_UBLOX_GPS1_DEVPATH, 
-                       CONFIG_SENSORS_UBLOX_GPS1_BAUDRATE,
-                       0, 4);
+  ret = ublox_gps_register(CONFIG_SENSORS_UBLOX_GPS1_DEVPATH, 
+                           CONFIG_SENSORS_UBLOX_GPS1_BAUDRATE,
+                           0, CONFIG_SENSORS_UBLOX_NBUFFERS);
 
   if (ret < 0)
     {
@@ -92,9 +92,9 @@ int board_gps_initialize(void)
 #endif /* CONFIG_SENSORS_UBLOX_GPS1_PORT */
 
 #ifdef CONFIG_SENSORS_UBLOX_GPS2_PORT
-  ret = ublox_gps_init(CONFIG_SENSORS_UBLOX_GPS2_DEVPATH, 
-                       CONFIG_SENSORS_UBLOX_GPS2_BAUDRATE,
-                       1, 4);
+  ret = ublox_gps_register(CONFIG_SENSORS_UBLOX_GPS2_DEVPATH, 
+                           CONFIG_SENSORS_UBLOX_GPS2_BAUDRATE,
+                           1, CONFIG_SENSORS_UBLOX_NBUFFERS);
 
   if (ret < 0)
     {
@@ -104,9 +104,9 @@ int board_gps_initialize(void)
 #endif /* CONFIG_SENSORS_UBLOX_GPS2_PORT */
 
 #ifdef CONFIG_SENSORS_UBLOX_GPS3_PORT
-  ret = ublox_gps_init(CONFIG_SENSORS_UBLOX_GPS3_DEVPATH, 
-                       CONFIG_SENSORS_UBLOX_GPS3_BAUDRATE,
-                       2, 4);
+  ret = ublox_gps_register(CONFIG_SENSORS_UBLOX_GPS3_DEVPATH, 
+                           CONFIG_SENSORS_UBLOX_GPS3_BAUDRATE,
+                           2, CONFIG_SENSORS_UBLOX_NBUFFERS);
 
   if (ret < 0)
     {
@@ -116,9 +116,9 @@ int board_gps_initialize(void)
 #endif /* CONFIG_SENSORS_UBLOX_GPS1_PORT */
 
 #ifdef CONFIG_SENSORS_UBLOX_GPS4_PORT
-  ret = ublox_gps_init(CONFIG_SENSORS_UBLOX_GPS4_DEVPATH, 
-                       CONFIG_SENSORS_UBLOX_GPS4_BAUDRATE,
-                       0, 4);
+  ret = ublox_gps_register(CONFIG_SENSORS_UBLOX_GPS4_DEVPATH, 
+                           CONFIG_SENSORS_UBLOX_GPS4_BAUDRATE,
+                           3, CONFIG_SENSORS_UBLOX_NBUFFERS);
 
   if (ret < 0)
     {
@@ -128,9 +128,9 @@ int board_gps_initialize(void)
 #endif /* CONFIG_SENSORS_UBLOX_GPS4_PORT */
 
 #ifdef CONFIG_SENSORS_UBLOX_GPS5_PORT
-  ret = ublox_gps_init(CONFIG_SENSORS_UBLOX_GPS5_DEVPATH, 
-                       CONFIG_SENSORS_UBLOX_GPS5_BAUDRATE,
-                       0, 4);
+  ret = ublox_gps_register(CONFIG_SENSORS_UBLOX_GPS5_DEVPATH, 
+                           CONFIG_SENSORS_UBLOX_GPS5_BAUDRATE,
+                           4, CONFIG_SENSORS_UBLOX_NBUFFERS);
 
   if (ret < 0)
     {

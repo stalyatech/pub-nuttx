@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32f7/ardusimple-sbc/src/ardusimple-sbc.h
+ * boards/arm/stm32f7/ardusimple-mapkit/src/ardusimple-mapkit.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __BOARDS_ARM_STM32F7_ARDUSIMPLE_SBC_SRC_ARDUSIMPLE_SBC_H
-#define __BOARDS_ARM_STM32F7_ARDUSIMPLE_SBC_SRC_ARDUSIMPLE_SBC_H
+#ifndef __BOARDS_ARM_STM32F7_ARDUSIMPLE_MAPKIT_SRC_ARDUSIMPLE_MAPKIT_H
+#define __BOARDS_ARM_STM32F7_ARDUSIMPLE_MAPKIT_SRC_ARDUSIMPLE_MAPKIT_H
 
 /****************************************************************************
  * Included Files
@@ -125,126 +125,127 @@
 #  endif
 #endif
 
-/* ArduSimple-SBC GPIOs */
+/* ArduSimple-MapKit GPIOs */
 
-/* The ArduSimple-SBC board has 3 LEDs.
+/* The ArduSimple-MapKit board has 3 LEDs.
  *
  * All of them can be controlled by software.
  *
  */
 
-#define GPIO_LD1          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN1)
-#define GPIO_LD2          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN1)
-#define GPIO_LD3          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN7)
+#define GPIO_LD1          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN2)
+#define GPIO_LD2          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN3)
+#define GPIO_LD3          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN5)
+#define GPIO_LD4          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN6)
+#define GPIO_LD5          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN7)
+#define GPIO_LD6          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN0)
 
 #define LED_DRIVER_PATH   "/dev/userleds"
 
 /* BUTTONS
  *
-*/
+ */
+
+#define GPIO_BTN_USER     (GPIO_INPUT | GPIO_PULLDOWN | GPIO_EXTI | GPIO_PORTA | GPIO_PIN4)
 
 /* SPI3 CS
  *
  * PD7  SPI3 CS
  */
 
-#define GPIO_SPI3_CS     (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN7)
+#define GPIO_SPI3_CS      (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN7)
 
 /* USB OTG FS
  *
- * PA10  VBUS sensing
+ * PA9  VBUS sensing
  */
 
-#define GPIO_OTGFS_VBUS   (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | GPIO_PORTA | GPIO_PIN10)
+#define GPIO_OTGFS_VBUS   (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | GPIO_PORTA | GPIO_PIN9)
 
 /* USB hub power control
  *
- * PB10  USBHUB_PWRON
+ * PA10  USBHUB_PWRON
+ * PE12  USBHUB_NRST
  */
 
 #define GPIO_USB251X_PWR  (GPIO_OUTPUT | GPIO_PUSHPULL  | GPIO_SPEED_50MHz | \
-                           GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN10)
+                           GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN10)
 #define GPIO_USB251X_NRST (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | \
-                           GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN9)
+                           GPIO_OUTPUT_SET | GPIO_PORTE | GPIO_PIN12)
 
-#define USB251X_I2CBUS    3
+#define USB251X_I2CBUS    2
 #define USB251X_I2CADDR   0x2C
 
-
-/* GNSS Sub system power control
+/* Peripheral power control
  *
- * PD4  GNSS_PWRON
+ * PD10  PER_PWRON
  */
 
-#define GPIO_GNSS_PWRON   (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                          GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN4)
-#define GPIO_GNSS_RTKIN   (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | GPIO_PORTE | GPIO_PIN2)
-#define GPIO_GNSS_GEOIN   (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | GPIO_PORTE | GPIO_PIN3)
+#define GPIO_PER_PWRON    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                           GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN10)
 
-/* XBee Sockets power control
+/* Radio Interface
  *
- * PE9  XBA_PWRON
- * PB0  XBB_PWRON
- */
-
-#define GPIO_XBA_PWRON    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                          GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN9)
-#define GPIO_XBB_PWRON    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                          GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN0)
-#define GPIO_XBA_RTKSEL   (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                          GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN3)
-
-/* Ethernet reset/irq control
- *
- * PB14 ETH_NRST
- * PB15 ETH_IRQ
+ * PE2   WL_REG_ON    (OUT)
+ * PD11  WL_HOST_WAKE (IN)
  * 
+ * PD0   BT_REG_ON    (OUT)
+ * PE5   BL_DEV_WAKE  (OUT)
+ * PE4   BL_HOST_WAKE (IN)
  */
 
-#define GPIO_ETH_NRST     (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                          GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN14)
-#define GPIO_ETH_IRQ      (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | GPIO_PORTB | GPIO_PIN15)
+#define GPIO_WL_REG_ON    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                           GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN2)
+#define GPIO_WL_HOST_WAKE (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | \
+                           GPIO_EXTI | GPIO_PORTE | GPIO_PIN3)
 
-/* CAN Silent
+#define GPIO_BT_REG_ON    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                           GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN0)
+#define GPIO_BL_DEV_WAKE  (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                           GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN5)
+#define GPIO_BL_HOST_WAKE (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | \
+                           GPIO_EXTI | GPIO_PORTE | GPIO_PIN4)
+
+/* WLAN chip */
+
+#define SDIO_WLAN0_SLOTNO 0 /* MapKit has only one sdio device */
+#define SDIO_WLAN0_MINOR  0 /* Register "wlan0" device */
+
+/* Battery charger control pins
  *
- * PD10  CAN SIL
+ * PE9  CHG_ENB   (OUT)
+ * PB0  CHG_INT   (IN)
+ * PB0  CHG_STA   (IN)
  */
 
-#define GPIO_CAN_SIL      (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                          GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN10)
+#define GPIO_CHG_ENB      (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                           GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN15)
+
+#define GPIO_CHG_STA      (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | GPIO_PORTE | GPIO_PIN13)
+#define GPIO_CHG_INT      (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | \
+                           GPIO_EXTI | GPIO_PORTE | GPIO_PIN14)
 
 /* GPIO pins used by the GPIO Subsystem */
 
-#define BOARD_NGPIOIN     5   /* Amount of GPIO Input pins */
+#define BOARD_NGPIOIN     1   /* Amount of GPIO Input pins */
 #define BOARD_NGPIOOUT    11  /* Amount of GPIO Output pins */
-#define BOARD_NGPIOINT    1   /* Amount of GPIO Input w/ Interruption pins */
-
-#define GPIO_QERR         (GPIO_INPUT | GPIO_FLOAT | GPIO_PORTA | GPIO_PIN15)
-
-#define GPIO_DIN1         (GPIO_INPUT | GPIO_FLOAT | GPIO_PORTE | GPIO_PIN4)
-#define GPIO_DIN2         (GPIO_INPUT | GPIO_FLOAT | GPIO_PORTE | GPIO_PIN5)
-#define GPIO_DIN3         (GPIO_INPUT | GPIO_FLOAT | GPIO_PORTE | GPIO_PIN6)
-
-#define GPIO_DOUT1        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                          GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN15)
-#define GPIO_DOUT2        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                          GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN14)
-#define GPIO_DOUT3        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                          GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN13)
-#define GPIO_DOUT4        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                          GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN12)
+#define BOARD_NGPIOINT    3   /* Amount of GPIO Input w/ Interruption pins */
 
 /* IMU Sensor Interrupt
  *
- * PD11  AGM_INT
+ * PD14  IMU_INT
  */
 
-#define GPIO_BNO085_INT   (GPIO_INPUT | GPIO_PULLUP | GPIO_EXTI | GPIO_PORTD | GPIO_PIN11)
+#define GPIO_BNO085_INT   (GPIO_INPUT | GPIO_PULLUP | GPIO_EXTI | GPIO_PORTD | GPIO_PIN14)
 #define BNO085_IRQ        (STM32_IRQ_EXTI1510)
 
 #define BOARD_IMU_GPIO_INT  GPIO_BNO085_INT
 #define BOARD_IMU_IRQ       BNO085_IRQ
 
+/* BQ2429X Battery charger */
+
+#define BQ2429X_I2CBUS    2
+#define BQ2429X_I2CADDR   0x6B
 
 /****************************************************************************
  * Public Data
@@ -342,7 +343,7 @@ int stm32_sdio_initialize(void);
  *
  * Description:
  *   Called from stm32_usbinitialize very early in initialization to setup
- *   USB-related GPIO pins for the ardusimple-sbc board.
+ *   USB-related GPIO pins for the ardusimple-mapkit board.
  *
  ****************************************************************************/
 
@@ -355,7 +356,7 @@ void stm32_usbinitialize(void);
  *
  * Description:
  *   Called to configure SPI chip select GPIO pins for the
- *   ardusimple-sbc board.
+ *   ardusimple-mapkit board.
  *
  ****************************************************************************/
 
@@ -419,13 +420,31 @@ int stm32_cansock_setup(void);
 int stm32_gpio_initialize(void);
 #endif
 
-
 /****************************************************************************
  * Name: stm32_bno085_initialize
  ****************************************************************************/
 
 #ifdef CONFIG_SENSORS_BNO085
 int stm32_bno085_initialize(int bus);
+#endif
+
+/****************************************************************************
+ * Name: stm32_bq2429x_initialize
+ ****************************************************************************/
+
+#ifdef CONFIG_BQ2429X
+int stm32_bq2429x_initialize(const char *devname);
+#endif
+
+/****************************************************************************
+ * Name: stm32_wlan_initialize
+ *
+ * Description:
+ *   Initialize SDIO-based BCM WLAN support
+ *
+ ****************************************************************************/
+#ifdef CONFIG_IEEE80211_INFINEON_CYW43439
+int stm32_wlan_initialize(void);
 #endif
 
 /****************************************************************************
@@ -509,4 +528,4 @@ FAR void *board_composite_connect(int port, int configid);
 
 #endif /* __ASSEMBLY__ */
 
-#endif /* __BOARDS_ARM_STM32F7_ARDUSIMPLE_SBC_SRC_ARDUSIMPLE_SBC_H */
+#endif /* __BOARDS_ARM_STM32F7_ARDUSIMPLE_MAPKIT_SRC_ARDUSIMPLE_MAPKIT_H */

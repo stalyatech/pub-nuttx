@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32/stm32f103-minimum/src/stm32_w25.c
+ * boards/arm/stm32f7/ardusimple-mapkit/src/stm32_w25.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -39,7 +39,7 @@
 #include <debug.h>
 
 #include "stm32_spi.h"
-#include "ardusimple-sbc.h"
+#include "ardusimple-mapkit.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -95,7 +95,7 @@
 int stm32_w25initialize(int minor)
 {
 #ifdef HAVE_W25
-  struct mtd_dev_s *part[CONFIG_ARDUSIMPLE_SBC_SPIFLASH_NPARTITIONS];
+  struct mtd_dev_s *part[CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTITIONS];
   struct mtd_dev_s *mtd;
   struct spi_dev_s *spi;
   struct mtd_geometry_s geo;
@@ -141,7 +141,7 @@ int stm32_w25initialize(int minor)
    */
 
   blkpererase = geo.erasesize / geo.blocksize;
-  nblocks     = (geo.neraseblocks / CONFIG_ARDUSIMPLE_SBC_SPIFLASH_NPARTITIONS) * 
+  nblocks     = (geo.neraseblocks / CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTITIONS) * 
                 blkpererase;
 
   /* Now create MTD FLASH partitions */
@@ -149,7 +149,7 @@ int stm32_w25initialize(int minor)
   syslog(LOG_ERR, "INFO: Creating partitions\n");
 
   for (offset = 0, i = 0;
-       i < CONFIG_ARDUSIMPLE_SBC_SPIFLASH_NPARTITIONS;
+       i < CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTITIONS;
        offset += nblocks, i++)
     {
       syslog(LOG_INFO, "INFO: Partition %d. Block offset=%lu, size=%lu\n",

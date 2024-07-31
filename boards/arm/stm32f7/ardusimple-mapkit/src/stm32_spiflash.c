@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32f7/ardusimple-sbc/src/stm32_spiflash.c
+ * boards/arm/stm32f7/ardusimple-mapkit/src/stm32_spiflash.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -35,7 +35,7 @@
 #include <errno.h>
 #include <debug.h>
 
-#include "ardusimple-sbc.h"
+#include "ardusimple-mapkit.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -77,7 +77,7 @@
  *
  ****************************************************************************/
 
-#if defined (CONFIG_ARDUSIMPLE_SBC_SPIFLASH_SMARTFS)
+#if defined (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_SMARTFS)
 static int setup_smartfs(int smartn, struct mtd_dev_s *mtd,
                          const char *mnt_pt)
 {
@@ -144,7 +144,7 @@ static int setup_smartfs(int smartn, struct mtd_dev_s *mtd,
  *
  ****************************************************************************/
 
-#if defined (CONFIG_ARDUSIMPLE_SBC_SPIFLASH_LITTLEFS)
+#if defined (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_LITTLEFS)
 static int setup_littlefs(const char *path, struct mtd_dev_s *mtd,
                           const char *mnt_pt, int priv, bool register_mtd)
 {
@@ -196,7 +196,7 @@ static int setup_littlefs(const char *path, struct mtd_dev_s *mtd,
  *
  ****************************************************************************/
 
-#if defined  (CONFIG_ARDUSIMPLE_SBC_SPIFLASH_SPIFFS)
+#if defined  (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_SPIFFS)
 static int setup_spiffs(const char *path, struct mtd_dev_s *mtd,
                         const char *mnt_pt, int priv, bool register_mtd)
 {
@@ -241,7 +241,7 @@ static int setup_spiffs(const char *path, struct mtd_dev_s *mtd,
  *
  ****************************************************************************/
 
-#if defined (CONFIG_ARDUSIMPLE_SBC_SPIFLASH_NXFFS)
+#if defined (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NXFFS)
 static int setup_nxffs(struct mtd_dev_s *mtd, const char *mnt_pt)
 {
   int ret = OK;
@@ -296,7 +296,7 @@ int board_spiflash_init(struct mtd_dev_s *mtd, const char *path, const char *mnt
       return ERROR;
     }
 
-#if defined (CONFIG_ARDUSIMPLE_SBC_SPIFLASH_SMARTFS)
+#if defined (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_SMARTFS)
 
   ret = setup_smartfs(0, mtd, mnt_pt);
   if (ret < 0)
@@ -305,7 +305,7 @@ int board_spiflash_init(struct mtd_dev_s *mtd, const char *path, const char *mnt
       return ret;
     }
 
-#elif defined (CONFIG_ARDUSIMPLE_SBC_SPIFLASH_NXFFS)
+#elif defined (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NXFFS)
 
   ret = setup_nxffs(mtd, mnt_pt);
   if (ret < 0)
@@ -314,7 +314,7 @@ int board_spiflash_init(struct mtd_dev_s *mtd, const char *path, const char *mnt
       return ret;
     }
 
-#elif defined (CONFIG_ARDUSIMPLE_SBC_SPIFLASH_LITTLEFS)
+#elif defined (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_LITTLEFS)
 
   ret = setup_littlefs(path, mtd, mnt_pt, 0755, false);
   if (ret < 0)
@@ -323,7 +323,7 @@ int board_spiflash_init(struct mtd_dev_s *mtd, const char *path, const char *mnt
       return ret;
     }
 
-#elif defined (CONFIG_ARDUSIMPLE_SBC_SPIFLASH_SPIFFS)
+#elif defined (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_SPIFFS)
 
   ret = setup_spiffs(path, mtd, mnt_pt, 0755, false);
   if (ret < 0)

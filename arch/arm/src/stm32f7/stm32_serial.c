@@ -527,7 +527,7 @@ static int  up_attach(struct uart_dev_s *dev);
 static void up_detach(struct uart_dev_s *dev);
 static int  up_interrupt(int irq, void *context, void *arg);
 static int  up_ioctl(struct file *filep, int cmd, unsigned long arg);
-#if !defined(SERIAL_HAVE_ONLY_DMA)
+#if !defined(SERIAL_HAVE_ONLY_DMA) && !defined(SERIAL_HAVE_ONLY_RXDMA)
 static int  up_receive(struct uart_dev_s *dev, unsigned int *status);
 static void up_rxint(struct uart_dev_s *dev, bool enable);
 static bool up_rxavailable(struct uart_dev_s *dev);

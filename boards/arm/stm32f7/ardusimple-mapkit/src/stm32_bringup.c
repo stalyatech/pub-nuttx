@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32f7/ardusimple-sbc/src/stm32_bringup.c
+ * boards/arm/stm32f7/ardusimple-mapkit/src/stm32_bringup.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -39,7 +39,7 @@
 #include "stm32_romfs.h"
 #endif
 #include "stm32_i2c.h"
-#include "ardusimple-sbc.h"
+#include "ardusimple-mapkit.h"
 
 
 /****************************************************************************
@@ -199,7 +199,16 @@ int stm32_bringup(void)
 #endif /* CONFIG_MTD_W25 */
 #endif /* CONFIG_MTD */
 
-#ifdef CONFIG_MMCSD
+#ifdef CONFIG_IEEE80211_INFINEON_CYW43439
+  /* Initialize the SDIO wlan driver */
+
+  ret = stm32_wlan_initialize();
+  if (ret != OK)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize BCMF driver: %d\n", ret);
+    }
+#elif defined(CONFIG_MMCSD)
   /* Initialize the SDIO block driver */
 
   ret = stm32_sdio_initialize();
@@ -208,7 +217,7 @@ int stm32_bringup(void)
       syslog(LOG_ERR, 
              "ERROR: Failed to initialize MMC/SD driver: %d\n", ret);
     }
-#endif /* CONFIG_MMCSD */
+#endif /* CONFIG_IEEE80211_INFINEON_CYW43439 */
 
 #ifdef CONFIG_PWM
   /* Initialize PWM and register the PWM device */
@@ -239,24 +248,29 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_STM32F7_CAN_SOCKET */
 
-#ifdef CONFIG_SENSORS_GPS
-  /* Initialize GPS uORB service. */
-
-  board_gps_initialize();
-#endif /* CONFIG_SENSORS_GPS */
-
 #ifdef CONFIG_I2C
+#ifdef CONFIG_BQ2429X
+  /* Register the battery charger driver */
+
+  ret = stm32_bq2429x_initialize("/dev/batt0");
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize BAT charger driver: %d\n", ret);
+    }
+#endif /* CONFIG_BQ2429X */
+
 #ifdef CONFIG_SENSORS_BNO085
   /* Register the smart sensor driver */
 
-#ifdef CONFIG_STM32F7_I2C3
-  ret = stm32_bno085_initialize(3);
+#ifdef CONFIG_STM32F7_I2C4
+  ret = stm32_bno085_initialize(4);
   if (ret < 0)
     {
       syslog(LOG_ERR, 
              "ERROR: Failed to initialize BNO085 driver: %d\n", ret);
     }
-#endif /* CONFIG_STM32F7_I2C3 */
+#endif /* CONFIG_STM32F7_I2C4 */
 #endif /* CONFIG_SENSORS_BNO085 */
 
 #ifdef CONFIG_STM32F7_I2C1
@@ -281,6 +295,12 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_STM32F7_I2C1 */
 #endif /* CONFIG_I2C */
+
+#ifdef CONFIG_SENSORS_GPS
+  /* Initialize GPS uORB service. */
+
+  board_gps_initialize();
+#endif /* CONFIG_SENSORS_GPS */
 
 #ifdef CONFIG_USBDEV_COMPOSITE
   /* Initialize Composite Device */

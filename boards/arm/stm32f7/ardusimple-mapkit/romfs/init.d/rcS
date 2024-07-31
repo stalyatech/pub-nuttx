@@ -1,0 +1,21 @@
+# make readable symbolic links
+# ln -s /dev/gpio0 /dev/chgsta
+# ln -s /dev/gpio1 /dev/led1
+# ln -s /dev/gpio2 /dev/led2
+# ln -s /dev/gpio3 /dev/led3
+# ln -s /dev/gpio4 /dev/led4
+# ln -s /dev/gpio5 /dev/led5
+# ln -s /dev/gpio6 /dev/led6
+# ln -s /dev/gpio7 /dev/xbep
+# ln -s /dev/gpio8 /dev/wlregon
+# ln -s /dev/gpio9 /dev/btregon
+# ln -s /dev/gpio10 /dev/bldevwake
+
+# Power on the periphals
+gpio -o 1 /dev/gpio7
+
+# Start the Mongoose services
+mg_smart -p 8001 -r /data0/www -g &
+ 
+# Start the FTP service
+ftpd_start -4 &

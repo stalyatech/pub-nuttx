@@ -1,0 +1,8 @@
+ifup wlan0
+ifup eth0
+
+# Connect to the AP 
+wapi mode wlan0 2
+wapi psk wlan0 qwertyuiop1234 3 2
+wapi essid wlan0 tmkiPhone 2
+renew wlan0

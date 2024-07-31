@@ -944,13 +944,16 @@ int bno085_register(FAR const char *devpath,
 
   /* Attach the interrupt handler */
 
-  ret = priv->config->attach(priv->config, &bno085_interrupt_handler, priv);
-  if (ret < 0)
+  if (priv->config->attach != NULL)
     {
-      snerr("ERROR: Failed to attach interrupt\n");
-      nxmutex_destroy(&priv->lock);
-      kmm_free(priv);
-      return ret;
+      ret = priv->config->attach(priv->config, &bno085_interrupt_handler, priv);
+      if (ret < 0)
+        {
+          snerr("ERROR: Failed to attach interrupt\n");
+          nxmutex_destroy(&priv->lock);
+          kmm_free(priv);
+          return ret;
+        }      
     }
 
   return OK;

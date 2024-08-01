@@ -132,10 +132,11 @@ static const uint32_t g_gpiooutputs[BOARD_NGPIOOUT] =
   GPIO_LD4,           /* gpio4  */
   GPIO_LD5,           /* gpio5  */
   GPIO_LD6,           /* gpio6  */
-  GPIO_PER_PWRON,     /* gpio7  */
-  GPIO_WL_REG_ON,     /* gpio8  */
-  GPIO_BT_REG_ON,     /* gpio9  */
-  GPIO_BL_DEV_WAKE,   /* gpio10 */
+  GPIO_CHG_ENB,       /* gpio7  */
+  GPIO_PER_PWRON,     /* gpio8  */
+  GPIO_WL_REG_ON,     /* gpio9  */
+  GPIO_BT_REG_ON,     /* gpio10 */
+  GPIO_BL_DEV_WAKE,   /* gpio11 */
 };
 
 static struct stm32gpio_dev_s g_gpout[BOARD_NGPIOOUT];
@@ -146,9 +147,9 @@ static struct stm32gpio_dev_s g_gpout[BOARD_NGPIOOUT];
 
 static const uint32_t g_gpiointinputs[BOARD_NGPIOINT] =
 {
-  GPIO_WL_HOST_WAKE,  /* gpio11  */
-  GPIO_BL_HOST_WAKE,  /* gpio12  */
-  GPIO_CHG_INT,       /* gpio13  */
+  GPIO_WL_HOST_WAKE,  /* gpio12  */
+  GPIO_BL_HOST_WAKE,  /* gpio13  */
+  GPIO_CHG_INT,       /* gpio14  */
 };
 
 static struct stm32gpint_dev_s g_gpint[BOARD_NGPIOINT];

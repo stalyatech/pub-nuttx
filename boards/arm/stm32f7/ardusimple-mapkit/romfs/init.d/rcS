@@ -5,4 +5,4 @@ gpio -o 1 /dev/gpio8
 mg_smart -p 8001 -r /data0/www -g &
  
 # Start the FTP service
-ftpd_start -4 &
+ftpd_start -4 -i eth0 &

@@ -43,7 +43,7 @@
 
 const uint8_t
 locate_data(".wlan_nvram_image")
-aligned_data(4)
+aligned_data(CONFIG_IEEE80211_BROADCOM_DMABUF_ALIGNMENT)
 g_cyw43439_nvram_image[] =
         "NVRAMRev=$Rev$"                         "\x00"
         "manfid=0x2d0"                           "\x00"
@@ -108,8 +108,8 @@ const unsigned int g_cyw43439_nvram_len = sizeof(g_cyw43439_nvram_image);
  * Other CYW43439 Firmware global definitions
  ****************************************************************************/
 
-#include "../firmware/43439A0.h"
-#include "../firmware/43439A0_clm.h"
+#include "../firmware/src/wl_fw.h"
+#include "../firmware/src/wl_blob.h"
 
 #endif /* CONFIG_IEEE80211_INFINEON_CYW43439 */
 

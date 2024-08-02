@@ -127,6 +127,10 @@ if(CONFIG_IEEE80211_INFINEON_CYW43439)
   list(APPEND SRCS stm32_wlan.c stm32_wlan_firmware.c)
 endif()
 
+if(CONFIG_BLUETOOTH_UART)
+  list(APPEND SRCS stm32_hciuart.c)
+endif()
+
 if(CONFIG_ETC_ROMFS)
   list(APPEND SRCS etc_romfs.c)
 endif()

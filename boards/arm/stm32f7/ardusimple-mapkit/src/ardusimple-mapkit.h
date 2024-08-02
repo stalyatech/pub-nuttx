@@ -41,6 +41,13 @@
 #define HAVE_USBMONITOR      1
 #define HAVE_MTDCONFIG       1
 #define HAVE_PROGMEM_CHARDEV 1
+#define HAVE_HCIUART         1
+
+/* Can't support HCI UART features if BCM4343X Bluetooth is not enabled */
+
+#ifndef CONFIG_BLUETOOTH_BCM4343X
+#  undef HAVE_HCIUART
+#endif
 
 /* Can't support USB host or device features if USB OTG FS is not enabled */
 
@@ -464,6 +471,26 @@ int board_gps_initialize(void);
  ****************************************************************************/
 #ifdef CONFIG_USB251X
 int board_usb251x_initialize(int bus);
+#endif
+
+/****************************************************************************
+ * Name: hciuart_dev_initialize
+ *
+ * Description:
+ *   This function is called by board initialization logic to configure the
+ *   Bluetooth HCI UART driver
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef HAVE_HCIUART
+int hciuart_dev_initialize(void);
 #endif
 
 /****************************************************************************

@@ -219,6 +219,15 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_IEEE80211_INFINEON_CYW43439 */
 
+#if defined(CONFIG_BLUETOOTH_UART) && defined(HAVE_HCIUART)
+  ret = hciuart_dev_initialize();
+  if (ret != OK)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize HCI UART driver: %d\n", ret);
+    }
+#endif /* CONFIG_BLUETOOTH_UART && HAVE_HCIUART */
+
 #ifdef CONFIG_PWM
   /* Initialize PWM and register the PWM device */
 

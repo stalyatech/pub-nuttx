@@ -79,6 +79,10 @@ SECTIONS
         *(.wlan_nvram_image .wlan_nvram_image.*)
         wlan_nvram_image_end = .;
 
+        wlan_bt_image_location = .;
+        *(.wlan_bt_image .wlan_bt_image.*)
+        wlan_bt_image_end = .;
+
         *(.rodata .rodata.*)
         *(.gnu.linkonce.t.*)
         *(.glue_7)

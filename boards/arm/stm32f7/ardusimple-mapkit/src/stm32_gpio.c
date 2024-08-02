@@ -133,10 +133,10 @@ static const uint32_t g_gpiooutputs[BOARD_NGPIOOUT] =
   GPIO_LD5,           /* gpio5  */
   GPIO_LD6,           /* gpio6  */
   GPIO_CHG_ENB,       /* gpio7  */
-  GPIO_PER_PWRON,     /* gpio8  */
-  GPIO_WL_REG_ON,     /* gpio9  */
-  GPIO_BT_REG_ON,     /* gpio10 */
-  GPIO_BL_DEV_WAKE,   /* gpio11 */
+  GPIO_WL_REG_ON,     /* gpio8  */
+  GPIO_BT_REG_ON,     /* gpio9  */
+  GPIO_BL_DEV_WAKE,   /* gpio10 */
+  GPIO_PER_PWRON,     /* gpio11 */
 };
 
 static struct stm32gpio_dev_s g_gpout[BOARD_NGPIOOUT];

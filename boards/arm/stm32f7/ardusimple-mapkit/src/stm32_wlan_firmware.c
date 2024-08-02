@@ -33,7 +33,7 @@
  * Public Data
  ****************************************************************************/
 
-#ifdef CONFIG_IEEE80211_INFINEON_CYW43439
+#if defined(CONFIG_IEEE80211_INFINEON_CYW43439) && !defined(CONFIG_IEEE80211_BROADCOM_FWFILES)
 
 /****************************************************************************
  * Character array of NVRAM image
@@ -111,7 +111,7 @@ const unsigned int g_cyw43439_nvram_len = sizeof(g_cyw43439_nvram_image);
 #include "../firmware/src/wl_fw.h"
 #include "../firmware/src/wl_blob.h"
 
-#endif /* CONFIG_IEEE80211_INFINEON_CYW43439 */
+#endif /* CONFIG_IEEE80211_INFINEON_CYW43439 && !CONFIG_IEEE80211_BROADCOM_FWFILES */
 
 /****************************************************************************
  * Private Functions

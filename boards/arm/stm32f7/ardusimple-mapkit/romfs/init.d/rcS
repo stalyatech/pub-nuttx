@@ -1,6 +1,3 @@
-# Power on the periphals
-gpio -o 1 /dev/gpio8
-
 # Start the Mongoose services
 mg_smart -p 8001 -r /data0/www -g &
  

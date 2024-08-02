@@ -189,7 +189,7 @@
  */
 
 #define GPIO_PER_PWRON    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                           GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN10)
+                           GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN10)
 
 /* Radio Interface
  *
@@ -207,9 +207,9 @@
                            GPIO_EXTI | GPIO_PORTE | GPIO_PIN3)
 
 #define GPIO_BT_REG_ON    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                           GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN0)
+                           GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN0)
 #define GPIO_BL_DEV_WAKE  (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                           GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN5)
+                           GPIO_OUTPUT_SET | GPIO_PORTE | GPIO_PIN5)
 #define GPIO_BL_HOST_WAKE (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | \
                            GPIO_EXTI | GPIO_PORTE | GPIO_PIN4)
 

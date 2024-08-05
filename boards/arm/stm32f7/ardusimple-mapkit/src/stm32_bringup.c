@@ -35,6 +35,10 @@
 #include <errno.h>
 #include <debug.h>
 
+#ifdef CONFIG_INPUT_BUTTONS
+#  include <nuttx/input/buttons.h>
+#endif
+
 #ifdef CONFIG_STM32_ROMFS
 #include "stm32_romfs.h"
 #endif
@@ -131,6 +135,18 @@ int stm32_bringup(void)
     }
 #endif /* HAVE_RTC_DRIVER */
 
+#ifdef CONFIG_INPUT_BUTTONS
+  /* Register the BUTTON driver */
+
+  ret = btn_lower_initialize(BUTTONS_DEVPATH);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, 
+             "ERROR: Failed to initialize BUTTON driver: %d\n", ret);
+      return ret;
+    }
+#endif /* CONFIG_INPUT_BUTTONS */
+
 #ifdef CONFIG_DEV_GPIO
   /* Register the GPIO driver */
 
@@ -146,7 +162,7 @@ int stm32_bringup(void)
 #if !defined(CONFIG_ARCH_LEDS) && defined(CONFIG_USERLED_LOWER)
   /* Register the LED driver */
 
-  ret = userled_lower_initialize(LED_DRIVER_PATH);
+  ret = userled_lower_initialize(LEDS_DEVPATH);
   if (ret < 0)
     {
       syslog(LOG_ERR, 
@@ -261,7 +277,7 @@ int stm32_bringup(void)
 #ifdef CONFIG_BQ2429X
   /* Register the battery charger driver */
 
-  ret = stm32_bq2429x_initialize("/dev/batt0");
+  ret = stm32_bq2429x_initialize(CHARGER_DEVPATH);
   if (ret < 0)
     {
       syslog(LOG_ERR, 

@@ -78,6 +78,10 @@ if(CONFIG_BOARDCTL_RESET)
   list(APPEND SRCS stm32_reset.c)
 endif()
 
+if(CONFIG_BOARDCTL_POWEROFF)
+  list(APPEND SRCS stm32_power.c)
+endif()
+
 if(CONFIG_BOARDCTL_BOOT_IMAGE)
   list(APPEND SRCS stm32_boot_image.c)
 endif()

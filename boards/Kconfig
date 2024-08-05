@@ -2580,6 +2580,7 @@ config ARCH_BOARD_ARDUSIMPLE_MAPKIT
   select ARCH_HAVE_LEDS
   select ARCH_HAVE_BUTTONS
   select ARCH_HAVE_IRQBUTTONS
+  select ARCH_HAVE_POWEROFF
   ---help---
     Ardusimple MappingKit board featuring the STM32F745VG MCU. 
     The STM32F745VG  is a 216MHz Cortex-M7 operation with 1024Kb Flash

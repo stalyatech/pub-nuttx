@@ -147,13 +147,15 @@
 #define GPIO_LD5          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN7)
 #define GPIO_LD6          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN0)
 
-#define LED_DRIVER_PATH   "/dev/userleds"
+#define LEDS_DEVPATH      "/dev/userleds"
 
 /* BUTTONS
  *
  */
 
 #define GPIO_BTN_USER     (GPIO_INPUT | GPIO_PULLDOWN | GPIO_EXTI | GPIO_PORTA | GPIO_PIN4)
+
+#define BUTTONS_DEVPATH   "/dev/buttons"
 
 /* SPI3 CS
  *
@@ -224,6 +226,8 @@
  * PB0  CHG_INT   (IN)
  * PB0  CHG_STA   (IN)
  */
+
+#define CHARGER_DEVPATH   "/dev/batt0"
 
 #define GPIO_CHG_ENB      (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                            GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN15)

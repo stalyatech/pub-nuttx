@@ -1,5 +1,17 @@
-# Start the Mongoose services
+# LED show (deamon)
+leds
+
+# Button handlers (deamon)
+button &
+
+# start up tone 
+tone -s &
+
+# configure the charger
+charger &
+
+# start the web server service
 mg_smart -p 8001 -r /data0/www -g &
  
-# Start the FTP service
+# start the ftp service on RNDIS interface
 ftpd_start -4 -i eth0 &

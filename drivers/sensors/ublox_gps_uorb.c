@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #include <debug.h>
 #include <termios.h>
 
@@ -44,6 +45,12 @@
 #include <nuttx/serial/tioctl.h>
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define BUF_MAX_LENGTH  1024
+
+/****************************************************************************
  * Private Types
  ****************************************************************************/
 
@@ -56,6 +63,7 @@ struct ublox_gps_s
   bool          enabled;    /* Enable/Disable device */
   sem_t         run;        /* Locks measure cycle */
   mutex_t       lock;       /* Manages exclusive to device */
+  uint8_t       buf[BUF_MAX_LENGTH];
 };
 
 /****************************************************************************
@@ -89,6 +97,78 @@ static const struct sensor_ops_s g_ublox_gps_ops =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: hex2int
+ ****************************************************************************/
+
+static int hex2int(char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    return -1;
+}
+
+/****************************************************************************
+ * Name: nmea_check
+ ****************************************************************************/
+
+static bool nmea_check(const char *sentence, bool strict)
+{
+  uint8_t checksum = 0x00;
+
+  /* A valid sentence starts with "$". */
+  if (*sentence++ != '$')
+    {
+      return false;      
+    }
+
+  /* The optional checksum is an XOR of all bytes between "$" and "*". */
+  while (*sentence && *sentence != '*' && isprint((unsigned char) *sentence))
+    {
+      checksum ^= *sentence++;      
+    }
+
+  /* If checksum is present... */
+  if (*sentence == '*') 
+    {
+      // Extract checksum.
+      sentence++;
+      int upper = hex2int(*sentence++);
+      if (upper == -1)
+          return false;
+      int lower = hex2int(*sentence++);
+      if (lower == -1)
+          return false;
+      int expected = upper << 4 | lower;
+
+      // Check for checksum mismatch.
+      if (checksum != expected)
+          return false;
+    } 
+  else if (strict) 
+    {
+      /* Discard non-checksummed frames in strict mode. */
+      return false;
+    }
+
+  // The only stuff allowed at this point is a newline.
+  while (*sentence == '\r' || *sentence == '\n') 
+    {
+      sentence++;
+    }
+  
+  if (*sentence) 
+    {
+      return false;
+    }
+
+  return true;
+}
 
 /****************************************************************************
  * Name: ublox_gps_open
@@ -262,7 +342,7 @@ static int ublox_gps_thread(int argc, FAR char** argv)
   FAR struct ublox_gps_s *priv = (FAR struct ublox_gps_s *)
                                 ((uintptr_t)strtoul(argv[1], NULL, 0));
   struct sensor_gps_raw gps_data;
-  int ret;
+  int ret, nbytes, idx;
   char ch;
 
   while (true)
@@ -278,26 +358,44 @@ static int ublox_gps_thread(int argc, FAR char** argv)
             }
         }
 
+      /* Read GPS data to the temporary buffer */
 
-      /* Read until we complete a line */
+      nbytes = file_read(&priv->dev, priv->buf, BUF_MAX_LENGTH);
+      idx = 0;
 
-      gps_data.len = 0;
-      do
+      /* Wait till all data have been processed */
+
+      while (nbytes > 0)
         {
-          ret = file_read(&priv->dev, &ch, 1);
-          if (ret == 1)
+          /* Continue until we complete a line */
+
+          gps_data.len = 0;
+          do
             {
+              ch = priv->buf[idx++];
               gps_data.buf[gps_data.len++] = ch;
             }
-        }
-      while (ch != '\n');
-      gps_data.buf[gps_data.len] = '\0';
+          while ((ch != '\n') && (gps_data.len < SENSOR_GPS_RAWDATA_SIZE));
+          gps_data.buf[gps_data.len] = '\0';
 
-      /* Update the sensor event */
+          /* Check the frame */
 
-      if (gps_data.len > 0)
-        {
-          priv->lower.push_event(priv->lower.priv, &gps_data, sizeof(struct sensor_gps_raw));
+          if (nmea_check((const char *)gps_data.buf, true))
+            {
+              /* Update the sensor event */
+              
+              priv->lower.push_event(priv->lower.priv, &gps_data, sizeof(struct sensor_gps_raw));
+            }
+          else 
+            {
+              /* Wrong frame format */
+
+              gps_data.buf[gps_data.len] = '\0';              
+            }
+
+          /* Update the processed bytes */
+
+          nbytes -= gps_data.len;
         }
 
       /* Sleeping thread before fetching the next sensor data */

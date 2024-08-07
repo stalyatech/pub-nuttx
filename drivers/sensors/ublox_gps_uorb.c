@@ -43,6 +43,7 @@
 #include <nuttx/sensors/gps.h>
 #include <nuttx/sensors/ublox_gps.h>
 #include <nuttx/serial/tioctl.h>
+#include <nmea/nmea.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -63,6 +64,7 @@ struct ublox_gps_s
   bool          enabled;    /* Enable/Disable device */
   sem_t         run;        /* Locks measure cycle */
   mutex_t       lock;       /* Manages exclusive to device */
+  nmea_data_t   frm;        /* NMEA framer data */
   uint8_t       buf[BUF_MAX_LENGTH];
 };
 
@@ -97,78 +99,6 @@ static const struct sensor_ops_s g_ublox_gps_ops =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: hex2int
- ****************************************************************************/
-
-static int hex2int(char c)
-{
-    if (c >= '0' && c <= '9')
-        return c - '0';
-    if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
-    if (c >= 'a' && c <= 'f')
-        return c - 'a' + 10;
-    return -1;
-}
-
-/****************************************************************************
- * Name: nmea_check
- ****************************************************************************/
-
-static bool nmea_check(const char *sentence, bool strict)
-{
-  uint8_t checksum = 0x00;
-
-  /* A valid sentence starts with "$". */
-  if (*sentence++ != '$')
-    {
-      return false;      
-    }
-
-  /* The optional checksum is an XOR of all bytes between "$" and "*". */
-  while (*sentence && *sentence != '*' && isprint((unsigned char) *sentence))
-    {
-      checksum ^= *sentence++;      
-    }
-
-  /* If checksum is present... */
-  if (*sentence == '*') 
-    {
-      // Extract checksum.
-      sentence++;
-      int upper = hex2int(*sentence++);
-      if (upper == -1)
-          return false;
-      int lower = hex2int(*sentence++);
-      if (lower == -1)
-          return false;
-      int expected = upper << 4 | lower;
-
-      // Check for checksum mismatch.
-      if (checksum != expected)
-          return false;
-    } 
-  else if (strict) 
-    {
-      /* Discard non-checksummed frames in strict mode. */
-      return false;
-    }
-
-  // The only stuff allowed at this point is a newline.
-  while (*sentence == '\r' || *sentence == '\n') 
-    {
-      sentence++;
-    }
-  
-  if (*sentence) 
-    {
-      return false;
-    }
-
-  return true;
-}
 
 /****************************************************************************
  * Name: ublox_gps_open
@@ -328,7 +258,18 @@ static int ublox_gps_control(FAR struct sensor_lowerhalf_s *lower,
                              FAR struct file *filep,
                              int cmd, unsigned long arg)
 {
-  /* TODO */
+  FAR struct sensor_upperhalf_s *upper = (FAR struct sensor_upperhalf_s *)lower->priv;
+
+  switch (cmd)
+    {
+      /* Skip read data */
+
+      case SNIOC_SKIP_BUFFER:
+        {
+          circbuf_skip(&upper->buffer, *((uint16_t*)arg));
+          break;          
+        }
+    }
 
   return OK;
 }
@@ -343,7 +284,12 @@ static int ublox_gps_thread(int argc, FAR char** argv)
                                 ((uintptr_t)strtoul(argv[1], NULL, 0));
   struct sensor_gps_raw gps_data;
   int ret, nbytes, idx;
-  char ch;
+
+  /* Initialize the framer data */
+
+  priv->frm.cnt = 0;
+  priv->frm.sta = 0;
+  priv->frm.buf = gps_data.buf;
 
   while (true)
     {
@@ -360,42 +306,19 @@ static int ublox_gps_thread(int argc, FAR char** argv)
 
       /* Read GPS data to the temporary buffer */
 
-      nbytes = file_read(&priv->dev, priv->buf, BUF_MAX_LENGTH);
-      idx = 0;
-
-      /* Wait till all data have been processed */
-
-      while (nbytes > 0)
+      while ((nbytes = file_read(&priv->dev, priv->buf, BUF_MAX_LENGTH)) > 0)
         {
-          /* Continue until we complete a line */
+          /* Wait till all data have been processed */
 
-          gps_data.len = 0;
-          do
+          for (idx = 0; idx < nbytes; idx++)
             {
-              ch = priv->buf[idx++];
-              gps_data.buf[gps_data.len++] = ch;
+              if ((gps_data.len = NMEA_Framer(priv->buf[idx], &priv->frm, NULL)) > 0)
+                {
+                  /* Update the sensor event */
+                  
+                  priv->lower.push_event(priv->lower.priv, &gps_data, sizeof(struct sensor_gps_raw));
+                }
             }
-          while ((ch != '\n') && (gps_data.len < SENSOR_GPS_RAWDATA_SIZE));
-          gps_data.buf[gps_data.len] = '\0';
-
-          /* Check the frame */
-
-          if (nmea_check((const char *)gps_data.buf, true))
-            {
-              /* Update the sensor event */
-              
-              priv->lower.push_event(priv->lower.priv, &gps_data, sizeof(struct sensor_gps_raw));
-            }
-          else 
-            {
-              /* Wrong frame format */
-
-              gps_data.buf[gps_data.len] = '\0';              
-            }
-
-          /* Update the processed bytes */
-
-          nbytes -= gps_data.len;
         }
 
       /* Sleeping thread before fetching the next sensor data */
@@ -484,7 +407,7 @@ int ublox_gps_register(FAR const char *devname, uint32_t baud, uint32_t devno, u
   argv[0] = arg1;
   argv[1] = NULL;
   ret = kthread_create(name,
-                       50,
+                       CONFIG_SENSORS_UBLOX_GPS_PRIORITY,
                        CONFIG_DEFAULT_TASK_STACKSIZE,
                        ublox_gps_thread, argv);
   if (ret < 0)

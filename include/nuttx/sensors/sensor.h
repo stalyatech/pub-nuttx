@@ -34,6 +34,8 @@
 
 #include <nuttx/fs/fs.h>
 #include <nuttx/sensors/ioctl.h>
+#include <nuttx/mm/circbuf.h>
+#include <nuttx/list.h>
 #include <nuttx/clock.h>
 
 /****************************************************************************
@@ -447,7 +449,7 @@
 
 /* GPS raw data bufer size */
 
-#define SENSOR_GPS_RAWDATA_SIZE                     84
+#define SENSOR_GPS_RAWDATA_SIZE                     116
 
 
 /****************************************************************************
@@ -1184,6 +1186,18 @@ struct sensor_ioctl_s
 {
   size_t len;                  /* The length of argument of ioctl */
   char data[1];                /* The argument buf of ioctl */
+};
+
+/* This structure describes the state of the upper half driver */
+
+struct sensor_upperhalf_s
+{
+  FAR struct sensor_lowerhalf_s *lower;  /* The handle of lower half driver */
+  struct sensor_state_s          state;  /* The state of sensor device */
+  struct circbuf_s   timing;             /* The circular buffer of generation */
+  struct circbuf_s   buffer;             /* The circular buffer of data */
+  rmutex_t           lock;               /* Manages exclusive access to file operations */
+  struct list_node   userlist;           /* List of users */
 };
 
 /****************************************************************************

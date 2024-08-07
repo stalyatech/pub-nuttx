@@ -63,6 +63,10 @@ config SENSORS_UBLOX_GPS
 
 if SENSORS_UBLOX_GPS
 
+config SENSORS_UBLOX_GPS_PRIORITY
+	int "GPS service thread priority"
+	default 224
+
 config SENSORS_UBLOX_GPS1_PORT
 	bool "Enable GPS1 Port"
 	default y
@@ -165,7 +169,7 @@ endif # SENSORS_UBLOX_GPS5_PORT
 
 config SENSORS_UBLOX_NBUFFERS
 	int "u-blox GPS buffer count"
-	default 40
+	default 50
 	---help---
 		Choose u-blox GPS buffers.
 

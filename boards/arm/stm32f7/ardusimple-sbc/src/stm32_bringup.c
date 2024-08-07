@@ -249,14 +249,12 @@ int stm32_bringup(void)
 #ifdef CONFIG_SENSORS_BNO085
   /* Register the smart sensor driver */
 
-#ifdef CONFIG_STM32F7_I2C3
-  ret = stm32_bno085_initialize(3);
+  ret = stm32_bno085_initialize();
   if (ret < 0)
     {
       syslog(LOG_ERR, 
              "ERROR: Failed to initialize BNO085 driver: %d\n", ret);
     }
-#endif /* CONFIG_STM32F7_I2C3 */
 #endif /* CONFIG_SENSORS_BNO085 */
 
 #ifdef CONFIG_STM32F7_I2C1

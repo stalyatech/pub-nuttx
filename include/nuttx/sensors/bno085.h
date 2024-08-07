@@ -129,7 +129,7 @@ extern "C"
  *   Register the BNO085 character device as 'devpath'
  *
  * Input Parameters:
- *   devpath - The full path to the driver to register. E.g., "/dev/sensor0"
+ *   devpath - The full path to the driver to register. E.g., "/dev/imu0"
  *   config  - Configuration of the SPI/I2C interface to use to communicate
  *             with BNO085
  *

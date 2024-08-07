@@ -242,7 +242,14 @@
 #define BOARD_NGPIOOUT    11  /* Amount of GPIO Output pins */
 #define BOARD_NGPIOINT    3   /* Amount of GPIO Input w/ Interruption pins */
 
-/* IMU Sensor Interrupt
+/* IMU Sensor */
+
+#define BNO085_I2C_BUS    4
+#define BNO085_I2C_ADDR   0x4A
+#define BNO085_I2C_FREQ   10000
+
+/* 
+ * IMU Sensor Interrupt
  *
  * PD14  IMU_INT
  */
@@ -255,8 +262,9 @@
 
 /* BQ2429X Battery charger */
 
-#define BQ2429X_I2CBUS    2
-#define BQ2429X_I2CADDR   0x6B
+#define BQ2429X_I2C_BUS   2
+#define BQ2429X_I2C_ADDR  0x6B
+#define BQ2429X_I2C_FREQ  100000
 
 /****************************************************************************
  * Public Data
@@ -436,7 +444,7 @@ int stm32_gpio_initialize(void);
  ****************************************************************************/
 
 #ifdef CONFIG_SENSORS_BNO085
-int stm32_bno085_initialize(int bus);
+int stm32_bno085_initialize(void);
 #endif
 
 /****************************************************************************

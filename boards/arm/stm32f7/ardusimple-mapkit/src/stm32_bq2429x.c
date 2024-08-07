@@ -65,13 +65,13 @@ int stm32_bq2429x_initialize(const char *devname)
 
   /* get the internal U2C bus instance */
 
-  i2c = stm32_i2cbus_initialize(BQ2429X_I2CBUS);
+  i2c = stm32_i2cbus_initialize(BQ2429X_I2C_BUS);
 
   /* initialize the driver */
 
   bq2429x = (FAR struct battery_charger_dev_s *)bq2429x_initialize( i2c,
-                                                                    BQ2429X_I2CADDR,
-                                                                    100000,
+                                                                    BQ2429X_I2C_ADDR,
+                                                                    BQ2429X_I2C_FREQ,
                                                                     500);
   return battery_charger_register(devname, bq2429x);
 }

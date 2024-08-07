@@ -234,6 +234,12 @@
 #define GPIO_DOUT4        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                           GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN12)
 
+/* IMU Sensor */
+
+#define BNO085_I2C_BUS    3
+#define BNO085_I2C_ADDR   0x4A
+#define BNO085_I2C_FREQ   100000
+
 /* IMU Sensor Interrupt
  *
  * PD11  AGM_INT
@@ -425,7 +431,7 @@ int stm32_gpio_initialize(void);
  ****************************************************************************/
 
 #ifdef CONFIG_SENSORS_BNO085
-int stm32_bno085_initialize(int bus);
+int stm32_bno085_initialize(void);
 #endif
 
 /****************************************************************************

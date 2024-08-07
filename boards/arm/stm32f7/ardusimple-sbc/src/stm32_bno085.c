@@ -42,8 +42,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define BNO085_I2C_ADDRESS    (0x4A)
-#define BNO085_I2C_FREQUENCY  (100000)
 
 /****************************************************************************
  * Private Function Prototypes
@@ -60,8 +58,8 @@ static int bno085_attach(struct bno085_config_s *cfg, xcpt_t irq, void *arg);
 static struct bno085_config_s g_bno085_config =
 {
   .dev    = NULL,
-  .devid  = BNO085_I2C_ADDRESS,
-  .freq   = BNO085_I2C_FREQUENCY,
+  .devid  = BNO085_I2C_ADDR,
+  .freq   = BNO085_I2C_FREQ,
   .irq    = BOARD_IMU_IRQ,
   .attach = bno085_attach,
 };
@@ -87,22 +85,22 @@ static int bno085_attach(struct bno085_config_s *cfg, xcpt_t irq, void *arg)
  * Public Functions
  ****************************************************************************/
 
-int stm32_bno085_initialize(int bus)
+int stm32_bno085_initialize(void)
 {
   int ret = ERROR;
 
   /* Initialize the I2C bus */
 
-  g_bno085_config.dev = stm32_i2cbus_initialize(bus);
+  g_bno085_config.dev = stm32_i2cbus_initialize(BNO085_I2C_BUS);
   if (g_bno085_config.dev == NULL)
     {
-      syslog(LOG_ERR, "ERROR: Failed to get I2C%d interface\n", bus);
+      syslog(LOG_ERR, "ERROR: Failed to get I2C%d interface\n", BNO085_I2C_BUS);
     }
   else
     {
       /* register the driver */
 
-      ret = bno085_register("/dev/sensor0", &g_bno085_config);
+      ret = bno085_register("/dev/imu0", &g_bno085_config);
     }
 
   return ret;

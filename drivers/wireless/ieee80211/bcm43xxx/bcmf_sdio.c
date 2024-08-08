@@ -88,6 +88,9 @@
 #ifdef CONFIG_IEEE80211_BROADCOM_BCM43455
   extern const struct bcmf_chip_data bcmf_43455_config_data;
 #endif
+#ifdef CONFIG_IEEE80211_INFINEON_CYW43439
+  extern const struct bcmf_chip_data g_cyw43439_config_data;
+#endif
 
 /****************************************************************************
  * Private Function Prototypes
@@ -942,6 +945,13 @@ int bcmf_chipinitialize(FAR struct bcmf_sdio_dev_s *sbus)
       case SDIO_DEVICE_ID_BROADCOM_43455:
         wlinfo("bcm43455 chip detected\n");
         sbus->chip = (struct bcmf_chip_data *)&bcmf_43455_config_data;
+        break;
+#endif
+
+#ifdef CONFIG_IEEE80211_INFINEON_CYW43439
+      case SDIO_DEVICE_ID_INFINEON_CYW43439:
+        wlinfo("cyw43439 chip detected\n");
+        sbus->chip = (struct bcmf_chip_data *)&g_cyw43439_config_data;
         break;
 #endif
 

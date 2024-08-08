@@ -34,9 +34,7 @@
 
 #include <poll.h>
 #include <fcntl.h>
-#include <nuttx/list.h>
 #include <nuttx/kmalloc.h>
-#include <nuttx/mm/circbuf.h>
 #include <nuttx/mutex.h>
 #include <nuttx/sensors/sensor.h>
 
@@ -96,18 +94,6 @@ struct sensor_user_s
    */
 
   struct sensor_ustate_s state;
-};
-
-/* This structure describes the state of the upper half driver */
-
-struct sensor_upperhalf_s
-{
-  FAR struct sensor_lowerhalf_s *lower;  /* The handle of lower half driver */
-  struct sensor_state_s          state;  /* The state of sensor device */
-  struct circbuf_s   timing;             /* The circular buffer of generation */
-  struct circbuf_s   buffer;             /* The circular buffer of data */
-  rmutex_t           lock;               /* Manages exclusive access to file operations */
-  struct list_node   userlist;           /* List of users */
 };
 
 /****************************************************************************
@@ -182,6 +168,7 @@ static const struct sensor_info_s g_sensor_info[] =
   {sizeof(struct sensor_cap),             "cap"},
   {sizeof(struct sensor_gas),             "gas"},
   {sizeof(struct sensor_force),           "force"},
+  {sizeof(struct sensor_gps_raw),         "gps_raw"},
 };
 
 static const struct file_operations g_sensor_fops =

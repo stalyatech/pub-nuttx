@@ -1,7 +1,6 @@
 *.a
 *.adb
 *.asm
-*.bin
 *.d
 !*.d/
 *.dSYM
@@ -60,6 +59,7 @@ uImage
 .dirlinks
 .fakelnk
 .vscode
+.vscode-ctags
 .DS_Store
 tools/gdb/__pycache__
 /build

@@ -88,4 +88,31 @@ config FUSB303_NPOLLWAITERS
 
 endif
 
+config USB251X
+	bool "Microchip USB251X USB hub controller support"
+	default n
+	select I2C
+	---help---
+		Enable device driver for Microchip USB Hub controller
+
+if USB251X
+config USB251X_I2C_FREQ
+	int "USB251X I2C frequency"
+	default 100000
+	range 1 100000
+
+config DEBUG_USB251X
+	bool "Enable debug support for the USB251X"
+	default n
+	---help---
+		Enables debug support for the USB251X
+
+config USB251X_BLOCK_SIZE
+	int "Configuration block size"
+	default 32
+  range 1 32
+	---help---
+		Configuration block size for driver
+endif # USB251X
+
 endif # USBMISC

@@ -34,6 +34,8 @@
 
 #include <nuttx/fs/fs.h>
 #include <nuttx/sensors/ioctl.h>
+#include <nuttx/mm/circbuf.h>
+#include <nuttx/list.h>
 #include <nuttx/clock.h>
 
 /****************************************************************************
@@ -307,9 +309,15 @@
 
 #define SENSOR_TYPE_FORCE                           34
 
+/* GPS Raw
+ * A sensor of this type returns gps raw data.
+ */
+
+#define SENSOR_TYPE_GPS_RAW                         35
+
 /* The total number of sensor */
 
-#define SENSOR_TYPE_COUNT                           35
+#define SENSOR_TYPE_COUNT                           36
 
 /* The additional sensor open flags */
 
@@ -438,6 +446,11 @@
 /* GPS satellite info slots */
 
 #define SENSOR_GPS_SAT_INFO_MAX                     4
+
+/* GPS raw data bufer size */
+
+#define SENSOR_GPS_RAWDATA_SIZE                     116
+
 
 /****************************************************************************
  * Inline Functions
@@ -572,6 +585,13 @@ struct sensor_gps           /* Type: Gps */
   float course;
 
   uint32_t satellites_used; /* Number of satellites used */
+};
+
+struct sensor_gps_raw       /* Type: Gps raw */
+{
+  uint64_t timestamp;       /* Time since system start, Units is microseconds */
+  uint32_t len;             /* Raw data buffer & length */
+  uint8_t  buf[SENSOR_GPS_RAWDATA_SIZE];
 };
 
 struct sensor_uv            /* Type: Ultraviolet Light */
@@ -1166,6 +1186,18 @@ struct sensor_ioctl_s
 {
   size_t len;                  /* The length of argument of ioctl */
   char data[1];                /* The argument buf of ioctl */
+};
+
+/* This structure describes the state of the upper half driver */
+
+struct sensor_upperhalf_s
+{
+  FAR struct sensor_lowerhalf_s *lower;  /* The handle of lower half driver */
+  struct sensor_state_s          state;  /* The state of sensor device */
+  struct circbuf_s   timing;             /* The circular buffer of generation */
+  struct circbuf_s   buffer;             /* The circular buffer of data */
+  rmutex_t           lock;               /* Manages exclusive access to file operations */
+  struct list_node   userlist;           /* List of users */
 };
 
 /****************************************************************************

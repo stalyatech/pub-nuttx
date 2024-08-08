@@ -110,6 +110,26 @@ size_t up_progmem_erasesize(size_t block);
 ssize_t up_progmem_getpage(size_t addr);
 
 /****************************************************************************
+ * Name: up_progmem_geteraseblock
+ *
+ * Description:
+ *   Address to read/write erase block conversion
+ *
+ * Input Parameters:
+ *  addr - Address with or without flash offset
+ *         (absolute or aligned to page0)
+ *
+ * Returned Value:
+ *   Page or negative value on error.
+ *   The following errors are reported (errno is not set!):
+ *
+ *     -EFAULT: On invalid address
+ *
+ ****************************************************************************/
+
+ssize_t up_progmem_geteraseblock(size_t addr);
+
+/****************************************************************************
  * Name: up_progmem_getaddress
  *
  * Description:

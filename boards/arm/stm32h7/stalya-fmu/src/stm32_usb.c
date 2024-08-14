@@ -86,6 +86,8 @@ void stm32_usbinitialize(void)
    * Power On, and Overcurrent GPIOs
    */
 
+  /* USB Hub power is controlled by I/O expander */
+
 #ifdef CONFIG_STM32H7_OTGFS
   stm32_configgpio(GPIO_OTGFS_VBUS);
 #endif

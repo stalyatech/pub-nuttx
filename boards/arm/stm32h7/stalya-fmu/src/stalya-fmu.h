@@ -141,24 +141,26 @@
  *       installed.
  */
 
-#define GPIO_BTN_USER  (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI | GPIO_PORTC | GPIO_PIN13)
+#define GPIO_BTN_USER  (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | GPIO_EXTI | GPIO_PORTD | GPIO_PIN6)
 
 /* USB OTG FS
  *
- * PA9  OTG_FS_VBUS VBUS sensing (also connected to the green LED)
- * PG7  OTG_FS_Overcurrent
+ * PA9  OTG_FS_VBUS VBUS sensing
  */
 
-#define GPIO_OTGFS_VBUS   (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz| \
-                           GPIO_OPENDRAIN|GPIO_PORTD|GPIO_PIN10)
+#define GPIO_OTGFS_VBUS   (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | GPIO_PORTD | GPIO_PIN10)
 
-/* USB hub reset control */
+
+/* USB hub reset control
+ *
+ * PA15  USBHUB_NRST
+ */
 
 #define GPIO_USB251X_NRST (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | \
                           GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN15)
 
-#define USB251X_I2CBUS    2
-#define USB251X_I2CADDR   0x2C
+#define USB251X_I2CBUS    (2)
+#define USB251X_I2CADDR   (0x2c)
 
 /* GPIO pins used by the GPIO Subsystem */
 
@@ -243,16 +245,16 @@
 #define GPIO_LIS3MDL_CSN    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                              GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN2)
 
-/* MS5611 configuration */
+/* MS56XX configuration */
 
-#define MS5611_I2CBUS       (4)
-#define MS5611_I2CADDR      (0x77)
+#define MS56XX_I2CBUS       (4)
+#define MS56XX_I2CADDR      (0x77)
 
-/* MS5611 SPI configuration */
+/* MS56XX SPI configuration */
 
-#define MS5611_SPIBUS       (1)
-#define MS5611_SPIDEV       SPIDEV_BAROMETER(0)
-#define GPIO_MS5611_CSN     (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+#define MS56XX_SPIBUS       (1)
+#define MS56XX_SPIDEV       SPIDEV_BAROMETER(0)
+#define GPIO_MS56XX_CSN     (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                              GPIO_OUTPUT_SET | GPIO_PORTE | GPIO_PIN11)
 
 /* PCA9635 configuration */
@@ -409,10 +411,10 @@ int board_lis3mdl_spi_initialize(int devno, int busno);
 #endif
 
 /****************************************************************************
- * Name: board_ms5611_xxx_initialize
+ * Name: board_ms56xx_xxx_initialize
  *
  * Description:
- *   Initialize and register the I2C/SPI based MS5611 Pressure Sensor driver.
+ *   Initialize and register the I2C/SPI based MS56XX Pressure Sensor driver.
  *
  * Input Parameters:
  *   devno - The device number
@@ -423,9 +425,9 @@ int board_lis3mdl_spi_initialize(int devno, int busno);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SENSORS_MS5611
-int board_ms5611_i2c_initialize(int devno, int busno);
-int board_ms5611_spi_initialize(int devno, int busno);
+#ifdef CONFIG_SENSORS_MS56XX
+int board_ms56xx_i2c_initialize(int devno, int busno);
+int board_ms56xx_spi_initialize(int devno, int busno);
 #endif
 
 /****************************************************************************
@@ -463,6 +465,18 @@ int stm32_pwm_setup(void);
 #ifdef HAVE_PROGMEM_CHARDEV
 int stm32_progmem_init(void);
 #endif  /* HAVE_PROGMEM_CHARDEV */
+#endif
+
+/****************************************************************************
+ * Name: board_gps_initialize
+ *
+ * Description:
+ *   Initialize u-blox GPS drivers.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SENSORS_GPS
+int board_gps_initialize(void);
 #endif
 
 /****************************************************************************

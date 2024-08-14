@@ -1,0 +1,9 @@
+# Power on the XBee sockets
+#gpio -o 1 /dev/xbap
+#gpio -o 1 /dev/xbbp
+
+# Start the Mongoose services
+#mg_smart -p 8001 -r /data0/www -g &
+
+# Start the FTP service
+#ftpd_start -4 &

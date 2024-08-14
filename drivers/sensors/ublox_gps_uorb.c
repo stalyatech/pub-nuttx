@@ -316,6 +316,7 @@ static int ublox_gps_thread(int argc, FAR char** argv)
                 {
                   /* Update the sensor event */
 
+                  gps_data.timestamp = sensor_get_timestamp();
                   priv->lower.push_event(priv->lower.priv, &gps_data, sizeof(struct sensor_gps_raw));
                 }
             }

@@ -58,8 +58,8 @@ if(CONFIG_SENSORS_LIS3MDL)
   list(APPEND SRCS stm32_lis3mdl.c)
 endif()
 
-if(CONFIG_SENSORS_MS5611)
-  list(APPEND SRCS stm32_ms5611.c)
+if(CONFIG_SENSORS_MS56XX)
+  list(APPEND SRCS stm32_ms56xx.c)
 endif()
 
 if(CONFIG_IOEXPANDER_PCA9557)
@@ -114,6 +114,10 @@ endif()
 
 if(CONFIG_MTD_RAMTRON)
   list(APPEND SRCS stm32_ramtron.c)
+endif()
+
+if(CONFIG_SENSORS_GPS)
+  list(APPEND SRCS stm32_gps.c)
 endif()
 
 if(CONFIG_ETC_ROMFS)

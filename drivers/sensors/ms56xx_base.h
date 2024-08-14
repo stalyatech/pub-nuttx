@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/sensors/ms5611_base.h
+ * drivers/sensors/ms56xx_base.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_SENSORS_MS5611_COMMOM_H
-#define __INCLUDE_NUTTX_SENSORS_MS5611_COMMOM_H
+#ifndef __INCLUDE_NUTTX_SENSORS_MS56XX_COMMOM_H
+#define __INCLUDE_NUTTX_SENSORS_MS56XX_COMMOM_H
 
 /****************************************************************************
  * Included Files
@@ -32,7 +32,8 @@
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sensors/sensor.h>
-#include <nuttx/sensors/ms5611.h>
+#include <nuttx/sensors/ms56xx.h>
+#include <nuttx/sensors/msxxxx_crc4.h>
 
 #include <stdlib.h>
 #include <assert.h>
@@ -44,15 +45,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Specific device id*/
-
-#define MS5611_DEVID  (0x98)
-
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
-struct ms5611_calib_s
+struct ms56xx_calib_s
 {
   uint16_t reversed;
   uint16_t c1;
@@ -64,25 +61,26 @@ struct ms5611_calib_s
   uint16_t crc;
 };
 
-struct ms5611_sensor_s
+struct ms56xx_sensor_s
 {
   struct sensor_lowerhalf_s
                 lower;    /* Lower half sensor driver. */
-  struct ms5611_calib_s
+  struct ms56xx_calib_s
                 calib;    /* Calib. params from ROM */
   uint64_t      last_update;
   bool          enabled;
   unsigned long interval; /* Polling interval */
-  FAR void      *dev;     /* The pointer to common device data of ms5611 */
+  FAR void      *dev;     /* The pointer to common device data of ms56xx */
 };
 
 /* Used by the driver to manage the device */
 
-struct ms5611_dev_s
+struct ms56xx_dev_s
 {
-  struct ms5611_sensor_s priv;
-  struct ms5611_config_s
+  struct ms56xx_sensor_s priv;
+  struct ms56xx_config_s
                 config;   /* board-specific information */
+  sem_t         run;      /* Locks sensor thread */
   mutex_t       lock;     /* mutex for this structure */
   struct work_s work;     /* Interrupt handler worker. */
 };
@@ -91,14 +89,16 @@ struct ms5611_dev_s
  * Public Function Prototypes
  ****************************************************************************/
 
-int ms5611_read(FAR struct ms5611_dev_s *dev,
+int ms56xx_read(FAR struct ms56xx_dev_s *dev,
                 FAR uint8_t *buf, uint8_t len);
 
-int ms5611_write(FAR struct ms5611_dev_s *dev,
+int ms56xx_write(FAR struct ms56xx_dev_s *dev,
                  FAR const uint8_t *buf, uint8_t len);
 
-int ms5611_transfer(FAR struct ms5611_dev_s *dev,
+int ms56xx_transfer(FAR struct ms56xx_dev_s *dev,
                     FAR const uint8_t *txbuf, uint8_t txlen,
                     FAR uint8_t *rxbuf, uint8_t rxlen);
 
-#endif /* __INCLUDE_NUTTX_SENSORS_MS5611_COMMOM_H */
+int ms56xx_checkid(FAR struct ms56xx_dev_s *dev);
+
+#endif /* __INCLUDE_NUTTX_SENSORS_MS56XX_COMMOM_H */

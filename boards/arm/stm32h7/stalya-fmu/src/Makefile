@@ -60,8 +60,8 @@ ifeq ($(CONFIG_SENSORS_LIS3MDL),y)
 CSRCS += stm32_lis3mdl.c
 endif
 
-ifeq ($(CONFIG_SENSORS_MS5611),y)
-CSRCS += stm32_ms5611.c
+ifeq ($(CONFIG_SENSORS_MS56XX),y)
+CSRCS += stm32_ms56xx.c
 endif
 
 ifeq ($(CONFIG_IOEXPANDER_PCA9557),y)
@@ -116,6 +116,10 @@ endif
 
 ifeq ($(CONFIG_MTD_RAMTRON),y)
 CSRCS += stm32_ramtron.c
+endif
+
+ifeq ($(CONFIG_SENSORS_GPS),y)
+CSRCS += stm32_gps.c
 endif
 
 ifeq ($(CONFIG_ETC_ROMFS),y)

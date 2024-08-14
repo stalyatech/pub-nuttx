@@ -214,28 +214,28 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_SENSORS_ICM20689 */
 
-#ifdef CONFIG_SENSORS_MS5611
-  /* Initialize the MS5611 pressure sensor(s). */
+#ifdef CONFIG_SENSORS_MS56XX
+  /* Initialize the MS56XX pressure sensor(s). */
 
   devno = 0;
-  ret = board_ms5611_i2c_initialize(devno, MS5611_I2CBUS);
+  ret = board_ms56xx_i2c_initialize(devno, MS56XX_I2CBUS);
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize MS5611 over I2C driver: %d\n", ret);
+             "ERROR: Failed to initialize MS56XX over I2C driver: %d\n", ret);
     }
   else
     {
       devno++;
     }
 
-  ret = board_ms5611_spi_initialize(devno, MS5611_SPIBUS);
+  ret = board_ms56xx_spi_initialize(devno, MS56XX_SPIBUS);
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize MS5611 over SPI driver: %d\n", ret);
+             "ERROR: Failed to initialize MS56XX over SPI driver: %d\n", ret);
     }
-#endif /* CONFIG_SENSORS_MS5611 */
+#endif /* CONFIG_SENSORS_MS56XX */
 
 #ifdef CONFIG_SENSORS_LIS3MDL
   /* Initialize the LIS3MDL e-compass sensor(s). */
@@ -381,6 +381,12 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_MTD_RAMTRON */
 #endif /* CONFIG_MTD */
+
+#ifdef CONFIG_SENSORS_GPS
+  /* Initialize GPS uORB service. */
+
+  board_gps_initialize();
+#endif /* CONFIG_SENSORS_GPS */
 
 #ifdef CONFIG_NETDEV_LATEINIT
   /* Initialize SocketCAN device. */

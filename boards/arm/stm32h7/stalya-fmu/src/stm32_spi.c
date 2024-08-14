@@ -93,10 +93,10 @@ void stm32_spidev_initialize(void)
   stm32_configgpio(GPIO_LIS3MDL_CSN);
   stm32_gpiowrite(GPIO_LIS3MDL_CSN, true);
 
-  /* Configure the SPI-based MS5611 sensor select GPIO */
+  /* Configure the SPI-based MS56XX sensor select GPIO */
 
-  stm32_configgpio(GPIO_MS5611_CSN);
-  stm32_gpiowrite(GPIO_MS5611_CSN, true);
+  stm32_configgpio(GPIO_MS56XX_CSN);
+  stm32_gpiowrite(GPIO_MS56XX_CSN, true);
 
 #if defined(CONFIG_MTD_RAMTRON)
   /* Configure the FRAM select GPIO */
@@ -180,16 +180,16 @@ void stm32_spi1select(struct spi_dev_s *dev,
         break;
 #endif /* CONFIG_SENSORS_LIS3MDL && CONFIG_LIS3MDL_SPI */
 
-#if defined(CONFIG_SENSORS_MS5611) && defined(CONFIG_MS5611_SPI)
+#if defined(CONFIG_SENSORS_MS56XX) && defined(CONFIG_MS56XX_SPI)
       case SPIDEV_BAROMETER(0):
-        spiinfo("MS5611 baro device %s\n",
+        spiinfo("MS56XX baro device %s\n",
                 selected ? "asserted" : "de-asserted");
 
         /* Set the GPIO low to select and high to de-select */
 
-        stm32_gpiowrite(GPIO_MS5611_CSN, !selected);
+        stm32_gpiowrite(GPIO_MS56XX_CSN, !selected);
         break;
-#endif /* CONFIG_SENSORS_MS5611 && CONFIG_MS5611_SPI */
+#endif /* CONFIG_SENSORS_MS56XX && CONFIG_MS56XX_SPI */
     }
 }
 

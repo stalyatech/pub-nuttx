@@ -26,9 +26,12 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/sensors/ioctl.h>
 
-#if defined(CONFIG_I2C) && defined(CONFIG_SENSORS_MS56XX)
+/* These structures are defined elsewhere, and we don't need their
+ * definitions here.
+ */
+
+#if defined(CONFIG_SENSORS_MS56XX)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -52,6 +55,14 @@
  * Public Types
  ****************************************************************************/
 
+#ifdef CONFIG_MS56XX_SPI
+struct spi_dev_s;
+#endif
+
+#ifdef CONFIG_MS56XX_I2C
+struct i2c_master_s;
+#endif
+
 enum ms56xx_model_e
 {
   MS56XX_MODEL_MS5607 = 0,
@@ -64,7 +75,41 @@ struct ms56xx_measure_s
   int32_t pressure;     /* in mBar     x10     */
 };
 
-struct i2c_master_s;
+/* Specifies the initial chip configuration and location */
+
+struct ms56xx_config_s
+{
+#ifdef CONFIG_MS56XX_SPI
+  /* For users on SPI.
+   *
+   *  spi_devid : the SPI master's slave-select number
+   *              for the chip, as used in SPI_SELECT(..., dev_id, ...)
+   *  spi       : the SPI master device, as used in SPI_SELECT(spi, ..., ...)
+   */
+
+  FAR struct spi_dev_s *spi;
+  int spi_devid;
+#endif /* CONFIG_ICM20689_SPI */
+
+#ifdef CONFIG_MS56XX_I2C
+  /* For users on I2C.
+   *
+   *  i2c  : the I2C master device
+   *  addr : the I2C address.
+   */
+
+  FAR struct i2c_master_s *i2c;
+  int addr;
+#endif /* CONFIG_ICM20689_I2C */
+
+  /* Bus Frequency I2C/SPI */
+
+  uint32_t freq;
+
+  /* Device model */
+
+  enum ms56xx_model_e model;
+};
 
 /****************************************************************************
  * Public Function Prototypes
@@ -85,23 +130,18 @@ extern "C"
  *   Register the MS56XX character device as 'devpath'.
  *
  * Input Parameters:
- *   i2c     - An I2C driver instance.
  *   devno   - Number of device (i.e. baro0, baro1, ...)
- *   addr    - The I2C address of the MS56XX.
- *   model   - The MS56XX model.
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
-
-int ms56xx_register(FAR struct i2c_master_s *i2c, int devno, uint8_t addr,
-                    enum ms56xx_model_e model);
+int ms56xx_register(int devno, struct ms56xx_config_s *config);
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CONFIG_I2C && CONFIG_SENSORS_MS56XX */
+#endif /* CONFIG_SENSORS_MS56XX */
 #endif /* __INCLUDE_NUTTX_SENSORS_MS56XX_H */

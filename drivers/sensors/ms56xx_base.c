@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/sensors/ms5611_base.c
+ * drivers/sensors/ms56xx_base.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -22,9 +22,9 @@
  * Included Files
  ****************************************************************************/
 
-#include "ms5611_base.h"
+#include "ms56xx_base.h"
 
-#if defined(CONFIG_SENSORS_MS5611)
+#if defined(CONFIG_SENSORS_MS56XX)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -32,7 +32,7 @@
 
 /* Device uses SPI Mode 0: CPOL=0, CPHA=0 */
 
-#define MS5611_SPI_MODE   (SPIDEV_MODE0)
+#define MS56XX_SPI_MODE   (SPIDEV_MODE0)
 
 /****************************************************************************
  * Private Types
@@ -50,16 +50,16 @@
  * Public Functions
  ****************************************************************************/
 
-#ifdef CONFIG_MS5611_SPI
+#ifdef CONFIG_MS56XX_SPI
 /****************************************************************************
- * Name: ms5611_read_spi
+ * Name: ms56xx_read_spi
  *
  * Description:
- *   Read from MS5611 with SPI bus
+ *   Read from MS56XX with SPI bus
  *
  ****************************************************************************/
 
-static int ms5611_read_spi(FAR struct ms5611_dev_s *dev,
+static int ms56xx_read_spi(FAR struct ms56xx_dev_s *dev,
                            FAR uint8_t *buf, uint8_t len)
 {
   FAR struct spi_dev_s *spi = dev->config.spi;
@@ -75,7 +75,7 @@ static int ms5611_read_spi(FAR struct ms5611_dev_s *dev,
    */
 
   SPI_LOCK(spi, true);
-  SPI_SETMODE(spi, MS5611_SPI_MODE);
+  SPI_SETMODE(spi, MS56XX_SPI_MODE);
   SPI_SETFREQUENCY(spi, dev->config.freq);
 
   /* Select the chip. */
@@ -98,14 +98,14 @@ static int ms5611_read_spi(FAR struct ms5611_dev_s *dev,
 }
 
 /****************************************************************************
- * Name: ms5611_write_spi
+ * Name: ms56xx_write_spi
  *
  * Description:
- *   Write to MS5611 with SPI bus
+ *   Write to MS56XX with SPI bus
  *
  ****************************************************************************/
 
-static int ms5611_write_spi(FAR struct ms5611_dev_s *dev,
+static int ms56xx_write_spi(FAR struct ms56xx_dev_s *dev,
                             FAR const uint8_t *buf, uint8_t len)
 {
   FAR struct spi_dev_s *spi = dev->config.spi;
@@ -119,7 +119,7 @@ static int ms5611_write_spi(FAR struct ms5611_dev_s *dev,
   /* Grab and configure the SPI master device. */
 
   SPI_LOCK(spi, true);
-  SPI_SETMODE(spi, MS5611_SPI_MODE);
+  SPI_SETMODE(spi, MS56XX_SPI_MODE);
   SPI_SETFREQUENCY(spi, dev->config.freq);
 
   /* Select the chip. */
@@ -143,14 +143,14 @@ static int ms5611_write_spi(FAR struct ms5611_dev_s *dev,
 
 
 /****************************************************************************
- * Name: ms5611_transfer_spi
+ * Name: ms56xx_transfer_spi
  *
  * Description:
- *   Write/Read to/from MS5611 with SPI bus
+ *   Write/Read to/from MS56XX with SPI bus
  *
  ****************************************************************************/
 
-static int ms5611_transfer_spi(FAR struct ms5611_dev_s *dev,
+static int ms56xx_transfer_spi(FAR struct ms56xx_dev_s *dev,
                                FAR const uint8_t *txbuf, uint8_t txlen,
                                FAR uint8_t *rxbuf, uint8_t rxlen)
 {
@@ -160,7 +160,7 @@ static int ms5611_transfer_spi(FAR struct ms5611_dev_s *dev,
   /* Grab and configure the SPI master device. */
 
   SPI_LOCK(spi, true);
-  SPI_SETMODE(spi, MS5611_SPI_MODE);
+  SPI_SETMODE(spi, MS56XX_SPI_MODE);
   SPI_SETFREQUENCY(spi, dev->config.freq);
 
   /* Select the chip. */
@@ -188,18 +188,18 @@ static int ms5611_transfer_spi(FAR struct ms5611_dev_s *dev,
 
   return OK;
 }
-#endif /* CONFIG_MS5611_SPI */
+#endif /* CONFIG_MS56XX_SPI */
 
-#ifdef CONFIG_MS5611_I2C
+#ifdef CONFIG_MS56XX_I2C
 /****************************************************************************
- * Name: ms5611_read_i2c
+ * Name: ms56xx_read_i2c
  *
  * Description:
- *   Read from MS5611 with I2C bus
+ *   Read from MS56XX with I2C bus
  *
  ****************************************************************************/
 
-static int ms5611_read_i2c(FAR struct ms5611_dev_s *dev,
+static int ms56xx_read_i2c(FAR struct ms56xx_dev_s *dev,
                            FAR uint8_t *buf, uint8_t len)
 {
   struct i2c_msg_s msg[1];
@@ -222,14 +222,14 @@ static int ms5611_read_i2c(FAR struct ms5611_dev_s *dev,
 }
 
 /****************************************************************************
- * Name: ms5611_write_i2c
+ * Name: ms56xx_write_i2c
  *
  * Description:
- *   Write to MS5611 with I2C bus
+ *   Write to MS56XX with I2C bus
  *
  ****************************************************************************/
 
-static int ms5611_write_i2c(FAR struct ms5611_dev_s *dev,
+static int ms56xx_write_i2c(FAR struct ms56xx_dev_s *dev,
                             FAR const uint8_t *buf, uint8_t len)
 {
   struct i2c_msg_s msg[1];
@@ -259,7 +259,7 @@ static int ms5611_write_i2c(FAR struct ms5611_dev_s *dev,
  *
  ****************************************************************************/
 
-static int ms5611_transfer_i2c(FAR struct ms5611_dev_s *dev,
+static int ms56xx_transfer_i2c(FAR struct ms56xx_dev_s *dev,
                                FAR const uint8_t *txbuf, uint8_t txlen,
                                FAR uint8_t *rxbuf, uint8_t rxlen)
 {
@@ -287,9 +287,9 @@ static int ms5611_transfer_i2c(FAR struct ms5611_dev_s *dev,
 
   return OK;
 }
-#endif /* CONFIG_MS5611_I2C */
+#endif /* CONFIG_MS56XX_I2C */
 
-/* ms5611_read()
+/* ms56xx_read()
  *
  * Reads a block of @len byte-wide registers, starting at @regaddr,
  * from the device connected to @dev. Bytes are returned in @buf,
@@ -300,33 +300,33 @@ static int ms5611_transfer_i2c(FAR struct ms5611_dev_s *dev,
  * Returns number of bytes read, or a negative errno.
  */
 
-int ms5611_read(FAR struct ms5611_dev_s *dev,
+int ms56xx_read(FAR struct ms56xx_dev_s *dev,
                 FAR uint8_t *buf, uint8_t len)
 {
-#ifdef CONFIG_MS5611_SPI
+#ifdef CONFIG_MS56XX_SPI
   /* If we're wired to SPI, use that function. */
 
   if (dev->config.spi != NULL)
     {
-      return ms5611_read_spi(dev, buf, len);
+      return ms56xx_read_spi(dev, buf, len);
     }
-#endif /* CONFIG_MS5611_SPI */
+#endif /* CONFIG_MS56XX_SPI */
 
-#ifdef CONFIG_MS5611_I2C
+#ifdef CONFIG_MS56XX_I2C
   /* If we're wired to I2C, use that function. */
 
   if (dev->config.i2c != NULL)
     {
-      return ms5611_read_i2c(dev, buf, len);
+      return ms56xx_read_i2c(dev, buf, len);
     }
-#endif /* CONFIG_MS5611_I2C */
+#endif /* CONFIG_MS56XX_I2C */
 
   /* If we get this far, it's because we can't "find" our device. */
 
   return -ENODEV;
 }
 
-/* ms5611_write()
+/* ms56xx_write()
  *
  * Writes a block of @len byte-wide registers, starting at @regaddr,
  * using the values in @buf to the device connected to @dev. Register
@@ -341,24 +341,24 @@ int ms5611_read(FAR struct ms5611_dev_s *dev,
  * Returns number of bytes written, or a negative errno.
  */
 
-int ms5611_write(FAR struct ms5611_dev_s *dev,
+int ms56xx_write(FAR struct ms56xx_dev_s *dev,
                  FAR const uint8_t *buf, uint8_t len)
 {
-#ifdef CONFIG_MS5611_SPI
+#ifdef CONFIG_MS56XX_SPI
   /* If we're connected to SPI, use that function. */
 
   if (dev->config.spi != NULL)
     {
-      return ms5611_write_spi(dev, buf, len);
+      return ms56xx_write_spi(dev, buf, len);
     }
-#endif /* CONFIG_MS5611_SPI */
+#endif /* CONFIG_MS56XX_SPI */
 
-#ifdef CONFIG_MS5611_I2C
+#ifdef CONFIG_MS56XX_I2C
   if (dev->config.i2c != NULL)
     {
-      return ms5611_write_i2c(dev, buf, len);
+      return ms56xx_write_i2c(dev, buf, len);
     }
-#endif /* CONFIG_MS5611_I2C */
+#endif /* CONFIG_MS56XX_I2C */
 
   /* If we get this far, it's because we can't "find" our device. */
 
@@ -366,35 +366,49 @@ int ms5611_write(FAR struct ms5611_dev_s *dev,
 }
 
 /****************************************************************************
- * Name: ms5611_transfer
+ * Name: ms56xx_transfer
  *
  * Description:
- *   Send/receive data to/from MS5611 device
+ *   Send/receive data to/from MS56XX device
  *
  ****************************************************************************/
 
-int ms5611_transfer(FAR struct ms5611_dev_s *dev,
+int ms56xx_transfer(FAR struct ms56xx_dev_s *dev,
                     FAR const uint8_t *txbuf, uint8_t txlen,
                     FAR uint8_t *rxbuf, uint8_t rxlen)
 {
-#ifdef CONFIG_MS5611_SPI
+#ifdef CONFIG_MS56XX_SPI
   /* If we're connected to SPI, use that function. */
 
   if (dev->config.spi != NULL)
     {
-      return ms5611_transfer_spi(dev, txbuf, txlen, rxbuf, rxlen);
+      return ms56xx_transfer_spi(dev, txbuf, txlen, rxbuf, rxlen);
     }
-#endif /* CONFIG_MS5611_SPI */
+#endif /* CONFIG_MS56XX_SPI */
 
-#ifdef CONFIG_MS5611_I2C
+#ifdef CONFIG_MS56XX_I2C
   if (dev->config.i2c != NULL)
     {
-      return ms5611_transfer_i2c(dev, txbuf, txlen, rxbuf, rxlen);
+      return ms56xx_transfer_i2c(dev, txbuf, txlen, rxbuf, rxlen);
     }
-#endif /* CONFIG_MS5611_I2C */
+#endif /* CONFIG_MS56XX_I2C */
 
   /* If we get this far, it's because we can't "find" our device. */
 
   return -ENODEV;
 }
-#endif /* CONFIG_SENSORS_MS5611 */
+
+/****************************************************************************
+ * Name: ms56xx_checkid
+ *
+ * Description:
+ *   Read and verify the MS56XX chip ID
+ *
+ ****************************************************************************/
+
+int ms56xx_checkid(FAR struct ms56xx_dev_s *dev)
+{
+  return OK;
+}
+
+#endif /* CONFIG_SENSORS_MS56XX */

@@ -27,7 +27,6 @@
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
-
 #include <stdint.h>
 
 /****************************************************************************
@@ -103,6 +102,33 @@
 #  endif
 #endif
 
+#if defined(CONFIG_STM32H7_SDMMC1)
+#  define HAVE_SDIO
+#endif
+
+#if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_MMCSD_SDIO)
+#  undef HAVE_SDIO
+#endif
+
+#define SDIO_SLOTNO 0  /* Only one slot */
+
+#ifdef HAVE_SDIO
+#  if defined(CONFIG_STM32H7_SDMMC1)
+#    define GPIO_SDMMC1_NCD (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI | GPIO_PORTC | GPIO_PIN9)
+#  endif
+
+#  if defined(CONFIG_NSH_MMCSDSLOTNO) && (CONFIG_NSH_MMCSDSLOTNO != 0)
+#    warning "Only one MMC/SD slot, slot 0"
+#    define CONFIG_NSH_MMCSDSLOTNO SDIO_SLOTNO
+#  endif
+
+#  if defined(CONFIG_NSH_MMCSDMINOR)
+#    define SDIO_MINOR CONFIG_NSH_MMCSDMINOR
+#  else
+#    define SDIO_MINOR 0
+#  endif
+#endif
+
 /* Check if we can support the RTC driver */
 
 #define HAVE_RTC_DRIVER 1
@@ -124,11 +150,11 @@
 #define GPIO_LD3       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                         GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN4)
 
-#define GPIO_LED_RED   GPIO_LD1
-#define GPIO_LED_GREEN GPIO_LD2
-#define GPIO_LED_BLUE  GPIO_LD3
+#define GPIO_LED_RED    GPIO_LD1
+#define GPIO_LED_GREEN  GPIO_LD2
+#define GPIO_LED_BLUE   GPIO_LD3
 
-#define LED_DRIVER_PATH "/dev/userleds"
+#define LEDS_DEVPATH    "/dev/userleds"
 
 /* BUTTONS
  *
@@ -142,6 +168,8 @@
  */
 
 #define GPIO_BTN_USER  (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | GPIO_EXTI | GPIO_PORTD | GPIO_PIN6)
+
+#define BUTTONS_DEVPATH "/dev/buttons"
 
 /* USB OTG FS
  *
@@ -270,22 +298,6 @@
 
 #define STALYAFMU_PWMTIMER  4
 
-/* SD/TF Card'detected pin */
-
-#if defined(CONFIG_STM32H7_SDMMC1)
-#  define HAVE_SDIO
-#endif
-
-#if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_MMCSD_SDIO)
-#  undef HAVE_SDIO
-#endif
-
-#define GPIO_SDMMC1_NCD   (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI | GPIO_PORTC | GPIO_PIN9)
-
-#define SDIO_SLOTNO       0
-#define SDIO_MINOR        0
-
-
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -320,27 +332,55 @@ void stm32_spidev_initialize(void);
 #endif
 
 /****************************************************************************
- * Name: stm32_adc_setup
+ * Name: stm32_dma_alloc_init
  *
  * Description:
- *   Initialize ADC and register the ADC driver.
+ *   Called to create a FAT DMA allocator
+ *
+ * Returned Value:
+ *   0 on success or -ENOMEM
  *
  ****************************************************************************/
 
-#ifdef CONFIG_ADC
-int stm32_adc_setup(void);
+#if defined (CONFIG_FAT_DMAMEMORY)
+int stm32_dma_alloc_init(void);
 #endif
 
+#ifdef CONFIG_MTD
 /****************************************************************************
- * Name: stm32_gpio_initialize
+ * Name: stm32_mtd_initialize
  *
  * Description:
- *   Initialize GPIO-Driver.
+ *   Initialize MTD drivers.
+ *
+ ****************************************************************************/
+#ifdef HAVE_PROGMEM_CHARDEV
+int stm32_progmem_init(void);
+#endif  /* HAVE_PROGMEM_CHARDEV */
+
+/****************************************************************************
+ * Name: board_ramtron_initialize
+ *
+ * Description:
+ *   Initialize and register the F25FV FLASH file system.
  *
  ****************************************************************************/
 
-#if defined(CONFIG_DEV_GPIO)
-int stm32_gpio_initialize(void);
+#ifdef CONFIG_MTD_RAMTRON
+int board_ramtron_initialize(int minor);
+#endif
+#endif /* CONFIG_MTD */
+
+/****************************************************************************
+ * Name: stm32_mmcsd_initialize
+ *
+ * Description:
+ *   Initialize SDIO-based SD card and card detect thread.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_MMCSD
+int stm32_mmcsd_initialize(int minor);
 #endif
 
 /****************************************************************************
@@ -353,21 +393,63 @@ int stm32_gpio_initialize(void);
  ****************************************************************************/
 
 #ifdef CONFIG_STM32H7_OTGFS
-void weak_function stm32_usbinitialize(void);
+void stm32_usbinitialize(void);
 #endif
 
 /****************************************************************************
- * Name: stm32_usbhost_initialize
+ * Name: stm32_pwm_setup
  *
  * Description:
- *   Called at application startup time to initialize the USB host
- *   functionality. This function will start a thread that will monitor for
- *   device connection/disconnection events.
+ *   Initialize PWM and register the PWM device.
  *
  ****************************************************************************/
 
-#if defined(CONFIG_STM32H7_OTGFS) && defined(CONFIG_USBHOST)
-int stm32_usbhost_initialize(void);
+#ifdef CONFIG_PWM
+int stm32_pwm_setup(void);
+#endif
+
+/****************************************************************************
+ * Name: stm32_adc_setup
+ *
+ * Description:
+ *   Initialize ADC and register the ADC driver.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADC
+int stm32_adc_setup(void);
+#endif
+
+/****************************************************************************
+ * Name: stm32_bbsram_int
+ ****************************************************************************/
+
+#ifdef CONFIG_STM32F7_BBSRAM
+int stm32_bbsram_int(void);
+#endif
+
+/****************************************************************************
+ * Name: stm32_fdcansock_setup
+ *
+ * Description:
+ *   Initialize FDCAN and register the FDCAN socket driver.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_STM32H7_FDCAN
+int stm32_fdcansock_setup(void);
+#endif
+
+/****************************************************************************
+ * Name: stm32_gpio_initialize
+ *
+ * Description:
+ *   Initialize GPIO-Driver.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_DEV_GPIO)
+int stm32_gpio_initialize(void);
 #endif
 
 /****************************************************************************
@@ -442,32 +524,6 @@ int board_pca9557_initialize(void);
 #endif
 
 /****************************************************************************
- * Name: stm32_pwm_setup
- *
- * Description:
- *   Initialize PWM and register the PWM device.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_PWM
-int stm32_pwm_setup(void);
-#endif
-
-/****************************************************************************
- * Name: stm32_mtd_initialize
- *
- * Description:
- *   Initialize MTD drivers.
- *
- ****************************************************************************/
-#ifdef CONFIG_MTD
-
-#ifdef HAVE_PROGMEM_CHARDEV
-int stm32_progmem_init(void);
-#endif  /* HAVE_PROGMEM_CHARDEV */
-#endif
-
-/****************************************************************************
  * Name: board_gps_initialize
  *
  * Description:
@@ -488,45 +544,6 @@ int board_gps_initialize(void);
  ****************************************************************************/
 #ifdef CONFIG_USB251X
 int board_usb251x_initialize(int bus);
-#endif
-
-/****************************************************************************
- * Name: stm32_dma_alloc_init
- *
- * Description:
- *   Called to create a FAT DMA allocator
- *
- * Returned Value:
- *   0 on success or -ENOMEM
- *
- ****************************************************************************/
-
-#if defined (CONFIG_FAT_DMAMEMORY)
-int stm32_dma_alloc_init(void);
-#endif
-
-/****************************************************************************
- * Name: stm32_mmcsd_initialize
- *
- * Description:
- *   Initialize SDIO-based SD card and card detect thread.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_MMCSD
-int stm32_mmcsd_initialize(int minor);
-#endif
-
-/****************************************************************************
- * Name: board_ramtron_initialize
- *
- * Description:
- *   Initialize SDIO-based SD card and card detect thread.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_MTD_RAMTRON
-int board_ramtron_initialize(int minor);
 #endif
 
 #endif /* __BOARDS_ARM_STM32H7_STALYA_FMU_SRC_STALYA_FMU_H */

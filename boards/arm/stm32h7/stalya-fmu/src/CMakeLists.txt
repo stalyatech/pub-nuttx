@@ -50,6 +50,10 @@ if(CONFIG_BOARDCTL_UNIQUEID)
   list(APPEND SRCS stm32_uid.c)
 endif()
 
+if(CONFIG_STM32H7_FDCAN)
+  list(APPEND SRCS stm32_fdcansock.c)
+endif()
+
 if(CONFIG_SENSORS_ICM20689)
   list(APPEND SRCS stm32_icm20689.c)
 endif()

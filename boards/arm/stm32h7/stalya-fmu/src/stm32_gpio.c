@@ -38,7 +38,7 @@
 #include "stm32_gpio.h"
 #include "stalya-fmu.h"
 
-#if defined(CONFIG_DEV_GPIO)
+#if defined(CONFIG_DEV_GPIO) && !defined(CONFIG_GPIO_LOWER_HALF)
 
 /****************************************************************************
  * Private Types
@@ -54,11 +54,13 @@ struct stm32gpio_dev_s
   uint8_t id;
 };
 
+#if BOARD_NGPIOINT > 0
 struct stm32gpint_dev_s
 {
   struct stm32gpio_dev_s stm32gpio;
   pin_interrupt_t callback;
 };
+#endif /* BOARD_NGPIOINT */
 
 /****************************************************************************
  * Private Function Prototypes
@@ -66,19 +68,19 @@ struct stm32gpint_dev_s
 
 #if BOARD_NGPIOIN > 0
 static int gpin_read(struct gpio_dev_s *dev, bool *value);
-#endif
+#endif /* BOARD_NGPIOIN */
 
 #if BOARD_NGPIOOUT > 0
 static int gpout_read(struct gpio_dev_s *dev, bool *value);
 static int gpout_write(struct gpio_dev_s *dev, bool value);
-#endif
+#endif /* BOARD_NGPIOOUT */
 
 #if BOARD_NGPIOINT > 0
 static int gpint_read(struct gpio_dev_s *dev, bool *value);
 static int gpint_attach(struct gpio_dev_s *dev,
                         pin_interrupt_t callback);
 static int gpint_enable(struct gpio_dev_s *dev, bool enable);
-#endif
+#endif /* BOARD_NGPIOINT */
 
 /****************************************************************************
  * Private Data
@@ -92,7 +94,7 @@ static const struct gpio_operations_s gpin_ops =
   .go_attach = NULL,
   .go_enable = NULL,
 };
-#endif
+#endif /* BOARD_NGPIOIN */
 
 #if BOARD_NGPIOOUT > 0
 static const struct gpio_operations_s gpout_ops =
@@ -102,7 +104,7 @@ static const struct gpio_operations_s gpout_ops =
   .go_attach = NULL,
   .go_enable = NULL,
 };
-#endif
+#endif /* BOARD_NGPIOOUT */
 
 #if BOARD_NGPIOINT > 0
 static const struct gpio_operations_s gpint_ops =
@@ -112,33 +114,43 @@ static const struct gpio_operations_s gpint_ops =
   .go_attach = gpint_attach,
   .go_enable = gpint_enable,
 };
-#endif
+#endif /* BOARD_NGPIOINT */
 
 #if BOARD_NGPIOIN > 0
 /* This array maps the GPIO pins used as INPUT */
 
 static const uint32_t g_gpioinputs[BOARD_NGPIOIN] =
 {
-  GPIO_IN1,
-  GPIO_IN2,
-  GPIO_IN3,
-  GPIO_IN4,
-  GPIO_IN5,
+  GPIO_IN1,         /* gpio8  */
+  GPIO_IN2,         /* gpio9  */
+  GPIO_IN3,         /* gpio10 */
+  GPIO_IN4,         /* gpio11 */
+  GPIO_IN5,         /* gpio12 */
 };
 
 static struct stm32gpio_dev_s g_gpin[BOARD_NGPIOIN];
-#endif
+#endif /* BOARD_NGPIOIN */
+
+#if BOARD_NGPIOOUT > 0
+/* This array maps the GPIO pins used as OUTPUT */
+
+static const uint32_t g_gpiooutputs[BOARD_NGPIOOUT] =
+{
+};
+
+static struct stm32gpio_dev_s g_gpout[BOARD_NGPIOOUT];
+#endif /* BOARD_NGPIOOUT */
 
 #if BOARD_NGPIOINT > 0
 /* This array maps the GPIO pins used as INTERRUPT INPUTS */
 
 static const uint32_t g_gpiointinputs[BOARD_NGPIOINT] =
 {
-  GPIO_INT1,
+  GPIO_INT1,        /* gpio13 */
 };
 
 static struct stm32gpint_dev_s g_gpint[BOARD_NGPIOINT];
-#endif
+#endif /* BOARD_NGPIOINT */
 
 /****************************************************************************
  * Private Functions

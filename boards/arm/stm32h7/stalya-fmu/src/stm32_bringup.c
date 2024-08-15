@@ -29,23 +29,14 @@
 #include <errno.h>
 
 #include <arch/board/board.h>
-
 #include <nuttx/fs/fs.h>
 #include <nuttx/leds/userled.h>
+
+#include "stalya-fmu.h"
 
 #ifdef CONFIG_USBMONITOR
 #  include <nuttx/usb/usbmonitor.h>
 #endif
-
-#ifdef CONFIG_STM32H7_OTGFS
-#  include "stm32_usbhost.h"
-#endif
-
-#ifdef CONFIG_STM32H7_FDCAN
-#include "stm32_fdcan_sock.h"
-#endif
-
-#include "stalya-fmu.h"
 
 #ifdef CONFIG_INPUT_BUTTONS
 #  include <nuttx/input/buttons.h>
@@ -71,8 +62,6 @@
 #ifdef CONFIG_RNDIS
 #  include <nuttx/usb/rndis.h>
 #endif
-
-#include "stm32_gpio.h"
 
 /****************************************************************************
  * Private Functions
@@ -172,7 +161,8 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to mount the PROC filesystem: %d\n",  ret);
+             "ERROR: Failed to mount the PROC filesystem: %d\n", ret);
+      return ret;
     }
 #endif /* CONFIG_FS_PROCFS */
 
@@ -188,6 +178,7 @@ int stm32_bringup(void)
     {
       syslog(LOG_ERR,
              "ERROR: Failed to initialize PCA9557 driver: %d\n", ret);
+      return ret;
     }
 #endif /* CONFIG_IOEXPANDER_PCA9557 */
 
@@ -310,24 +301,37 @@ int stm32_bringup(void)
 #ifdef CONFIG_INPUT_BUTTONS
   /* Register the BUTTON driver */
 
-  ret = btn_lower_initialize("/dev/buttons");
+  ret = btn_lower_initialize(BUTTONS_DEVPATH);
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize button driver: %d\n", ret);
+             "ERROR: Failed to initialize BUTTON driver: %d\n", ret);
+      return ret;
     }
 #endif /* CONFIG_INPUT_BUTTONS */
+
+#ifdef CONFIG_DEV_GPIO
+  /* Register the GPIO driver */
+
+  ret = stm32_gpio_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+            "ERROR: Failed to initialize GPIO driver: %d\n", ret);
+      return ret;
+    }
+#endif /* CONFIG_DEV_GPIO */
 
 #if !defined(CONFIG_ARCH_LEDS) && defined(CONFIG_USERLED_LOWER)
   /* Register the LED driver */
 
-  ret = userled_lower_initialize(LED_DRIVER_PATH);
+  ret = userled_lower_initialize(LEDS_DEVPATH);
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize user led driver: %d\n", ret);
+             "ERROR: Failed to initialize LED lower driver: %d\n", ret);
     }
-#endif
+#endif /* !CONFIG_ARCH_LEDS && CONFIG_USERLED_LOWER */
 
 #ifdef CONFIG_ADC
   /* Initialize ADC and register the ADC driver. */
@@ -340,27 +344,22 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_ADC */
 
-#ifdef CONFIG_DEV_GPIO
-  /* Register the GPIO driver */
+#ifdef CONFIG_STM32F7_BBSRAM
+  /* Initialize battery-backed RAM */
 
-  ret = stm32_gpio_initialize();
+  stm32_bbsram_int();
+#endif /* CONFIG_STM32F7_BBSRAM */
+
+#if defined(CONFIG_FAT_DMAMEMORY)
+  /* Initialize the FAT DMA memory allocator */
+
+  ret = stm32_dma_alloc_init();
   if (ret < 0)
     {
       syslog(LOG_ERR,
-            "ERROR: Failed to initialize GPIO driver: %d\n", ret);
+             "ERROR: Failed to initialize FAT DMA memory allocator: %d\n", ret);
     }
-#endif /* CONFIG_DEV_GPIO */
-
-#ifdef CONFIG_PWM
-  /* Initialize PWM and register the PWM device. */
-
-  ret = stm32_pwm_setup();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR,
-             "ERROR: Failed to initialize PWM driver: %d\n", ret);
-    }
-#endif
+#endif /* CONFIG_FAT_DMAMEMORY */
 
 #ifdef CONFIG_MTD
 #ifdef HAVE_PROGMEM_CHARDEV
@@ -382,85 +381,6 @@ int stm32_bringup(void)
 #endif /* CONFIG_MTD_RAMTRON */
 #endif /* CONFIG_MTD */
 
-#ifdef CONFIG_SENSORS_GPS
-  /* Initialize GPS uORB service. */
-
-  board_gps_initialize();
-#endif /* CONFIG_SENSORS_GPS */
-
-#ifdef CONFIG_NETDEV_LATEINIT
-  /* Initialize SocketCAN device. */
-
-#ifdef CONFIG_STM32H7_FDCAN1
-  stm32_fdcansockinitialize(0);
-#endif
-
-#ifdef CONFIG_STM32H7_FDCAN2
-  stm32_fdcansockinitialize(1);
-#endif
-#endif /* CONFIG_NETDEV_LATEINIT */
-
-#ifdef HAVE_USBHOST
-  /* Initialize USB host operation.  stm32_usbhost_initialize()
-   * starts a thread will monitor for USB connection and
-   * disconnection events.
-   */
-
-  ret = stm32_usbhost_initialize();
-  if (ret != OK)
-    {
-      syslog(LOG_ERR,
-             "ERROR: Failed to initialize USB host: %d\n", ret);
-    }
-#endif /* HAVE_USBHOST */
-
-#ifdef HAVE_USBMONITOR
-  /* Start the USB Monitor */
-
-  ret = usbmonitor_start();
-  if (ret != OK)
-    {
-      syslog(LOG_ERR,
-             "ERROR: Failed to start USB monitor: %d\n", ret);
-    }
-#endif /* HAVE_USBMONITOR */
-
-#if defined(CONFIG_CDCACM) && !defined(CONFIG_CDCACM_CONSOLE) && \
-    !defined(CONFIG_CDCACM_COMPOSITE)
-  /* Initialize CDCACM */
-
-  syslog(LOG_INFO, "Initialize CDCACM device\n");
-
-  ret = cdcacm_initialize(0, NULL);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR,
-             "ERROR: Failed to initialize USB CDC/ACM device: %d\n", ret);
-    }
-#endif /* CONFIG_CDCACM & !CONFIG_CDCACM_CONSOLE */
-
-#if defined(CONFIG_RNDIS) && !defined(CONFIG_RNDIS_COMPOSITE)
-  uint8_t mac[6];
-  mac[0] = 0xa0; /* TODO */
-  mac[1] = (CONFIG_NETINIT_MACADDR_2 >> (8 * 0)) & 0xff;
-  mac[2] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 3)) & 0xff;
-  mac[3] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 2)) & 0xff;
-  mac[4] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 1)) & 0xff;
-  mac[5] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 0)) & 0xff;
-  usbdev_rndis_initialize(mac);
-#endif /* CONFIG_RNDIS && !CONFIG_RNDIS_COMPOSITE */
-
-#if defined(CONFIG_FAT_DMAMEMORY)
-  /* Initialize the FAT DMA memory allocator */
-
-  ret = stm32_dma_alloc_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR,
-             "ERROR: Failed to initialize FAT DMA memory allocator: %d\n", ret);
-    }
-#endif /* CONFIG_FAT_DMAMEMORY */
-
 #ifdef CONFIG_MMCSD
   /* Initialize the SDIO block driver */
 
@@ -472,6 +392,79 @@ int stm32_bringup(void)
              CONFIG_NSH_MMCSDMINOR, ret);
     }
 #endif /* CONFIG_MMCSD */
+
+#ifdef CONFIG_PWM
+  /* Initialize PWM and register the PWM device. */
+
+  ret = stm32_pwm_setup();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize PWM driver: %d\n", ret);
+    }
+#endif /* CONFIG_PWM */
+
+#ifdef CONFIG_NETDEV_LATEINIT
+#ifdef CONFIG_STM32H7_FDCAN
+  ret = stm32_fdcansock_setup();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize CAN Socket driver: %d\n", ret);
+    }
+#endif /* CONFIG_STM32H7_FDCAN */
+#endif /* CONFIG_NETDEV_LATEINIT */
+
+#ifdef CONFIG_SENSORS_GPS
+  /* Initialize GPS uORB service. */
+
+  board_gps_initialize();
+#endif /* CONFIG_SENSORS_GPS */
+
+#ifdef CONFIG_USBDEV_COMPOSITE
+  /* Initialize Composite Device */
+
+#ifndef CONFIG_BOARDCTL_USBDEVCTRL
+  ret = board_composite_initialize(0);
+  if (ret != OK)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize composite device: %d\n", ret);
+      return ret;
+    }
+
+  if (board_composite_connect(0, 0) == NULL)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to connect composite device: %d\n", ret);
+      return ret;
+    }
+#endif /* !CONFIG_BOARDCTL_USBDEVCTRL */
+#else /* CONFIG_USBDEV_COMPOSITE */
+#if defined(CONFIG_CDCACM) && !defined(CONFIG_CDCACM_CONSOLE)
+  /* Initialize CDCACM */
+
+  syslog(LOG_INFO, "Initialize CDCACM device\n");
+
+  ret = cdcacm_initialize(0, NULL);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize CDC/ACM device: %d\n", ret);
+      return ret;
+    }
+#endif /* CONFIG_CDCACM & !CONFIG_CDCACM_CONSOLE */
+#if defined(CONFIG_RNDIS)
+  uint8_t mac[6];
+  mac[0] = 0xa0; /* TODO */
+  mac[1] = (CONFIG_NETINIT_MACADDR_2 >> (8 * 0)) & 0xff;
+  mac[2] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 3)) & 0xff;
+  mac[3] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 2)) & 0xff;
+  mac[4] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 1)) & 0xff;
+  mac[5] = (CONFIG_NETINIT_MACADDR_1 >> (8 * 0)) & 0xff;
+  usbdev_rndis_initialize(mac);
+#endif
+#endif /* CONFIG_USBDEV_COMPOSITE */
 
 #ifdef CONFIG_STM32H7_IWDG
   /* Initialize the watchdog timer */

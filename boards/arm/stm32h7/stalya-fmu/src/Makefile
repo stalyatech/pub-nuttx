@@ -52,6 +52,10 @@ ifeq ($(CONFIG_BOARDCTL_UNIQUEID),y)
 CSRCS += stm32_uid.c
 endif
 
+ifeq ($(CONFIG_STM32H7_FDCAN),y)
+CSRCS += stm32_fdcansock.c
+endif
+
 ifeq ($(CONFIG_SENSORS_ICM20689),y)
 CSRCS += stm32_icm20689.c
 endif

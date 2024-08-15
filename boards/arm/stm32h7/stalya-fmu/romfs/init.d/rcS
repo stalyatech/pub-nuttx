@@ -3,7 +3,7 @@
 #gpio -o 1 /dev/xbbp
 
 # Start the Mongoose services
-#mg_smart -p 8001 -r /data0/www -g &
+mg_smart -p 8001 -r /sdc/www2 -g &
 
 # Start the FTP service
-#ftpd_start -4 &
+ftpd_start -4 &

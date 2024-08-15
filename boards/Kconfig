@@ -1769,6 +1769,7 @@ config ARCH_BOARD_STALYA_FMU
 	depends on ARCH_CHIP_STM32H743VI
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
+  select ARCH_HAVE_IRQBUTTONS
 	---help---
 		Stalya FMU board based on the STMicro STM32H743VI MCU.
 

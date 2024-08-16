@@ -60,11 +60,13 @@
 #define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
 #define STM32_LSE_FREQUENCY     32768
 
+#define STM32_BOARD_USEHSI      1
+
 /* Main PLL Configuration.
  *
- * PLL source is HSE = 12,000,000
+ * PLL source is HSI = 16,000,000
  *
- * PLL_VCO = (STM32_HSE_FREQUENCY / PLLM) * PLLN
+ * PLL_VCO = (STM32_HSI_FREQUENCY / PLLM) * PLLN
  * Subject to:
  *
  *     2 <= PLLM <= 63
@@ -89,17 +91,25 @@
 
 /* Highest SYSCLK
  *
- * PLL_VCO = (12,000,000 / 6) * 216 = 432 MHz
+ * PLL_VCO = (16,000,000 / 8) * 216 = 432 MHz
  * SYSCLK  = 432 MHz / 2 = 216 MHz
  * USB OTG FS, SDMMC and RNG Clock = 432 MHz / 9 = 48 MHz
  */
 
+#ifdef STM32_BOARD_USEHSI
+#define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(8)
+#else /* STM32_BOARD_USEHSI */
 #define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(6)
+#endif
 #define STM32_PLLCFG_PLLN       RCC_PLLCFG_PLLN(216)
 #define STM32_PLLCFG_PLLP       RCC_PLLCFG_PLLP_2
 #define STM32_PLLCFG_PLLQ       RCC_PLLCFG_PLLQ(9)
 
+#ifdef STM32_BOARD_USEHSI
+#define STM32_VCO_FREQUENCY     ((STM32_HSI_FREQUENCY / 8) * 216)
+#else
 #define STM32_VCO_FREQUENCY     ((STM32_HSE_FREQUENCY / 6) * 216)
+#endif /* STM32_BOARD_USEHSI */
 #define STM32_SYSCLK_FREQUENCY  (STM32_VCO_FREQUENCY / 2)
 #define STM32_OTGFS_FREQUENCY   (STM32_VCO_FREQUENCY / 9)
 
@@ -344,6 +354,14 @@
 
 #define GPIO_ADC1_IN0   GPIO_ADC1_IN0_0   /* PA0 */
 #define GPIO_ADC1_IN1   GPIO_ADC1_IN1_0   /* PA1 */
+
+/*
+ * USART1 	ttyS0	  External IMU Port 2
+ * USART2 	ttyS1	  Bluetooth HCI Port
+ * USART3 	ttyS2	  XBee Radio Socket
+ * UART7 	  ttyS3	  XBee GNSS Socket
+ * UART8 	  ttyS4	  External IMU Port 1
+ */
 
 /* USART1:
  *

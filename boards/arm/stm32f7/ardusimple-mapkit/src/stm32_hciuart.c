@@ -80,7 +80,7 @@ int hciuart_dev_initialize(void)
    * Then initialize the HCI UART upper half driver with the bluetooth stack
    */
 
-  ret = btuart_register(btuart_shim_getdevice("/dev/ttyS1"));
+  ret = btuart_register(btuart_shim_getdevice(BT_UART_DEVPATH));
   if (ret < 0)
     {
       wlerr("ERROR: btuart_register() failed: %d\n", ret);

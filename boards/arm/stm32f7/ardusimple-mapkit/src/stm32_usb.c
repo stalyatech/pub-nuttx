@@ -134,7 +134,7 @@ void stm32_usbinitialize(void)
 #endif
 
 #ifdef CONFIG_STM32F7_OTGFS
-    stm32_configgpio(GPIO_OTGFS_VBUS);
+  stm32_configgpio(GPIO_OTGFS_VBUS);
 #endif
 }
 

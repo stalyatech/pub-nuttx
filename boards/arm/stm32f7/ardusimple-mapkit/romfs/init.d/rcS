@@ -14,4 +14,4 @@ charger &
 mg_smart -p 8001 -r /data0/www -g &
 
 # start the ftp service on RNDIS interface
-ftpd_start -4 -i eth0 &
+ftpd_start -4 &

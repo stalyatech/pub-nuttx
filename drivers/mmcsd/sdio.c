@@ -503,9 +503,9 @@ int sdio_enable_function(FAR struct sdio_dev_s *dev, uint8_t function)
       return ret;
     }
 
-  /* Wait 1s for function to be enabled */
+  /* Wait 3s for function to be enabled */
 
-  int loops = 100;
+  int loops = 300;
 
   while (loops-- > 0)
     {

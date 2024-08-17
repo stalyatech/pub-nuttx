@@ -458,6 +458,63 @@ config SENSORS_BME680_THREAD_STACKSIZE
 	---help---
 		The stack size for the worker thread.
 
+config SENSORS_BNO055
+	bool "Bosch BNO055 Smart Sensor support"
+	default n
+	---help---
+		Enable driver for the Bosch BNO055 smart sensor combining
+		accelerometer,gyroscope,magnetometer and orientation software.
+
+if SENSORS_BNO055
+
+config BNO055_NPOLLWAITERS
+	int "Number of waiters to poll"
+	default 2
+	---help---
+		Maximum number of threads that can be waiting on poll()
+
+config SENSORS_BNO055_UORB
+	bool "BNO055 uORB Interface"
+	default n
+	---help---
+		Enables Work with the UORB or Character Device interface.
+		If not set, the Character Device is used by default.
+
+choice
+	prompt "BNO055 Interface"
+	default SENSORS_BNO055_I2C
+
+config SENSORS_BNO055_I2C
+	bool "BNO055 I2C Interface"
+	select I2C
+	---help---
+		Enables support for the I2C interface
+
+if SENSORS_BNO055_I2C
+
+config BNO055_I2C_FREQUENCY
+	int "BNO055 I2C frequency"
+	default 100000
+
+endif # SENSORS_BNO055_I2C
+
+config SENSORS_BNO055_SPI
+	bool "BNO055 SPI Interface"
+	select SPI
+	---help---
+		Enables support for the SPI interface
+
+if SENSORS_BNO055_SPI
+
+config BNO055_SPI_FREQUENCY
+	int "BNO055 SPI frequency"
+	default 10000000
+
+endif # SENSORS_BNO055_SPI
+
+endchoice
+endif # SENSORS_BNO055
+
 config SENSORS_BNO085
 	bool "Bosch BNO085 Smart Sensor support"
 	default n
@@ -474,7 +531,7 @@ config BNO085_NPOLLWAITERS
 		Maximum number of threads that can be waiting on poll()
 
 config SENSORS_BNO085_UORB
-	bool "BNO085 UORB Interface"
+	bool "BNO085 uORB Interface"
 	default n
 	---help---
 		Enables Work with the UORB or Character Device interface.

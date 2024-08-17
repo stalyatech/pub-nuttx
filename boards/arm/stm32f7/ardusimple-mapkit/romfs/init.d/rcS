@@ -10,8 +10,8 @@ tone -s &
 # configure the charger
 charger &
 
-# start the web server service
-mg_smart -p 8001 -r /data0/www -g &
-
 # start the ftp service on RNDIS interface
 ftpd_start -4 &
+
+# start the web server service
+mg_smart -p 8001 -r /data0/www -g &

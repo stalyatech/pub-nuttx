@@ -285,6 +285,17 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_BQ2429X */
 
+#ifdef CONFIG_SENSORS_BNO055
+  /* Register the smart sensor driver */
+
+  ret = stm32_bno055_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize BNO055 driver: %d\n", ret);
+    }
+#endif /* CONFIG_SENSORS_BNO055 */
+
 #ifdef CONFIG_SENSORS_BNO085
   /* Register the smart sensor driver */
 

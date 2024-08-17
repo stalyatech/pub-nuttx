@@ -246,9 +246,13 @@
 
 /* IMU Sensor */
 
-#define BNO085_I2C_BUS    4
-#define BNO085_I2C_ADDR   0x4A
-#define BNO085_I2C_FREQ   10000
+#define BNO055_I2C_BUS    (4)
+#define BNO055_I2C_ADDR   (0x28)
+#define BNO055_I2C_FREQ   (400000)
+
+#define BNO085_I2C_BUS    (4)
+#define BNO085_I2C_ADDR   (0x4a)
+#define BNO085_I2C_FREQ   (400000)
 
 /*
  * IMU Sensor Interrupt
@@ -264,9 +268,9 @@
 
 /* BQ2429X Battery charger */
 
-#define BQ2429X_I2C_BUS   2
-#define BQ2429X_I2C_ADDR  0x6B
-#define BQ2429X_I2C_FREQ  100000
+#define BQ2429X_I2C_BUS   (2)
+#define BQ2429X_I2C_ADDR  (0x6b)
+#define BQ2429X_I2C_FREQ  (100000)
 
 /****************************************************************************
  * Public Data
@@ -439,6 +443,14 @@ int stm32_cansock_setup(void);
 
 #ifdef CONFIG_DEV_GPIO
 int stm32_gpio_initialize(void);
+#endif
+
+/****************************************************************************
+ * Name: stm32_bno055_initialize
+ ****************************************************************************/
+
+#ifdef CONFIG_SENSORS_BNO055
+int stm32_bno055_initialize(void);
 #endif
 
 /****************************************************************************

@@ -115,6 +115,10 @@ if(CONFIG_USB251X)
   list(APPEND SRCS stm32_usbhub.c)
 endif()
 
+if(CONFIG_SENSORS_BNO055)
+  list(APPEND SRCS stm32_bno055.c)
+endif()
+
 if(CONFIG_SENSORS_BNO085)
   list(APPEND SRCS stm32_bno085.c)
 endif()

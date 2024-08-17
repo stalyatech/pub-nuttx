@@ -20,6 +20,7 @@
 
 if(CONFIG_SENSORS)
 
+  nuttx_add_subdirectory(bosch)
   nuttx_add_subdirectory(ceva)
 
   set(SRCS sensor.c)
@@ -71,11 +72,19 @@ if(CONFIG_SENSORS)
     list(APPEND SRCS bmi270.c)
   endif()
 
-  if(CONFIG_SENSORS_BNO085)
-	if(CONFIG_SENSORS_BNO085_UORB)
-	  list(APPEND SRCS bno085_uorb.c)
+  if(CONFIG_SENSORS_BNO055)
+    if(CONFIG_SENSORS_BNO055_UORB)
+      list(APPEND SRCS bno055_uorb.c)
     else()
-	  list(APPEND SRCS bno085.c)
+      list(APPEND SRCS bno055.c)
+    endif()
+  endif()
+
+  if(CONFIG_SENSORS_BNO085)
+	  if(CONFIG_SENSORS_BNO085_UORB)
+	    list(APPEND SRCS bno085_uorb.c)
+    else()
+	    list(APPEND SRCS bno085.c)
     endif()
   endif()
 

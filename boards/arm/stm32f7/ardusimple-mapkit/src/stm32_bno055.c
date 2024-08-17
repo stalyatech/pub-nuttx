@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32f7/ardusimple-mapkit/src/stm32_bno085.c
+ * boards/arm/stm32f7/ardusimple-mapkit/src/stm32_bno055.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -25,7 +25,7 @@
 #include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <arch/board/board.h>
-#include <nuttx/sensors/bno085.h>
+#include <nuttx/sensors/bno055.h>
 
 #include <stdio.h>
 #include <debug.h>
@@ -47,24 +47,26 @@
  ****************************************************************************/
 
 #ifdef BOARD_IMU_IRQ
-static int bno085_attach(struct bno085_config_s *cfg, xcpt_t irq, void *arg);
+static int bno055_attach(struct bno055_config_s *cfg, xcpt_t irq, void *arg);
 #endif /* BOARD_IMU_IRQ */
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-/* Only one BNO085 device on board */
+/* Only one BNO055 device on board */
 
-static struct bno085_config_s g_bno085_config =
+static struct bno055_config_s g_bno055_config =
 {
   .dev    = NULL,
-  .devid  = BNO085_I2C_ADDR,
-  .freq   = BNO085_I2C_FREQ,
+  .devid  = BNO055_I2C_ADDR,
+  .freq   = BNO055_I2C_FREQ,
 #ifdef BOARD_IMU_IRQ
   .irq    = BOARD_IMU_IRQ,
-  .attach = bno085_attach,
+  .attach = bno055_attach,
 #endif /* BOARD_IMU_IRQ */
+  .pwr_mode = BNO055_PWMODE_NORMAL,
+  .opr_mode = BNO055_OPMODE_RAW,
 };
 
 /****************************************************************************
@@ -72,13 +74,13 @@ static struct bno085_config_s g_bno085_config =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: bno085_attach()
+ * Name: bno055_attach()
  *
- * Description: Attach the bno085 interrupt handler to the GPIO interrupt
+ * Description: Attach the bno055 interrupt handler to the GPIO interrupt
  *
  ****************************************************************************/
 #if defined(BOARD_IMU_IRQ) && defined(BOARD_IMU_GPIO_INT)
-static int bno085_attach(struct bno085_config_s *cfg, xcpt_t irq, void *arg)
+static int bno055_attach(struct bno055_config_s *cfg, xcpt_t irq, void *arg)
 {
   return stm32_gpiosetevent(BOARD_IMU_GPIO_INT, false, true,
                             true, irq, arg);
@@ -89,22 +91,22 @@ static int bno085_attach(struct bno085_config_s *cfg, xcpt_t irq, void *arg)
  * Public Functions
  ****************************************************************************/
 
-int stm32_bno085_initialize(void)
+int stm32_bno055_initialize(void)
 {
   int ret = ERROR;
 
   /* Initialize the I2C bus */
 
-  g_bno085_config.dev = stm32_i2cbus_initialize(BNO085_I2C_BUS);
-  if (g_bno085_config.dev == NULL)
+  g_bno055_config.dev = stm32_i2cbus_initialize(BNO055_I2C_BUS);
+  if (g_bno055_config.dev == NULL)
     {
-      syslog(LOG_ERR, "ERROR: Failed to get I2C%d interface\n", BNO085_I2C_BUS);
+      syslog(LOG_ERR, "ERROR: Failed to get I2C%d interface\n", BNO055_I2C_BUS);
     }
   else
     {
       /* register the driver */
 
-      ret = bno085_register("/dev/imu0", &g_bno085_config);
+      ret = bno055_register("/dev/imu0", &g_bno055_config);
     }
 
   return ret;

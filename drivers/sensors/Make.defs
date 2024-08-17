@@ -22,6 +22,7 @@
 
 ifeq ($(CONFIG_SENSORS),y)
 
+include sensors/bosch/Make.defs
 include sensors/ceva/Make.defs
 
 CSRCS += sensor.c
@@ -72,6 +73,14 @@ endif
 
 ifeq ($(CONFIG_SENSORS_BMI270),y)
   CSRCS += bmi270.c
+endif
+
+ifeq ($(CONFIG_SENSORS_BNO055),y)
+  ifeq ($(CONFIG_SENSORS_BNO055_UORB),y)
+    CSRCS += bno055_uorb.c
+  else
+    CSRCS += bno055.c
+  endif
 endif
 
 ifeq ($(CONFIG_SENSORS_BNO085),y)

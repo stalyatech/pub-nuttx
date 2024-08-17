@@ -121,6 +121,10 @@ ifeq ($(CONFIG_USB251X),y)
 CSRCS += stm32_usbhub.c
 endif
 
+ifeq ($(CONFIG_SENSORS_BNO055),y)
+CSRCS += stm32_bno055.c
+endif
+
 ifeq ($(CONFIG_SENSORS_BNO085),y)
 CSRCS += stm32_bno085.c
 endif

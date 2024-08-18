@@ -134,7 +134,7 @@
 
 /* ArduSimple-MapKit GPIOs */
 
-/* The ArduSimple-MapKit board has 3 LEDs.
+/* The ArduSimple-MapKit board has 6 LEDs.
  *
  * All of them can be controlled by software.
  *

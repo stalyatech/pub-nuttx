@@ -34,6 +34,7 @@
 #include <nuttx/power/battery_charger.h>
 #include <nuttx/power/battery_ioctl.h>
 
+#include "stm32_gpio.h"
 #include "ardusimple-mapkit.h"
 
 #ifdef CONFIG_BOARDCTL_POWEROFF
@@ -68,6 +69,20 @@ int board_power_off(int status)
   struct file fd;
   int op, ret;
 
+  /* Power off the peripherals */
+
+  stm32_gpiowrite(GPIO_PER_PWRON, 0);
+
+  /* Power off the USB hub */
+
+#ifdef CONFIG_USB251X
+  stm32_gpiowrite(GPIO_USB251X_PWR, 0);
+#endif
+
+  /* Wait for a while */
+
+  up_mdelay(1000);
+
   /* Open the battery charger device */
 
   ret = file_open(&fd, CHARGER_DEVPATH, O_RDWR);
@@ -91,6 +106,7 @@ int board_power_off(int status)
   /* Close battery charger device and exit. */
 
   file_close(&fd);
+
   return ret;
 }
 

@@ -240,7 +240,7 @@
 
 /* GPIO pins used by the GPIO Subsystem */
 
-#define BOARD_NGPIOIN     1   /* Amount of GPIO Input pins */
+#define BOARD_NGPIOIN     2   /* Amount of GPIO Input pins */
 #define BOARD_NGPIOOUT    11  /* Amount of GPIO Output pins */
 #define BOARD_NGPIOINT    3   /* Amount of GPIO Input w/ Interruption pins */
 

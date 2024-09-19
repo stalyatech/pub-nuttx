@@ -10,6 +10,11 @@ choice
 	default ARCH_CHIP_MPFS250T_FCVG484
 	depends on ARCH_CHIP_MPFS
 
+config ARCH_CHIP_MPFS095T_FCSG325
+	bool "MPFS095T_FCSG325"
+	---help---
+		MPFS095T 325, 11x14.5x0.8 mm package
+
 config ARCH_CHIP_MPFS250T_FCVG484
 	bool "MPFS250T_FCVG484"
 	---help---

@@ -524,15 +524,15 @@ int board_pca9557_initialize(void);
 #endif
 
 /****************************************************************************
- * Name: board_gps_initialize
+ * Name: board_gnss_initialize
  *
  * Description:
- *   Initialize u-blox GPS drivers.
+ *   Initialize u-blox GNSS drivers.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SENSORS_GPS
-int board_gps_initialize(void);
+#ifdef CONFIG_SENSORS_GNSS
+int board_gnss_initialize(void);
 #endif
 
 /****************************************************************************

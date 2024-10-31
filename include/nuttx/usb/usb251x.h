@@ -77,6 +77,7 @@ enum usb251x_reg_address_e
 };
 
 /* USB hub port number */
+
 enum usb251x_ports_e
 {
     USB251X_UPS_PORT,
@@ -134,7 +135,8 @@ struct usb251x_config_s
  *
  ****************************************************************************/
 
-int usb251x_register(FAR const char *devpath, FAR struct usb251x_config_s *config);
+int usb251x_register(FAR const char *devpath,
+                     FAR struct usb251x_config_s *config);
 
 #undef EXTERN
 #if defined(__cplusplus)

@@ -146,16 +146,9 @@ static void lis3mdl_worker(FAR void *arg);
 
 static const struct sensor_ops_s g_lis3mdl_ops =
 {
-  NULL,                   /* open */
-  NULL,                   /* close */
-  lis3mdl_activate,       /* activate */
-  lis3mdl_set_interval,   /* set_interval */
-  NULL,                   /* batch */
-  NULL,                   /* fetch */
-  NULL,                   /* selftest */
-  NULL,                   /* set_calibvalue */
-  NULL,                   /* calibrate */
-  lis3mdl_control         /* control */
+  .activate     = lis3mdl_activate,
+  .set_interval = lis3mdl_set_interval,
+  .control      = lis3mdl_control
 };
 
 /****************************************************************************

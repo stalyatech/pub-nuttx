@@ -415,11 +415,11 @@ int stm32_bringup(void)
 #endif /* CONFIG_STM32H7_FDCAN */
 #endif /* CONFIG_NETDEV_LATEINIT */
 
-#ifdef CONFIG_SENSORS_GPS
-  /* Initialize GPS uORB service. */
+#ifdef CONFIG_SENSORS_GNSS
+  /* Initialize GNSS uORB service. */
 
-  board_gps_initialize();
-#endif /* CONFIG_SENSORS_GPS */
+  board_gnss_initialize();
+#endif /* CONFIG_SENSORS_GNSS */
 
 #ifdef CONFIG_USBDEV_COMPOSITE
   /* Initialize Composite Device */

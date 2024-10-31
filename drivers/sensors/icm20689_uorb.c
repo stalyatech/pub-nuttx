@@ -70,16 +70,9 @@ static void icm20689_worker(FAR void *arg);
 
 static const struct sensor_ops_s g_icm20689_ops =
 {
-  NULL,                   /* open */
-  NULL,                   /* close */
-  icm20689_activate,      /* activate */
-  icm20689_set_interval,  /* set_interval */
-  NULL,                   /* batch */
-  NULL,                   /* fetch */
-  NULL,                   /* selftest */
-  NULL,                   /* set_calibvalue */
-  NULL,                   /* calibrate */
-  icm20689_control        /* control */
+  .activate     = icm20689_activate,
+  .set_interval = icm20689_set_interval,
+  .control      = icm20689_control
 };
 
 /****************************************************************************

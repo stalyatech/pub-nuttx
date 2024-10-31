@@ -122,8 +122,8 @@ ifeq ($(CONFIG_MTD_RAMTRON),y)
 CSRCS += stm32_ramtron.c
 endif
 
-ifeq ($(CONFIG_SENSORS_GPS),y)
-CSRCS += stm32_gps.c
+ifeq ($(CONFIG_SENSORS_GNSS),y)
+CSRCS += stm32_gnss.c
 endif
 
 ifeq ($(CONFIG_ETC_ROMFS),y)

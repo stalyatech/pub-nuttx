@@ -482,7 +482,7 @@
 
 #define SENSOR_GNSS_SAT_INFO_MAX                    4
 
-/* GPS raw data bufer size */
+/* GNSS raw data bufer size */
 
 #define SENSOR_GNSS_RAWDATA_SIZE                    116
 

@@ -94,7 +94,6 @@
 
 #define PROGMEM_MTD_MINOR 0
 
-
 /* procfs File System */
 
 #ifdef CONFIG_FS_PROCFS
@@ -254,8 +253,7 @@
 #define BNO085_I2C_ADDR   (0x4a)
 #define BNO085_I2C_FREQ   (400000)
 
-/*
- * IMU Sensor Interrupt
+/* IMU Sensor Interrupt
  *
  * PD14  IMU_INT
  */
@@ -481,11 +479,11 @@ int stm32_wlan_initialize(void);
 #endif
 
 /****************************************************************************
- * Name: board_gps_initialize
+ * Name: board_gnss_initialize
  ****************************************************************************/
 
-#ifdef CONFIG_SENSORS_GPS
-int board_gps_initialize(void);
+#ifdef CONFIG_SENSORS_GNSS
+int board_gnss_initialize(void);
 #endif
 
 /****************************************************************************
@@ -535,7 +533,8 @@ int hciuart_dev_initialize(void);
  ****************************************************************************/
 #ifdef CONFIG_MTD
 struct mtd_dev_s;
-int board_spiflash_init(struct mtd_dev_s *mtd, const char *path, const char *mnt_pt);
+int board_spiflash_init(struct mtd_dev_s *mtd, const char *path,
+                        const char *mnt_pt);
 #endif
 
 /****************************************************************************

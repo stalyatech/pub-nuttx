@@ -87,7 +87,6 @@
 
 #define PROGMEM_MTD_MINOR 0
 
-
 /* procfs File System */
 
 #ifdef CONFIG_FS_PROCFS
@@ -141,7 +140,7 @@
 
 /* BUTTONS
  *
-*/
+ */
 
 /* SPI3 CS
  *
@@ -169,7 +168,6 @@
 
 #define USB251X_I2CBUS    3
 #define USB251X_I2CADDR   0x2C
-
 
 /* GNSS Sub system power control
  *
@@ -250,7 +248,6 @@
 
 #define BOARD_IMU_GPIO_INT  GPIO_BNO085_INT
 #define BOARD_IMU_IRQ       BNO085_IRQ
-
 
 /****************************************************************************
  * Public Data
@@ -425,7 +422,6 @@ int stm32_cansock_setup(void);
 int stm32_gpio_initialize(void);
 #endif
 
-
 /****************************************************************************
  * Name: stm32_bno085_initialize
  ****************************************************************************/
@@ -435,11 +431,11 @@ int stm32_bno085_initialize(void);
 #endif
 
 /****************************************************************************
- * Name: board_gps_initialize
+ * Name: board_gnss_initialize
  ****************************************************************************/
 
-#ifdef CONFIG_SENSORS_GPS
-int board_gps_initialize(void);
+#ifdef CONFIG_SENSORS_GNSS
+int board_gnss_initialize(void);
 #endif
 
 /****************************************************************************
@@ -469,7 +465,8 @@ int board_usb251x_initialize(int bus);
  ****************************************************************************/
 #ifdef CONFIG_MTD
 struct mtd_dev_s;
-int board_spiflash_init(struct mtd_dev_s *mtd, const char *path, const char *mnt_pt);
+int board_spiflash_init(struct mtd_dev_s *mtd, const char *path,
+                        const char *mnt_pt);
 #endif
 
 /****************************************************************************

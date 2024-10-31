@@ -330,11 +330,11 @@ int stm32_bringup(void)
 #endif /* CONFIG_STM32F7_I2C1 */
 #endif /* CONFIG_I2C */
 
-#ifdef CONFIG_SENSORS_GPS
-  /* Initialize GPS uORB service. */
+#ifdef CONFIG_SENSORS_GNSS
+  /* Initialize GNSS uORB service. */
 
-  board_gps_initialize();
-#endif /* CONFIG_SENSORS_GPS */
+  board_gnss_initialize();
+#endif /* CONFIG_SENSORS_GNSS */
 
 #ifdef CONFIG_USBDEV_COMPOSITE
   /* Initialize Composite Device */

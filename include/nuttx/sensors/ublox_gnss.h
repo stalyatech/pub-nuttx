@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/sensors/ublox_gps.h
+ * include/nuttx/sensors/ublox_gnss.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_SENSORS_UBLOX_GPS_H
-#define __INCLUDE_NUTTX_SENSORS_UBLOX_GPS_H
+#ifndef __INCLUDE_NUTTX_SENSORS_UBLOX_GNSS_H
+#define __INCLUDE_NUTTX_SENSORS_UBLOX_GNSS_H
 
 /****************************************************************************
  * Included Files
@@ -37,10 +37,10 @@ extern "C"
 #endif
 
 /****************************************************************************
- * Name: ublox_gps_register
+ * Name: ublox_gnss_register
  *
  * Description:
- *   u-blox GPS driver entrypoint.
+ *   u-blox GNSS driver entrypoint.
  *
  * Input Parameters:
  *   name    - Serial port name that connected to the GPS device.
@@ -53,7 +53,7 @@ extern "C"
  *
  ****************************************************************************/
 
-int ublox_gps_register(FAR const char *name, uint32_t baud, uint32_t devno, uint32_t nbuffer);
+int ublox_gnss_register(FAR const char *name, uint32_t baud, uint32_t devno, uint32_t nbuffer);
 
 #ifdef __cplusplus
 }

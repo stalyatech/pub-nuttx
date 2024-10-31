@@ -120,8 +120,8 @@ if(CONFIG_MTD_RAMTRON)
   list(APPEND SRCS stm32_ramtron.c)
 endif()
 
-if(CONFIG_SENSORS_GPS)
-  list(APPEND SRCS stm32_gps.c)
+if(CONFIG_SENSORS_GNSS)
+  list(APPEND SRCS stm32_gnss.c)
 endif()
 
 if(CONFIG_ETC_ROMFS)

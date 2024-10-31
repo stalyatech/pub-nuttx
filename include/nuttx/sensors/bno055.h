@@ -42,7 +42,7 @@
 #define BNO055_PWMODE_LOWPOWER  (BNO055_POWER_MODE_LOWPOWER)
 #define BNO055_PWMODE_SUSPEND   (BNO055_POWER_MODE_SUSPEND)
 
-/* Sensor Operation Modes *****************************************************/
+/* Sensor Operation Modes ***************************************************/
 
 #define BNO055_OPMODE_RAW       (BNO055_OPERATION_MODE_AMG)
 #define BNO055_OPMODE_FUSION    (BNO055_OPERATION_MODE_NDOF)
@@ -113,10 +113,8 @@ struct bno055_config_s
   uint8_t opr_mode;
 };
 
-/*
- * BNO055 Report configuration
- *
- */
+/* BNO055 Report configuration */
+
 struct bno055_reports_s
 {
   /* Sensor operation mode */
@@ -139,9 +137,7 @@ struct bno055_reports_s
     struct bno055_quaternion_t quat;
     struct bno055_euler_t euler;
   } fusion;
-
 };
-
 
 /****************************************************************************
  * Public Function Prototypes

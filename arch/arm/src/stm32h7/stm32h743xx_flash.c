@@ -750,6 +750,16 @@ size_t up_progmem_erasesize(size_t block)
   return FLASH_SECTOR_SIZE;
 }
 
+ssize_t up_progmem_geteraseblock(size_t addr)
+{
+  return FLASH_SECTOR_SIZE;
+}
+
+ssize_t up_progmem_geteraseblock(size_t addr)
+{
+  return FLASH_SECTOR_SIZE;
+}
+
 ssize_t up_progmem_eraseblock(size_t block)
 {
   struct stm32h7_flash_priv_s *priv;

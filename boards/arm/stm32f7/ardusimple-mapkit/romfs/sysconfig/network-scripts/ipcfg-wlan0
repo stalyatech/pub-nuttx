@@ -1,0 +1,3 @@
+DEVICE=wlan0
+IPv4PROTO=dhcp
+IPv4DNS=8.8.8.8

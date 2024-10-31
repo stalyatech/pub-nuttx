@@ -37,10 +37,10 @@
  * Public Data
  ****************************************************************************/
 
+#ifndef CONFIG_IEEE80211_BROADCOM_FWFILES
+
 extern const uint8_t       g_cyw43439_nvram_image[];
 extern unsigned int        g_cyw43439_nvram_len;
-
-#ifndef CONFIG_IEEE80211_BROADCOM_FWFILES
 
 extern const uint8_t       g_cyw43439_firmware_image[];
 extern const unsigned int  g_cyw43439_firmware_len;
@@ -75,10 +75,10 @@ const struct bcmf_chip_data g_cyw43439_config_data =
 
   /* Firmware images */
 
+#ifndef CONFIG_IEEE80211_BROADCOM_FWFILES
   .nvram_image         = (FAR uint8_t *)g_cyw43439_nvram_image,
   .nvram_image_size    = (FAR unsigned int *)&g_cyw43439_nvram_len,
 
-#ifndef CONFIG_IEEE80211_BROADCOM_FWFILES
   .firmware_image      = (FAR uint8_t *)g_cyw43439_firmware_image,
   .firmware_image_size = (FAR unsigned int *)&g_cyw43439_firmware_len,
 

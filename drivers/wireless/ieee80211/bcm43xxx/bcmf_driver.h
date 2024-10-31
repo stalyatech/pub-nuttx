@@ -33,6 +33,7 @@
 #include <net/if.h>
 #include <nuttx/wdog.h>
 #include <nuttx/wqueue.h>
+#include <nuttx/wireless/wireless.h>
 
 #include "bcmf_ioctl.h"
 

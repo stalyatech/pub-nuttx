@@ -34,6 +34,10 @@ ifeq ($(CONFIG_FUSB303),y)
   CSRCS += fusb303.c
 endif
 
+ifeq ($(CONFIG_USB251X),y)
+  CSRCS += usb251x.c
+endif
+
 # Include USB miscellaneous build support
 
 DEPPATH += --dep-path usbmisc

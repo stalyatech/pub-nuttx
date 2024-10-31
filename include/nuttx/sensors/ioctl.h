@@ -464,4 +464,11 @@
 
 #define SNIOC_GET_EVENTS              _SNIOC(0x009E)
 
+/* Command:      SNIOC_SKIP_BUFFER
+ * Description:  Skip FIFO buffer.
+ * Argument:     A argument of skip value for FIFO.
+ */
+
+#define SNIOC_SKIP_BUFFER             _SNIOC(0x009F)
+
 #endif /* __INCLUDE_NUTTX_SENSORS_IOCTL_H */

@@ -65,10 +65,10 @@ struct bcmf_chip_data
 
   /* In-memory file images */
 
+#ifndef CONFIG_IEEE80211_BROADCOM_FWFILES
   FAR uint8_t      *nvram_image;
   FAR unsigned int *nvram_image_size;
 
-#ifndef CONFIG_IEEE80211_BROADCOM_FWFILES
   FAR uint8_t      *firmware_image;
   FAR unsigned int *firmware_image_size;
 

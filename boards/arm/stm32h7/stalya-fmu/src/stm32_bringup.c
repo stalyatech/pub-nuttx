@@ -190,7 +190,8 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize ICM20689 over I2C driver: %d\n", ret);
+             "ERROR: Failed to initialize ICM20689 over I2C driver: %d\n",
+             ret);
     }
   else
     {
@@ -201,7 +202,8 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize ICM20689 over SPI driver: %d\n", ret);
+             "ERROR: Failed to initialize ICM20689 over SPI driver: %d\n",
+             ret);
     }
 #endif /* CONFIG_SENSORS_ICM20689 */
 
@@ -213,7 +215,8 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize MS56XX over I2C driver: %d\n", ret);
+             "ERROR: Failed to initialize MS56XX over I2C driver: %d\n",
+             ret);
     }
   else
     {
@@ -224,7 +227,8 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize MS56XX over SPI driver: %d\n", ret);
+             "ERROR: Failed to initialize MS56XX over SPI driver: %d\n",
+             ret);
     }
 #endif /* CONFIG_SENSORS_MS56XX */
 
@@ -236,7 +240,8 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize LIS3MDL over I2C driver: %d\n", ret);
+             "ERROR: Failed to initialize LIS3MDL over I2C driver: %d\n",
+             ret);
     }
   else
     {
@@ -247,7 +252,8 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize LIS3MDL over SPI driver: %d\n", ret);
+             "ERROR: Failed to initialize LIS3MDL over SPI driver: %d\n",
+             ret);
     }
 #endif /* CONFIG_SENSORS_LIS3MDL */
 
@@ -357,7 +363,8 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR,
-             "ERROR: Failed to initialize FAT DMA memory allocator: %d\n", ret);
+             "ERROR: Failed to initialize FAT DMA memory allocator: %d\n",
+             ret);
     }
 #endif /* CONFIG_FAT_DMAMEMORY */
 
@@ -454,6 +461,7 @@ int stm32_bringup(void)
       return ret;
     }
 #endif /* CONFIG_CDCACM & !CONFIG_CDCACM_CONSOLE */
+
 #if defined(CONFIG_RNDIS)
   uint8_t mac[6];
   mac[0] = 0xa0; /* TODO */

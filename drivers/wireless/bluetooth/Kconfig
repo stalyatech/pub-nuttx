@@ -45,6 +45,17 @@ config BLUETOOTH_UART_OTHER
 
 endchoice # Bluetooth UART HCI device
 
+if BLUETOOTH_BCM4343X
+
+config BLUETOOTH_BCM4343X_DMABUF_ALIGNMENT
+	int "DMA buffer address alignment boundary"
+	default 4
+	range 4 64
+	---help---
+		This parameter should be set depending on
+		the used SOC DMA configuration.
+endif # BLUETOOTH_BCM4343X
+
 config BLUETOOTH_UART_DUMP
 	bool "Dump HCI UART I/O buffers"
 	default n

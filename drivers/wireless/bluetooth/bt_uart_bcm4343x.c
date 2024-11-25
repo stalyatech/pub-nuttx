@@ -48,6 +48,9 @@
 #include <termios.h>
 
 #include "bt_uart.h"
+#if defined(CONFIG_UART_BTH4)
+#  include <nuttx/serial/uart_bth4.h>
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -439,12 +442,21 @@ int btuart_register(FAR const struct btuart_lowerhalf_s *lower)
 
   /* And register the driver with the network and the Bluetooth stack. */
 
+#if defined(CONFIG_UART_BTH4)
+  ret = uart_bth4_register("/dev/ttyHCI", &upper->dev);
+  if (ret < 0)
+    {
+      wlerr("ERROR: uart_bth4_register failed: %d\n", ret);
+      kmm_free(upper);
+    }
+#elif defined(CONFIG_NET_BLUETOOTH)
   ret = bt_netdev_register(&upper->dev);
   if (ret < 0)
     {
       wlerr("ERROR: bt_netdev_register failed: %d\n", ret);
       kmm_free(upper);
     }
+#endif
 
   return ret;
 }

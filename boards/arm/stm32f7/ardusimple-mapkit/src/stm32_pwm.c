@@ -41,11 +41,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define HAVE_PWM 1
-#ifndef CONFIG_PWM
-#  undef HAVE_PWM
-#endif
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -60,7 +55,7 @@
 
 int stm32_pwm_setup(void)
 {
-#ifdef HAVE_PWM
+#ifdef CONFIG_PWM
   static bool initialized = false;
   struct pwm_lowerhalf_s *pwm;
   int ret;
@@ -85,7 +80,7 @@ int stm32_pwm_setup(void)
           aerr("ERROR: pwm_register failed: %d\n", ret);
           return ret;
         }
-#endif
+#endif /* CONFIG_STM32F7_TIM1_PWM */
 
 #if defined(CONFIG_STM32F7_TIM2_PWM)
       pwm = stm32_pwminitialize(2);
@@ -101,7 +96,7 @@ int stm32_pwm_setup(void)
           aerr("ERROR: pwm_register failed: %d\n", ret);
           return ret;
         }
-#endif
+#endif /* CONFIG_STM32F7_TIM2_PWM */
 
 #if defined(CONFIG_STM32F7_TIM3_PWM)
       pwm = stm32_pwminitialize(3);
@@ -117,7 +112,7 @@ int stm32_pwm_setup(void)
           aerr("ERROR: pwm_register failed: %d\n", ret);
           return ret;
         }
-#endif
+#endif /* CONFIG_STM32F7_TIM3_PWM */
 
 #if defined(CONFIG_STM32F7_TIM4_PWM)
       pwm = stm32_pwminitialize(4);
@@ -133,7 +128,7 @@ int stm32_pwm_setup(void)
           aerr("ERROR: pwm_register failed: %d\n", ret);
           return ret;
         }
-#endif
+#endif /* CONFIG_STM32F7_TIM4_PWM */
 
       /* Now we are initialized */
 
@@ -141,7 +136,7 @@ int stm32_pwm_setup(void)
     }
 
   return OK;
-#else
+#else /* CONFIG_PWM */
   return -ENODEV;
-#endif
+#endif /* CONFIG_PWM */
 }

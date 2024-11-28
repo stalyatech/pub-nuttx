@@ -68,7 +68,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define FLASH_PAGE_SIZE       32
+#define FLASH_PAGE_SIZE       256
 #define FLASH_NPAGES          (STM32_FLASH_SIZE / FLASH_PAGE_SIZE)
 #define FLASH_NBLOCKS         STM32_FLASH_NPAGES
 
@@ -153,7 +153,7 @@ static int stm32_israngeerased(size_t startaddress, size_t size)
   addr = (uint32_t *)startaddress;
   while (count + 4 <= size)
     {
-      if (getreg32(addr) != FLASH_ERASEDVALUE)
+      if (getreg32(addr) != FLASH_ERASEDVALUE_DW)
         {
           bwritten++;
         }

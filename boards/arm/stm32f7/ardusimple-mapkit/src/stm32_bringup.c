@@ -67,10 +67,6 @@
 int stm32_bringup(void)
 {
   int ret = OK;
-#ifdef CONFIG_I2C
-  int i2c_bus;
-  struct i2c_master_s *i2c;
-#endif /* CONFIG_I2C */
 #ifdef HAVE_RTC_DRIVER
   struct rtc_lowerhalf_s *lower;
 #endif /* HAVE_RTC_DRIVER */
@@ -308,8 +304,8 @@ int stm32_bringup(void)
 #endif /* CONFIG_SENSORS_BNO085 */
 
 #ifdef CONFIG_STM32F7_I2C1
-  i2c_bus = 1;
-  i2c = stm32_i2cbus_initialize(i2c_bus);
+  int i2c_bus = 1;
+  struct i2c_master_s *i2c = stm32_i2cbus_initialize(i2c_bus);
   if (i2c == NULL)
     {
       syslog(LOG_ERR,

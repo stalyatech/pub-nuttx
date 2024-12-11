@@ -202,6 +202,12 @@
 
 #define TIOCSLINID      _TIOC(0x0037) /* Master send one LIN header with specified LIN identifier: uint8_t */
 
+/* Power Control Support */
+
+#define TIOCPOWERON     _TIOC(0xf000) /* Set power on   */
+#define TIOCPOWEROFF    _TIOC(0xf001) /* Set power off  */
+#define TIOCRESET       _TIOC(0xf002) /* Apply reset    */
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/

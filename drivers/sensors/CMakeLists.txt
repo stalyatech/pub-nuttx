@@ -456,5 +456,9 @@ if(CONFIG_SENSORS)
     list(APPEND SRCS icm20689.c)
   endif()
 
+  if(CONFIG_SENSORS_ANALOG)
+    list(APPEND SRCS analog_uorb.c)
+  endif()
+
   target_sources(drivers PRIVATE ${SRCS})
 endif()

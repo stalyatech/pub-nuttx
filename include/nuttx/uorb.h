@@ -469,9 +469,13 @@
 
 #define SENSOR_TYPE_GNSS_RAW                        53
 
+/* Analog */
+
+#define SENSOR_TYPE_ANALOG                          54
+
 /* The total number of sensor */
 
-#define SENSOR_TYPE_COUNT                           54
+#define SENSOR_TYPE_COUNT                           55
 
 /* The additional sensor open flags */
 
@@ -1114,6 +1118,13 @@ struct sensor_gnss_raw      /* Type: GNSS Raw */
   uint64_t timestamp;       /* Time since system start, Units is microseconds */
   uint32_t len;             /* Raw data buffer & length */
   uint8_t  buf[SENSOR_GNSS_RAWDATA_SIZE];
+};
+
+struct sensor_analog        /* Type: On-board Analog */
+{
+  uint64_t timestamp;       /* Time since system start, Units is microseconds */
+  int32_t  vbat;            /* Battery voltage (raw) */
+  int32_t  vrev;            /* Revision voltage (raw) */
 };
 
 /* This structure describes the state for the sensor device */

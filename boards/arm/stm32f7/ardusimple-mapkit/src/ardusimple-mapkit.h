@@ -202,7 +202,8 @@
  * PE4   BL_HOST_WAKE (IN)
  */
 
-#define BT_UART_DEVPATH   "/dev/ttyS1"
+#define BT_TTY_DEVPATH  "/dev/ttyS1"
+#define BT_REG_DEVPATH  "/dev/gpio10"
 
 #define GPIO_WL_REG_ON    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                            GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN2)
@@ -275,6 +276,26 @@
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
+
+/****************************************************************************
+ * Name: stm32_early_bringup
+ *
+ * Description:
+ *   Perform architecture specific initialization
+ *
+ *   CONFIG_BOARDCTL=y:
+ *     If CONFIG_NSH_ARCHINITIALIZE=y:
+ *       Called from the NSH library (or other application)
+ *     Otherwise, assumed to be called from some other application.
+ *
+ *   Otherwise CONFIG_BOARD_LATE_INITIALIZE=y:
+ *     Called from board_late_initialize().
+ *
+ *   Otherwise, bad news:  Never called
+ *
+ ****************************************************************************/
+
+int stm32_early_bringup(void);
 
 /****************************************************************************
  * Name: stm32_bringup

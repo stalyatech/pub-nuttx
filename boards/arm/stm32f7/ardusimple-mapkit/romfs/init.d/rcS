@@ -1,11 +1,11 @@
-# LED show (deamon)
-leds
+# Button service (deamon)
+serv_button
 
-# Button handlers (deamon)
-button &
+# LED(s) service (deamon)
+serv_leds
 
-# start up tone
+# Charger service (deamon)
+serv_charger
+
+# Start up tone
 tone -s &
-
-# configure the charger
-charger &

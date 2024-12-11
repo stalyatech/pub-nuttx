@@ -3,7 +3,7 @@
 *.dba
 *.dbo
 *.asm
-*.bin
+*.tmp
 *.d
 !*.d/
 *.dSYM

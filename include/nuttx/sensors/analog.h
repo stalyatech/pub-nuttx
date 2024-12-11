@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/wireless/bluetooth/bt_uart_shim.h
+ * include/nuttx/sensors/analog.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,23 +18,42 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_UART_SHIM_H
-#define __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_UART_SHIM_H
+#ifndef __INCLUDE_NUTTX_SENSORS_ANALOG_H
+#define __INCLUDE_NUTTX_SENSORS_ANALOG_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/wireless/bluetooth/bt_uart.h>
-
-#ifdef CONFIG_BLUETOOTH_UART_SHIM
+#include <nuttx/config.h>
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
-FAR struct btuart_lowerhalf_s *btuart_shim_getdevice(FAR const char *bt_tty_path, 
-                                                     FAR const char *bt_reg_path);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-#endif /* CONFIG_BLUETOOTH_UART_SHIM */
-#endif /* __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_UART_SHIM_H */
+/****************************************************************************
+ * Name: analog_uorb_register
+ *
+ * Description:
+ *   Register the on-board analog sensor device.
+ *
+ * Input Parameters:
+ *   devno   - The user specifies device number, from 0.
+ *   nbuffer - The number of events that the circular buffer can hold.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ ****************************************************************************/
+
+int analog_uorb_register(uint32_t devno, uint32_t nbuffer);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

@@ -51,7 +51,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_bringup
+ * Name: stm32_early_bringup
  *
  * Description:
  *   Perform architecture-specific initialization
@@ -64,12 +64,9 @@
  *
  ****************************************************************************/
 
-int stm32_bringup(void)
+int stm32_early_bringup(void)
 {
   int ret = OK;
-#ifdef HAVE_RTC_DRIVER
-  struct rtc_lowerhalf_s *lower;
-#endif /* HAVE_RTC_DRIVER */
 
 #ifdef CONFIG_FS_PROCFS
   /* Mount the procfs file system */
@@ -83,17 +80,6 @@ int stm32_bringup(void)
     }
 #endif /* CONFIG_FS_PROCFS */
 
-#ifdef CONFIG_USB251X
-  /* Register the usb hub driver */
-
-  ret = board_usb251x_initialize(USB251X_I2CBUS);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR,
-             "ERROR: Failed to initialize USB251X driver: %d\n", ret);
-    }
-#endif /* CONFIG_USB251X */
-
 #ifdef CONFIG_STM32_ROMFS
   /* Mount the romfs partition */
 
@@ -105,31 +91,6 @@ int stm32_bringup(void)
              CONFIG_STM32_ROMFS_MOUNTPOINT, ret);
     }
 #endif /* CONFIG_STM32_ROMFS */
-
-#ifdef HAVE_RTC_DRIVER
-  /* Instantiate the STM32 lower-half RTC driver */
-
-  lower = stm32_rtc_lowerhalf();
-  if (!lower)
-    {
-      syslog(LOG_ERR,
-             "ERROR: Failed to instantiate the RTC lower-half driver\n");
-      return -ENOMEM;
-    }
-  else
-    {
-      /* Bind the lower half driver and register the combined RTC driver
-       * as /dev/rtc0
-       */
-
-      ret = rtc_initialize(0, lower);
-      if (ret < 0)
-        {
-          syslog(LOG_ERR,
-                 "ERROR: Failed to bind/register the RTC driver: %d\n", ret);
-        }
-    }
-#endif /* HAVE_RTC_DRIVER */
 
 #ifdef CONFIG_INPUT_BUTTONS
   /* Register the BUTTON driver */
@@ -182,6 +143,75 @@ int stm32_bringup(void)
 
   stm32_bbsram_int();
 #endif /* CONFIG_STM32F7_BBSRAM */
+
+#ifdef CONFIG_PWM
+  /* Initialize PWM and register the PWM device */
+
+  ret = stm32_pwm_setup();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize PWM driver: %d\n", ret);
+    }
+#endif /* CONFIG_PWM */
+
+  UNUSED(ret);  /* May not be used */
+  return OK;
+}
+
+/****************************************************************************
+ * Name: stm32_bringup
+ *
+ * Description:
+ *   Perform architecture-specific initialization
+ *
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
+ *
+ *   CONFIG_BOARD_LATE_INITIALIZE=n && CONFIG_BOARDCTL=y :
+ *     Called from the NSH library
+ *
+ ****************************************************************************/
+
+int stm32_bringup(void)
+{
+  int ret = OK;
+
+#ifdef CONFIG_USB251X
+  /* Register the usb hub driver */
+
+  ret = board_usb251x_initialize(USB251X_I2CBUS);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize USB251X driver: %d\n", ret);
+    }
+#endif /* CONFIG_USB251X */
+
+#ifdef HAVE_RTC_DRIVER
+  /* Instantiate the STM32 lower-half RTC driver */
+
+  struct rtc_lowerhalf_s *lower = stm32_rtc_lowerhalf();
+  if (!lower)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to instantiate the RTC lower-half driver\n");
+      return -ENOMEM;
+    }
+  else
+    {
+      /* Bind the lower half driver and register the combined RTC driver
+       * as /dev/rtc0
+       */
+
+      ret = rtc_initialize(0, lower);
+      if (ret < 0)
+        {
+          syslog(LOG_ERR,
+                 "ERROR: Failed to bind/register the RTC driver: %d\n", ret);
+        }
+    }
+#endif /* HAVE_RTC_DRIVER */
 
 #ifdef CONFIG_FAT_DMAMEMORY
   if (stm32_dma_alloc_init() < 0)
@@ -239,17 +269,6 @@ int stm32_bringup(void)
              "ERROR: Failed to initialize HCI UART driver: %d\n", ret);
     }
 #endif /* CONFIG_BLUETOOTH_UART && HAVE_HCIUART */
-
-#ifdef CONFIG_PWM
-  /* Initialize PWM and register the PWM device */
-
-  ret = stm32_pwm_setup();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR,
-             "ERROR: Failed to initialize PWM driver: %d\n", ret);
-    }
-#endif /* CONFIG_PWM */
 
 #ifdef CONFIG_STM32F7_CAN_CHARDRIVER
   ret = stm32_can_setup();

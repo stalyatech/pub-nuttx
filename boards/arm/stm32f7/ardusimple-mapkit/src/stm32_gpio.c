@@ -34,7 +34,6 @@
 
 #include <arch/board/board.h>
 
-#include "chip.h"
 #include "stm32_gpio.h"
 #include "ardusimple-mapkit.h"
 

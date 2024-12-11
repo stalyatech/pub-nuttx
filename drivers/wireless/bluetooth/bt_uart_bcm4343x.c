@@ -56,8 +56,13 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define HCIUART_DEFAULT_SPEED 2000000
-#define HCIUART_LOW_SPEED     115200
+#ifdef CONFIG_BLUETOOTH_BCM4343X_UART_BAUDRATE
+# define HCIUART_DEFAULT_SPEED  CONFIG_BLUETOOTH_BCM4343X_UART_BAUDRATE
+#else
+# define HCIUART_DEFAULT_SPEED  921600
+#endif
+
+#define HCIUART_LOW_SPEED 115200
 
 /****************************************************************************
  * Private Data

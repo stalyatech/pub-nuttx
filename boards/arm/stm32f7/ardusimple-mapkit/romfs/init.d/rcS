@@ -6,6 +6,3 @@ serv_leds
 
 # Charger service (deamon)
 serv_charger
-
-# Start up tone
-tone -s &

@@ -23,11 +23,23 @@ config ARDUSIMPLE_MAPKIT_SPIFLASH_NXFFS
 
 endchoice
 
-config ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTITIONS
-	int "Number of partitions"
+config ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTMAIN
+	int "Number of main partitions"
 	default 2
 	---help---
-		This setting provides the number of partitions.
+		This setting provides the number of main partitions.
+
+config ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTRESV
+	int "Number of resv partitions"
+	default 2
+	---help---
+		This setting provides the number of reserved partitions.
+
+config ARDUSIMPLE_MAPKIT_SPIFLASH_SIZERESV
+	int "Size of resv partitions"
+	default 2097152
+	---help---
+		This setting provides the number of reserved partitions.
 
 config STM32_ROMFS
 	bool "Automount baked-in ROMFS image"

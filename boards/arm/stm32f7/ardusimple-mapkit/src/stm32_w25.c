@@ -84,6 +84,143 @@
  * Public Functions
  ****************************************************************************/
 
+#ifdef HAVE_W25
+/****************************************************************************
+ * Name: create_main_partitions
+ *
+ * Description:
+ *   Create the main MTD partitions.
+ *
+ ****************************************************************************/
+
+int create_main_partitions(struct mtd_dev_s *mtd, off_t offset, off_t nblocks)
+{
+  struct mtd_dev_s *part[CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTMAIN]={0};
+  char blockname[32];
+  char charname[32];
+  char mntpoint[32];
+  int ret, i;
+
+  /* Now create main MTD FLASH partitions */
+
+  syslog(LOG_ERR, "INFO: Creating main partitions\n");
+
+  for (i = 0;
+       i < CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTMAIN;
+       offset += nblocks, i++)
+    {
+      syslog(LOG_INFO, "INFO: Partition %d. Block offset=%lu, size=%lu\n",
+                       i, (unsigned long)offset, (unsigned long)nblocks);
+
+      /* Create the partition */
+
+      part[i] = mtd_partition(mtd, offset, nblocks);
+      if (!part[i])
+        {
+          syslog(LOG_ERR, "ERROR: Failed to create main MTD partition\n");
+          return -ENODEV;
+        }
+
+      /* Initialize to provide an FTL block driver on the MTD FLASH
+       * interface
+       */
+
+      snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", i);
+      snprintf(charname, sizeof(charname), "/dev/mtd%d", i);
+      snprintf(mntpoint, sizeof(mntpoint), "/data%d", i);
+
+      ret = ftl_initialize_by_path(blockname, part[i]);
+      if (ret < 0)
+        {
+          syslog(LOG_ERR, "ERROR: ftl_initialize %s failed: %d\n", blockname, ret);
+          return ret;
+        }
+
+      /* Now create a character device on the block device */
+
+      ret = bchdev_register(blockname, charname, false);
+      if (ret < 0)
+        {
+          syslog(LOG_ERR, "ERROR: bchdev_register %s failed: %d\n", charname, ret);
+          return ret;
+        }
+
+      /* Initialize to provide flash file system on the MTD partitions */
+
+      ret = board_spiflash_init(part[i], blockname, mntpoint);
+      if (ret < 0)
+        {
+          syslog(LOG_ERR, "ERROR: Flash file system initialization failed: %d\n", -ret);
+          return ret;
+        }
+    }
+
+  return offset;
+}
+
+/****************************************************************************
+ * Name: create_resv_partitions
+ *
+ * Description:
+ *   Create the reserved MTD partitions.
+ *
+ ****************************************************************************/
+
+static int create_resv_partitions(struct mtd_dev_s *mtd, off_t offset, off_t nblocks)
+{
+  struct mtd_dev_s *part[CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTRESV]={0};
+  char blockname[32];
+  char charname[32];
+  int ret, i;
+
+  /* Now create reserved MTD FLASH partitions */
+
+  syslog(LOG_ERR, "INFO: Creating partitions\n");
+
+  for (i = 0;
+       i < CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTRESV;
+       offset += nblocks, i++)
+    {
+      syslog(LOG_INFO, "INFO: Partition %d. Block offset=%lu, size=%lu\n",
+                       i, (unsigned long)offset, (unsigned long)nblocks);
+
+      /* Create the partition */
+
+      part[i] = mtd_partition(mtd, offset, nblocks);
+      if (!part[i])
+        {
+          syslog(LOG_ERR, "ERROR: Failed to create reserved MTD partition\n");
+          return -ENODEV;
+        }
+
+      /* Initialize to provide an FTL block driver on the MTD FLASH
+       * interface
+       */
+
+      snprintf(blockname, sizeof(blockname), "/dev/imgblock%d", i);
+      snprintf(charname, sizeof(charname), "/dev/img%d", i);
+
+      ret = ftl_initialize_by_path(blockname, part[i]);
+      if (ret < 0)
+        {
+          syslog(LOG_ERR, "ERROR: ftl_initialize %s failed: %d\n", blockname, ret);
+          return ret;
+        }
+
+      /* Now create a character device on the block device */
+
+      ret = bchdev_register(blockname, charname, false);
+      if (ret < 0)
+        {
+          syslog(LOG_ERR, "ERROR: bchdev_register %s failed: %d\n", charname, ret);
+          return ret;
+        }
+    }
+
+  return offset;
+}
+#endif /* HAVE_W25 */
+
 /****************************************************************************
  * Name: stm32_w25initialize
  *
@@ -95,17 +232,14 @@
 int stm32_w25initialize(int minor)
 {
 #ifdef HAVE_W25
-  struct mtd_dev_s *part[CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTITIONS];
+  struct mtd_geometry_s geo;
   struct mtd_dev_s *mtd;
   struct spi_dev_s *spi;
-  struct mtd_geometry_s geo;
-  int ret, i;
-  off_t offset;
-  off_t nblocks;
   uint32_t blkpererase;
-  char blockname[32];
-  char charname[32];
-  char mntpoint[32];
+  uint32_t blkreserved;
+  off_t nblocks;
+  off_t offset;
+  int ret;
 
   /* Get the SPI port */
 
@@ -140,62 +274,31 @@ int stm32_w25initialize(int minor)
    * end of the FLASH).
    */
 
+  /* The reserved area will be used for firmware upgrade/recovery */
+
+  blkreserved = (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_SIZERESV / geo.neraseblocks);
   blkpererase = geo.erasesize / geo.blocksize;
-  nblocks     = (geo.neraseblocks / CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTITIONS) *
+  nblocks     = ((geo.neraseblocks - blkreserved) / CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTMAIN) * 
                 blkpererase;
 
-  /* Now create MTD FLASH partitions */
+  /* Now create the main MTD FLASH partitions */
 
-  syslog(LOG_ERR, "INFO: Creating partitions\n");
-
-  for (offset = 0, i = 0;
-       i < CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTITIONS;
-       offset += nblocks, i++)
+  ret = create_main_partitions(mtd, 0, nblocks);
+  if (ret < 0)
     {
-      syslog(LOG_INFO, "INFO: Partition %d. Block offset=%lu, size=%lu\n",
-                       i, (unsigned long)offset, (unsigned long)nblocks);
+      return ret;
+    }
+  offset = ret;
 
-      /* Create the partition */
+  /* Create the reserved partition */
 
-      part[i] = mtd_partition(mtd, offset, nblocks);
-      if (!part[i])
-        {
-          syslog(LOG_ERR, "ERROR: Failed to create first MTD partition\n");
-          return -ENODEV;
-        }
-
-      /* Initialize to provide an FTL block driver on the MTD FLASH
-       * interface
-       */
-
-      snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", i);
-      snprintf(charname, sizeof(charname), "/dev/mtd%d", i);
-      snprintf(mntpoint, sizeof(mntpoint), "/data%d", i);
-
-      ret = ftl_initialize(i, part[i]);
-      if (ret < 0)
-        {
-          syslog(LOG_ERR, "ERROR: ftl_initialize %s failed: %d\n", blockname, ret);
-          return ret;
-        }
-
-      /* Now create a character device on the block device */
-
-      ret = bchdev_register(blockname, charname, false);
-      if (ret < 0)
-        {
-          syslog(LOG_ERR, "ERROR: bchdev_register %s failed: %d\n", charname, ret);
-          return ret;
-        }
-
-      /* Initialize to provide flash file system on the MTD partitions */
-
-      ret = board_spiflash_init(part[i], blockname, mntpoint);
-      if (ret < 0)
-        {
-          syslog(LOG_ERR, "ERROR: Flash file system initialization failed: %d\n", -ret);
-          return ret;
-        }
+  ret = create_resv_partitions(mtd,
+                               offset,
+                               blkreserved / CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NPARTRESV *
+                               blkpererase);
+  if (ret < 0)
+    {
+      return ret;
     }
 #endif /* HAVE_W25 */
 

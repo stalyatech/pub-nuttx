@@ -70,14 +70,12 @@
  ****************************************************************************/
 
 #if defined(CONFIG_STM32F7_PROGMEM_OTA_PARTITION)
-
 struct ota_partition_s
 {
   uint32_t    offset;          /* Partition offset from the beginning of MTD */
   uint32_t    size;            /* Partition size in bytes */
   const char *devpath;         /* Partition device path */
 };
-
 #endif
 
 /****************************************************************************
@@ -88,6 +86,23 @@ struct ota_partition_s
 static struct mtd_dev_s *progmem_alloc_mtdpart(uint32_t mtd_offset,
                                                    uint32_t mtd_size);
 static int init_ota_partitions(void);
+#endif
+
+#ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
+static int     progmem_blk_open(struct inode *inode);
+static int     progmem_blk_close(struct inode *inode);
+#endif
+static ssize_t progmem_blk_read(struct inode *inode, unsigned char *buffer,
+                 blkcnt_t start_sector, unsigned int nsectors);
+static ssize_t progmem_blk_write(struct inode *inode,
+                 const unsigned char *buffer, blkcnt_t start_sector,
+                 unsigned int nsectors);
+static int     progmem_blk_geometry(struct inode *inode,
+                 struct geometry *geometry);
+static int     progmem_blk_ioctl(struct inode *inode, int cmd,
+                 unsigned long arg);
+#ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
+static int     progmem_blk_unlink(struct inode *inode);
 #endif
 
 /****************************************************************************
@@ -107,9 +122,214 @@ static const struct ota_partition_s g_ota_partition_table[] =
 };
 #endif
 
+static const struct block_operations g_bops =
+{
+  progmem_blk_open,     /* open     */
+  progmem_blk_close,    /* close    */
+  progmem_blk_read,     /* read     */
+  progmem_blk_write,    /* write    */
+  progmem_blk_geometry, /* geometry */
+  progmem_blk_ioctl,    /* ioctl    */
+#ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
+  progmem_blk_unlink    /* unlink   */
+#endif
+};
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: progmem_blk_open
+ *
+ * Description: Open the block device
+ *
+ ****************************************************************************/
+
+static int progmem_blk_open(struct inode *inode)
+{
+  struct mtd_dev_s *mtd;
+
+  finfo("Entry\n");
+
+  DEBUGASSERT(inode->i_private);
+  mtd = inode->i_private;
+  UNUSED(mtd);
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: progmem_blk_close
+ *
+ * Description: close the block device
+ *
+ ****************************************************************************/
+
+static int progmem_blk_close(struct inode *inode)
+{
+  struct mtd_dev_s *mtd;
+
+  finfo("Entry\n");
+
+  DEBUGASSERT(inode->i_private);
+  mtd = inode->i_private;
+  UNUSED(mtd);
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: progmem_blk_read
+ *
+ * Description:  Read the specified number of sectors
+ *
+ ****************************************************************************/
+
+static ssize_t progmem_blk_read(struct inode *inode, unsigned char *buffer,
+                                blkcnt_t start_sector, unsigned int nsectors)
+{
+  ssize_t nread;
+  struct mtd_dev_s *mtd;
+
+  finfo("sector: %" PRIuOFF " nsectors: %u\n", start_sector, nsectors);
+
+  DEBUGASSERT(inode->i_private);
+  mtd = inode->i_private;
+
+  nread = MTD_BREAD(mtd, start_sector, nsectors, buffer);
+  if (nread != nsectors)
+    {
+      finfo("Read %u blocks starting at block %" PRIuOFF " failed: %d\n",
+            nsectors, start_sector, nread);
+      return -EIO;
+    }
+
+  return nread;
+}
+
+/****************************************************************************
+ * Name: progmem_blk_write
+ *
+ * Description: Write the specified number of sectors
+ *
+ ****************************************************************************/
+
+static ssize_t progmem_blk_write(struct inode *inode,
+                                 const unsigned char *buffer,
+                                 blkcnt_t start_sector, unsigned int nsectors)
+{
+  ssize_t nwrite;
+  struct mtd_dev_s *mtd;
+
+  finfo("sector: %" PRIuOFF " nsectors: %u\n", start_sector, nsectors);
+
+  DEBUGASSERT(inode->i_private);
+  mtd = inode->i_private;
+
+  nwrite = MTD_BWRITE(mtd, start_sector, nsectors, buffer);
+  if (nwrite != nsectors)
+    {
+      finfo("Write %u blocks starting at block %" PRIuOFF " failed: %d\n",
+            nsectors, start_sector, nwrite);
+      return -EIO;
+    }
+
+  return nwrite;
+}
+
+/****************************************************************************
+ * Name: progmem_blk_geometry
+ *
+ * Description: Return device geometry
+ *
+ ****************************************************************************/
+
+static int progmem_blk_geometry(struct inode *inode, struct geometry *geometry)
+{
+  struct mtd_dev_s *mtd;
+
+  finfo("Entry\n");
+
+  DEBUGASSERT(inode->i_private);
+  mtd = inode->i_private;
+
+  if (geometry)
+    {
+      struct mtd_geometry_s mtdgeo;
+
+      memset(geometry, 0, sizeof(struct geometry));
+
+      if (MTD_IOCTL(mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&mtdgeo)) >= 0)
+        {
+          geometry->geo_available     = true;
+          geometry->geo_mediachanged  = false;
+          geometry->geo_writeenabled  = true;
+          geometry->geo_nsectors      = (mtdgeo.neraseblocks * mtdgeo.erasesize) / mtdgeo.blocksize;
+          geometry->geo_sectorsize    = mtdgeo.blocksize;
+          strncpy(geometry->geo_model, mtdgeo.model, NAME_MAX);
+
+          finfo("available: true mediachanged: false writeenabled: %s\n",
+                geometry->geo_writeenabled ? "true" : "false");
+
+          finfo("nsectors: %" PRIuOFF " sectorsize: %" PRIi16 "\n",
+                geometry->geo_nsectors, geometry->geo_sectorsize);
+
+          return OK;
+        }
+    }
+  
+  return -EINVAL;
+}
+
+/****************************************************************************
+ * Name: progmem_blk_ioctl
+ *
+ * Description:
+ *   Return device geometry
+ *
+ ****************************************************************************/
+
+static int progmem_blk_ioctl(struct inode *inode, int cmd, unsigned long arg)
+{
+  struct mtd_dev_s *mtd;
+  int ret;
+
+  finfo("Entry\n");
+
+  DEBUGASSERT(inode->i_private);
+  mtd = inode->i_private;
+
+  ret = MTD_IOCTL(mtd, cmd, arg);
+  if (ret < 0)
+    {
+      finfo("ERROR: MTD ioctl(%04x) failed: %d\n", cmd, ret);
+    }
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: progmem_blk_unlink
+ *
+ * Description:
+ *   The block driver has been unlinked.
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
+static int progmem_blk_unlink(struct inode *inode)
+{
+  struct mtd_dev_s *mtd;
+
+  DEBUGASSERT(inode->i_private);
+  mtd = inode->i_private;
+
+  UNUSED(mtd);
+
+  return OK;
+}
+#endif
 
 #if defined(CONFIG_STM32F7_PROGMEM_OTA_PARTITION)
 
@@ -189,7 +409,7 @@ static int init_ota_partitions(void)
           ret = -1;
         }
 
-      ret = register_mtddriver(path, mtd, 0777, NULL);
+      ret = register_blockdriver(path, &g_bops, 0777, mtd);
       if (ret < 0)
         {
           ferr("ERROR: Failed to register MTD @ %s\n", path);

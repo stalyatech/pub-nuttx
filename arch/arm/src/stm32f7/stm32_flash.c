@@ -144,8 +144,8 @@ static int stm32_israngeerased(size_t startaddress, size_t size)
   size_t count = 0;
   size_t bwritten = 0;
 
-  if (startaddress < priv->base ||
-      startaddress + size >= priv->base + STM32_FLASH_SIZE)
+  if ((startaddress < priv->base) ||
+      (startaddress + size) > (priv->base + STM32_FLASH_SIZE))
     {
       return -EIO;
     }
@@ -435,11 +435,7 @@ size_t up_progmem_neraseblocks(void)
 
 bool up_progmem_isuniform(void)
 {
-#ifdef STM32_FLASH_PAGESIZE
-  return true;
-#else
   return false;
-#endif
 }
 
 /****************************************************************************
@@ -532,8 +528,15 @@ size_t up_progmem_erasesize(size_t block)
 ssize_t up_progmem_eraseblock(size_t block)
 {
   struct stm32f7_flash_priv_s *priv = &stm32f7_flash_bank_priv;
-  int ret;
-  size_t block_address = priv->base + up_progmem_erasesize(block);
+  size_t block_address = priv->base;
+  int ret, i;
+
+  /* Calculate the block address */
+
+  for (i = 0; i < block; i++)
+    {
+      block_address += up_progmem_erasesize(i);
+    }
 
   if (block >= FLASH_NBLOCKS)
     {

@@ -288,7 +288,7 @@ static int setup_nxffs(struct mtd_dev_s *mtd, const char *mnt_pt)
 
 int board_spiflash_init(struct mtd_dev_s *mtd, const char *path, const char *mnt_pt)
 {
-  int ret = ERROR;
+  int ret = OK;
 
   if (!mtd)
     {
@@ -296,7 +296,11 @@ int board_spiflash_init(struct mtd_dev_s *mtd, const char *path, const char *mnt
       return ERROR;
     }
 
-#if defined (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_SMARTFS)
+#if defined (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_NONE)
+
+  syslog(LOG_INFO, "No SPI flash file system\n");
+
+#elif defined (CONFIG_ARDUSIMPLE_MAPKIT_SPIFLASH_SMARTFS)
 
   ret = setup_smartfs(0, mtd, mnt_pt);
   if (ret < 0)

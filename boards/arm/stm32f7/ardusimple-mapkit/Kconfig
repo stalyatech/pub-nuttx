@@ -9,6 +9,9 @@ choice
 	prompt "Select SPI Flash File System"
 	default ARDUSIMPLE_MAPKIT_SPIFLASH_LITTLEFS
 
+config ARDUSIMPLE_MAPKIT_SPIFLASH_NONE
+	bool "None"
+
 config ARDUSIMPLE_MAPKIT_SPIFLASH_SMARTFS
 	bool "Smart FS"
 

@@ -27,11 +27,110 @@
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
 
+#include "stm32_rcc.h"
+
 #ifdef CONFIG_BOARDCTL_RESET
+
+#define STM32_RESET_LPWRRSTF  (1 << 31U)  /* Low-power reset flag             */
+#define STM32_RESET_WWDGRSTF  (1 << 30U)  /* Window watchdog reset flag       */
+#define STM32_RESET_IWDGRSTF  (1 << 29U)  /* Independent watchdog reset flag  */
+#define STM32_RESET_SFTRSTF   (1 << 28U)  /* Software reset flag              */
+#define STM32_RESET_PORRSTF   (1 << 27U)  /* POR/PDR reset flag               */
+#define STM32_RESET_PINRSTF   (1 << 26U)  /* PIN reset flag                   */
+#define STM32_RESET_BORRSTF   (1 << 25U)  /* BOR reset flag                   */
+#define STM32_RESET_RMVF      (1 << 24U)  /* Remove reset flag                */
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: board_reset_cause
+ *
+ * Description:
+ *   Get the cause of last board reset. This should call architecture
+ *   specific logic to handle the register read.
+ *
+ * Input Parameters:
+ *   cause - Pointer to boardioc_reset_cause_s structure to which the
+ *      reason (and potentially subreason) is saved.
+ *
+ * Returned Value:
+ *   This functions should always return succesfully with 0. We save
+ *   BOARDIOC_RESETCAUSE_UNKOWN in cause structure if we are
+ *   not able to get last reset cause from HW (which is unlikely).
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARDCTL_RESET_CAUSE
+int board_reset_cause(struct boardioc_reset_cause_s *cause)
+{
+  int rst_cause;
+
+  /* Unknown cause returned from HW */
+
+  cause->cause = BOARDIOC_RESETCAUSE_UNKOWN;
+
+  /* Get the reset cause from hardware */
+
+  rst_cause = getreg32(STM32_RCC_CSR) & 0xfe000000;
+
+  if (rst_cause & STM32_RESET_PORRSTF)
+    {
+        /* Power on reset */
+
+        cause->cause = BOARDIOC_RESETCAUSE_SYS_CHIPPOR;
+    }
+
+  else if (rst_cause & STM32_RESET_BORRSTF)
+    {
+        /* Brown-out reset */
+
+        cause->cause = BOARDIOC_RESETCAUSE_SYS_BOR;
+    }
+
+  else if (rst_cause & STM32_RESET_LPWRRSTF)
+    {
+        /* Low power reset */
+
+        cause->cause = BOARDIOC_RESETCAUSE_LOWPOWER;
+    }
+
+  else if (rst_cause & STM32_RESET_WWDGRSTF)
+    {
+        /* Window watchdog reset */
+
+        cause->cause = BOARDIOC_RESETCAUSE_CPU_RWDT;
+    }
+
+  else if (rst_cause & STM32_RESET_IWDGRSTF)
+    {
+        /* Independent watchdog reset */
+
+        cause->cause = BOARDIOC_RESETCAUSE_CPU_RWDT;
+    }
+
+  else if (rst_cause & STM32_RESET_SFTRSTF)
+    {
+        /* Software reset */
+
+        cause->cause = BOARDIOC_RESETCAUSE_CPU_SOFT;
+    }
+
+  else if (rst_cause & STM32_RESET_PINRSTF)
+    {
+        /* Pin reset */
+
+        cause->cause = BOARDIOC_RESETCAUSE_PIN;
+    }
+
+  /* Clear the reset flags */
+
+  modifyreg32(STM32_RCC_CSR, 0, STM32_RESET_RMVF);
+
+  return 0;
+}
+#endif /* CONFIG_BOARDCTL_RESET_CAUSE */
 
 /****************************************************************************
  * Name: board_reset

@@ -1133,6 +1133,7 @@ choice
 
 config STM32F7_APP_FORMAT_LEGACY
   bool "Legacy format"
+  select STM32F7_HAVE_OTA_PARTITION
   ---help---
     This is the legacy application image format.
 
@@ -7491,61 +7492,37 @@ config STM32F7_PROGMEM_OTA_PARTITION
     add an entry at /dev for application access from userspace.
 
 if STM32F7_PROGMEM_OTA_PARTITION
-if STM32F7_APP_FORMAT_MINIBOOT
-config STM32_MINIBOOT_HEADER_SIZE
-  hex
-  default 0x200
 
 config STM32_OTA_PRIMARY_SLOT_DEVPATH
   string "Application image slot device path"
   default "/dev/ota0"
 
 config STM32_OTA_PRIMARY_SLOT_OFFSET
-  hex "Miniboot application image slot offset"
-  default "0x20000"
+  hex "Application image slot offset"
+  default "0x40000"
 
 config STM32_OTA_SLOT_SIZE
-  hex "Miniboot application image slot size (in bytes)"
-  default "0xE0000"
+  hex "Application image slot size (in bytes)"
+  default "0xC0000"
 
+if STM32F7_APP_FORMAT_MINIBOOT
+config STM32_MINIBOOT_HEADER_SIZE
+  hex
+  default 0x200
 endif # STM32F7_APP_FORMAT_MINIBOOT
 
 if STM32F7_APP_FORMAT_MCUBOOT
 config STM32_MCUBOOT_HEADER_SIZE
   hex
   default 0x200
-
-config STM32_OTA_PRIMARY_SLOT_DEVPATH
-  string "Application image slot device path"
-  default "/dev/ota0"
-
-config STM32_OTA_PRIMARY_SLOT_OFFSET
-  hex "MCUboot application image slot offset"
-  default "0x20000"
-
-config STM32_OTA_SLOT_SIZE
-  hex "MCUboot application image slot size (in bytes)"
-  default "0xE0000"
-
 endif # STM32F7_APP_FORMAT_MCUBOOT
 
 if STM32F7_APP_FORMAT_TINYBOOT
 config STM32_TINYBOOT_HEADER_SIZE
   hex
   default 0x200
-
-config STM32_OTA_PRIMARY_SLOT_DEVPATH
-  string "Application image slot device path"
-  default "/dev/ota0"
-
-config STM32_OTA_PRIMARY_SLOT_OFFSET
-  hex "Tinyboot application image slot offset"
-  default "0x40000"
-
-config STM32_OTA_SLOT_SIZE
-  hex "Tinyboot application image slot size (in bytes)"
-  default "0xC0000"
 endif # STM32F7_APP_FORMAT_TINYBOOT
+
 endif # STM32F7_PROGMEM_OTA_PARTITION
 endif # STM32F7_HAVE_OTA_PARTITION
 

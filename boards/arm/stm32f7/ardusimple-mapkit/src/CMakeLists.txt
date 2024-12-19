@@ -34,6 +34,26 @@ if(CONFIG_BOARDCTL)
   list(APPEND SRCS stm32_appinit.c)
 endif()
 
+if(CONFIG_BOARDCTL_RESET)
+  list(APPEND SRCS stm32_reset.c)
+endif()
+
+if(CONFIG_BOARDCTL_POWEROFF)
+  list(APPEND SRCS stm32_power.c)
+endif()
+
+if(CONFIG_BOARDCTL_BOOT_IMAGE)
+  list(APPEND SRCS stm32_boot_image.c)
+endif()
+
+if(CONFIG_BOARDCTL_UNIQUEID)
+  list(APPEND SRCS stm32_uid.c)
+endif()
+
+if(CONFIG_BOARDCTL_IOCTL)
+  list(APPEND SRCS stm32_ioctl.c)
+endif()
+
 if(CONFIG_DEV_GPIO)
   list(APPEND SRCS stm32_gpio.c)
 endif()
@@ -74,24 +94,8 @@ if(CONFIG_STM32F7_PROGMEM)
   list(APPEND SRCS stm32_progmem.c)
 endif()
 
-if(CONFIG_BOARDCTL_RESET)
-  list(APPEND SRCS stm32_reset.c)
-endif()
-
-if(CONFIG_BOARDCTL_POWEROFF)
-  list(APPEND SRCS stm32_power.c)
-endif()
-
-if(CONFIG_BOARDCTL_BOOT_IMAGE)
-  list(APPEND SRCS stm32_boot_image.c)
-endif()
-
 if(CONFIG_STM32_ROMFS)
   list(APPEND SRCS stm32_romfs_init.c)
-endif()
-
-if(CONFIG_BOARDCTL_UNIQUEID)
-  list(APPEND SRCS stm32_uid.c)
 endif()
 
 if(CONFIG_STM32F7_CAN)
@@ -145,11 +149,11 @@ endif()
 
 target_sources(board PRIVATE ${SRCS})
 
-if(CONFIG_STM32F7_APP_FORMAT_MCUBOOT)
-  if(CONFIG_MCUBOOT_BOOTLOADER)
-    set_property(GLOBAL PROPERTY LD_SCRIPT "${NUTTX_BOARD_DIR}/scripts/flash-mcuboot-loader.ld")
+if(CONFIG_STM32F7_HAVE_BOOTLOADER)
+  if(CONFIG_BOARDCTL_BOOT_IMAGE)
+    set_property(GLOBAL PROPERTY LD_SCRIPT "${NUTTX_BOARD_DIR}/scripts/flash-boot-loader.ld")
   else()
-    set_property(GLOBAL PROPERTY LD_SCRIPT "${NUTTX_BOARD_DIR}/scripts/flash-mcuboot-app.ld")
+    set_property(GLOBAL PROPERTY LD_SCRIPT "${NUTTX_BOARD_DIR}/scripts/flash-boot-app.ld")
   endif()
 else()
   set_property(GLOBAL PROPERTY LD_SCRIPT "${NUTTX_BOARD_DIR}/scripts/flash.ld")

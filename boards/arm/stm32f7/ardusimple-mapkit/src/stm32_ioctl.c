@@ -26,7 +26,6 @@
 #include <nuttx/board.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/mtd/mtd.h>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -37,6 +36,10 @@
 
 #include <arch/board/board.h>
 #include <arch/board/boardctl.h>
+
+#ifdef CONFIG_LIBFLASH
+#include <flash/partition.h>
+#endif
 
 #include "chip.h"
 #include "ardusimple-mapkit.h"
@@ -90,107 +93,8 @@ static char g_version[18] = "X.X.X";
  * Private Functions
  ****************************************************************************/
 
-#ifdef CONFIG_STM32F7_PROGMEM_OTA_PARTITION
-
-/****************************************************************************
- * Name: flash_partition_open
- *
- * Description:
- *   Opens the partition based on a given name and returns the file
- *   descriptor to it.
- *
- * Input parameters:
- *   path: Path to the device.
- *
- * Returned Value:
- *   Valid file descriptor on success, -1 on failure.
- *
- ****************************************************************************/
-
-static int flash_partition_open(const char *path)
-{
-  int fd;
-
-  fd = open(path, O_RDWR);
-  if (fd < 0)
-    {
-      return ERROR;
-    }
-
-  return fd;
-}
-
-/****************************************************************************
- * Name: flash_partition_close
- *
- * Description:
- *   Closes opened partition.
- *
- * Input parameters:
- *   fd: Valid file descriptor.
- *
- * Returned Value:
- *   0 on success, -1 on failure.
- *
- ****************************************************************************/
-
-static int flash_partition_close(int fd)
-{
-  return close(fd);
-}
-
-/****************************************************************************
- * Name: flash_partition_read
- *
- * Description:
- *   Read count data to buffer buf at offset off from a partition
- *   referenced by file descriptor fd.
- *
- * Input parameters:
- *   fd: Valid file descriptor.
- *   buf: The pointer where read data are stored.
- *   count: Number of bytes to be read.
- *   off: Read offset in bytes.
- *
- * Returned Value:
- *   0 on success, -1 on failure.
- *
- ****************************************************************************/
-
-static int flash_partition_read(int fd, void *buf, size_t count, off_t off)
-{
-  int ret;
-  off_t pos;
-  size_t size;
-  ssize_t nbytes;
-  struct mtd_geometry_s geometry;
-
-  ret = ioctl(fd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geometry));
-  if (ret < 0)
-    {
-      return ERROR;
-    }
-
-  size = geometry.erasesize * geometry.neraseblocks;
-  if (count + off > size)
-    {
-      return ERROR;
-    }
-
-  pos = lseek(fd, off, SEEK_SET);
-  if (pos != off)
-    {
-      return ERROR;
-    }
-
-  nbytes = read(fd, buf, count);
-  if (nbytes != count)
-    {
-      return ERROR;
-    }
-
-  return OK;
-}
+#if defined(CONFIG_STM32F7_PROGMEM_OTA_PARTITION) && \
+    defined(CONFIG_LIBFLASH)
 
 /****************************************************************************
  * Name: get_image_ver
@@ -242,7 +146,7 @@ static int get_image_ver(struct img_header *header)
 
   return flash_partition_close(fd);
 }
-#endif /* CONFIG_STM32F7_PROGMEM_OTA_PARTITION */
+#endif /* CONFIG_STM32F7_PROGMEM_OTA_PARTITION && CONFIG_LIBFLASH */
 
 /****************************************************************************
  * Public Functions
@@ -278,7 +182,8 @@ int board_ioctl(unsigned int cmd, uintptr_t arg)
     {
       case BOARDIOC_OTA_GETVERSION:
       {
-#ifdef CONFIG_STM32F7_PROGMEM_OTA_PARTITION
+#if defined(CONFIG_STM32F7_PROGMEM_OTA_PARTITION) && \
+    defined(CONFIG_LIBFLASH)
         /* Get the image version */
 
         struct img_header header;
@@ -291,7 +196,9 @@ int board_ioctl(unsigned int cmd, uintptr_t arg)
                                                                header.version.minor,
                                                                header.version.patch);
           }
-#endif /* CONFIG_STM32F7_PROGMEM_OTA_PARTITION */
+#else
+#warning "Version info trusts the Flash library support!"
+#endif /* CONFIG_STM32F7_PROGMEM_OTA_PARTITION && CONFIG_LIBFLASH */
 
         /* Inform the application layer */
 

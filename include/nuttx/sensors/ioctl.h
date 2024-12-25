@@ -471,4 +471,11 @@
 
 #define SNIOC_SKIP_BUFFER             _SNIOC(0x009F)
 
+/* Command:      SNIOC_SEND_RAWDATA
+ * Description:  Write raw data to the sensor device.
+ * Argument:     A argument of raw data pointer.
+ */
+
+#define SNIOC_SEND_RAWDATA            _SNIOC(0x00A0)
+
 #endif /* __INCLUDE_NUTTX_SENSORS_IOCTL_H */

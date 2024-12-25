@@ -63,6 +63,13 @@ config BLUETOOTH_BCM4343X_UART_BAUDRATE
 		This parameter should be set depending on
 		the used SOC DMA configuration.
 
+config BLUETOOTH_BCM4343X_UART_MTUSIZE
+	int "HCI UART maximum MTU size"
+	default 1695
+	range 70 2048
+	---help---
+		HCI UART Maximum MTU size.
+
 endif # BLUETOOTH_BCM4343X
 
 config BLUETOOTH_UART_DUMP

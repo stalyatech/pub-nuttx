@@ -55,6 +55,12 @@
  * Private Types
  ****************************************************************************/
 
+struct ublox_rtcm_s
+{
+  uint32_t len;
+  uint8_t *msg;
+};
+
 struct ublox_gnss_s
 {
   FAR struct sensor_lowerhalf_s lower;
@@ -105,9 +111,9 @@ static const struct sensor_ops_s g_ublox_gnss_ops =
  ****************************************************************************/
 
 static inline int ublox_gnss_open(FAR struct file *filep,
-                                 FAR const char *name,
-                                 uint32_t baud,
-                                 uint32_t flags)
+                                  FAR const char *name,
+                                  uint32_t baud,
+                                  uint32_t flags)
 {
   struct termios opt;
   int ret;
@@ -190,12 +196,12 @@ static int ublox_gnss_enable(struct ublox_gnss_s *priv, bool enable)
  ****************************************************************************/
 
 static int ublox_gnss_activate(FAR struct sensor_lowerhalf_s *lower,
-                              FAR struct file *filep, bool enable)
+                               FAR struct file *filep, bool enable)
 {
   bool start_thread = false;
   FAR struct ublox_gnss_s *priv = container_of(lower,
-                                              struct ublox_gnss_s,
-                                              lower);
+                                               struct ublox_gnss_s,
+                                               lower);
   if (enable)
     {
       if (!priv->enabled)
@@ -221,12 +227,12 @@ static int ublox_gnss_activate(FAR struct sensor_lowerhalf_s *lower,
  ****************************************************************************/
 
 static int ublox_gnss_set_interval(FAR struct sensor_lowerhalf_s *lower,
-                                  FAR struct file *filep,
-                                  FAR unsigned long *period_us)
+                                   FAR struct file *filep,
+                                   FAR unsigned long *period_us)
 {
   FAR struct ublox_gnss_s *priv = container_of(lower,
-                                              struct ublox_gnss_s,
-                                              lower);
+                                               struct ublox_gnss_s,
+                                               lower);
   bool running = priv->enabled;
 
   /* GNSS must be disabled when fix interval change */
@@ -255,10 +261,14 @@ static int ublox_gnss_set_interval(FAR struct sensor_lowerhalf_s *lower,
  ****************************************************************************/
 
 static int ublox_gnss_control(FAR struct sensor_lowerhalf_s *lower,
-                             FAR struct file *filep,
-                             int cmd, unsigned long arg)
+                              FAR struct file *filep,
+                              int cmd, unsigned long arg)
 {
   FAR struct sensor_upperhalf_s *upper = (FAR struct sensor_upperhalf_s *)lower->priv;
+
+  FAR struct ublox_gnss_s *priv = container_of(lower,
+                                               struct ublox_gnss_s,
+                                               lower);
 
   switch (cmd)
     {
@@ -267,6 +277,19 @@ static int ublox_gnss_control(FAR struct sensor_lowerhalf_s *lower,
       case SNIOC_SKIP_BUFFER:
         {
           circbuf_skip(&upper->buffer, *((uint16_t*)arg));
+          break;
+        }
+
+      case SNIOC_SEND_RAWDATA:
+        {
+          struct ublox_rtcm_s *rtcm = (struct ublox_rtcm_s *)arg;
+          int ret;
+
+          ret = file_write(&priv->dev, rtcm->msg, rtcm->len);
+          if (ret != rtcm->len)
+            {
+
+            }
           break;
         }
     }
@@ -370,7 +393,7 @@ int ublox_gnss_register(FAR const char *devname, uint32_t baud, uint32_t devno, 
 
   /* Open the serial port device */
 
-  ret = ublox_gnss_open(&priv->dev, devname, baud, O_RDWR | O_CLOEXEC);
+  ret = ublox_gnss_open(&priv->dev, devname, baud, O_RDWR | O_CLOEXEC | O_NONBLOCK);
   if (ret < 0)
     {
       snerr("Failed to open GPS device serial port\n");

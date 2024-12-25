@@ -101,8 +101,8 @@ static ssize_t btuart_read(FAR struct btuart_upperhalf_s *upper,
 
 static void btuart_rxwork(FAR void *arg)
 {
+  static uint8_t data[BLUETOOTH_MAX_FRAMELEN];
   FAR struct btuart_upperhalf_s *upper;
-  uint8_t data[BLUETOOTH_MAX_FRAMELEN];
   enum bt_buf_type_e type;
   unsigned int hdrlen;
   unsigned int pktlen;
@@ -165,6 +165,12 @@ static void btuart_rxwork(FAR void *arg)
   else
     {
       wlerr("ERROR: Unknown H4 type %u\n", data[0]);
+      goto errout_with_busy;
+    }
+
+  if (pktlen > (BLUETOOTH_MAX_FRAMELEN - (H4_HEADER_SIZE + hdrlen)))
+    {
+      wlerr("ERROR: Packet size is too big %u\n", pktlen);
       goto errout_with_busy;
     }
 

@@ -264,11 +264,10 @@ static int ublox_gnss_control(FAR struct sensor_lowerhalf_s *lower,
                               FAR struct file *filep,
                               int cmd, unsigned long arg)
 {
-  FAR struct sensor_upperhalf_s *upper = (FAR struct sensor_upperhalf_s *)lower->priv;
-
-  FAR struct ublox_gnss_s *priv = container_of(lower,
-                                               struct ublox_gnss_s,
-                                               lower);
+  FAR struct sensor_user_s *user = filep->f_priv;
+  FAR struct ublox_gnss_s  *priv = container_of(lower,
+                                                struct ublox_gnss_s,
+                                                lower);
 
   switch (cmd)
     {
@@ -276,11 +275,13 @@ static int ublox_gnss_control(FAR struct sensor_lowerhalf_s *lower,
 
       case SNIOC_SKIP_BUFFER:
         {
-          circbuf_skip(&upper->buffer, *((uint16_t*)arg));
+          circbuf_skip(&user->buffer, *((uint16_t*)arg));
           break;
         }
 
-      case SNIOC_SEND_RAWDATA:
+      /* Inject raw data */
+
+      case SNIOC_INJECT_DATA:
         {
           struct ublox_rtcm_s *rtcm = (struct ublox_rtcm_s *)arg;
           int ret;

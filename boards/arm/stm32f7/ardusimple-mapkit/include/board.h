@@ -347,11 +347,17 @@
 
 /* TIM */
 
-/* PWM
- * Use Timer 1
- */
+/* PWM */
 
-#define GPIO_TIM1_CH1OUT (GPIO_TIM1_CH1OUT_2 | GPIO_SPEED_50MHz)
+/* TIM 1 Channels */
+
+#define GPIO_TIM1_CH1OUT (GPIO_TIM1_CH1OUT_2 | GPIO_SPEED_50MHz)  /* PE9 */
+
+/* TIM 3 Channels */
+
+#define GPIO_TIM3_CH1OUT (GPIO_TIM3_CH1OUT_1 | GPIO_SPEED_50MHz)  /* PA6 */
+#define GPIO_TIM3_CH2OUT (GPIO_TIM3_CH2OUT_1 | GPIO_SPEED_50MHz)  /* PA7 */
+#define GPIO_TIM3_CH3OUT (GPIO_TIM3_CH3OUT_1 | GPIO_SPEED_50MHz)  /* PB0 */
 
 /* ADC1 */
 

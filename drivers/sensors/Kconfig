@@ -76,6 +76,10 @@ config SENSORS_UBLOX_GNSS_PRIORITY
 	int "GNSS service thread priority"
 	default 224
 
+config SENSORS_UBLOX_GNSS_STACKSIZE
+	int "GNSS service thread stack size"
+	default DEFAULT_TASK_STACKSIZE
+
 config SENSORS_UBLOX_GNSS1_PORT
 	bool "Enable GNSS1 Port"
 	default y

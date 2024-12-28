@@ -433,7 +433,7 @@ int ublox_gnss_register(FAR const char *devname, uint32_t baud, uint32_t devno, 
   argv[1] = NULL;
   ret = kthread_create(name,
                        CONFIG_SENSORS_UBLOX_GNSS_PRIORITY,
-                       CONFIG_DEFAULT_TASK_STACKSIZE,
+                       CONFIG_SENSORS_UBLOX_GNSS_STACKSIZE,
                        ublox_gnss_thread, argv);
   if (ret < 0)
     {

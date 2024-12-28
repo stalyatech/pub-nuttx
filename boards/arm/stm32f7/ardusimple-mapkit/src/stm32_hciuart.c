@@ -59,6 +59,12 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * External Function Prototypes
+ ****************************************************************************/
+
+extern int system(FAR const char *cmd);
+
+/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -88,6 +94,14 @@ static pthread_addr_t hcidev_thread(pthread_addr_t arg)
     {
       wlerr("ERROR: btuart_register() failed: %d\n", ret);
     }
+#ifdef CONFIG_SYSTEM_SYSTEM
+  else
+    {
+      /* Start the bluetooth service */
+
+      system("btstack &");
+    }
+#endif /* CONFIG_SYSTEM_SYSTEM */
 
   return NULL;
 }
@@ -162,6 +176,14 @@ int hciuart_dev_initialize(void)
     {
       wlerr("ERROR: btuart_register() failed: %d\n", ret);
     }
+#ifdef CONFIG_SYSTEM_SYSTEM
+  else
+    {
+      /* Start the bluetooth service */
+
+      system("btstack &");
+    }
+#endif /* CONFIG_SYSTEM_SYSTEM */
 
   return ret;
 #endif /* CONFIG_BOARD_LATE_INITIALIZE */

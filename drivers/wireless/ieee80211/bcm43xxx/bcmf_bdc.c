@@ -226,7 +226,7 @@ int bcmf_event_push_config(FAR struct bcmf_dev_s *priv)
 }
 
 int bcmf_bdc_transmit_frame(FAR struct bcmf_dev_s *priv,
-                            struct bcmf_frame_s *frame)
+                            struct bcmf_frame_s *frame, int itf)
 {
   struct bcmf_bdc_header *header;
 
@@ -239,7 +239,7 @@ int bcmf_bdc_transmit_frame(FAR struct bcmf_dev_s *priv,
 
   header->flags       = 0x20; /* Set bdc protocol version */
   header->priority    = 0;    /* TODO handle priority */
-  header->flags2      = CHIP_STA_INTERFACE;
+  header->flags2      = itf;
   header->data_offset = 0;
 
   /* Send frame */

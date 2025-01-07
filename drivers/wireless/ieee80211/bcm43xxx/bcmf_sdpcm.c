@@ -391,7 +391,7 @@ int bcmf_sdpcm_sendframe(FAR struct bcmf_dev_s *priv)
 
   header->sequence = ibus->tx_seq++;
 
-#if 1
+#if 0
   wlinfo("Send frame %p\n", iframe);
 
   bcmf_hexdump(iframe->header.base, iframe->header.len,

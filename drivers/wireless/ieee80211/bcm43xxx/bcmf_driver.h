@@ -52,7 +52,7 @@ struct bcmf_bus_dev_s;
 
 #define CHIP_STA_INTERFACE   0
 #define CHIP_AP_INTERFACE    1
-#define CHIP_P2P_INTERFACE   2
+#define CHIP_MAX_INTERFACE   2
 
 /****************************************************************************
  * Public Types
@@ -64,14 +64,16 @@ struct bcmf_dev_s
 {
   FAR struct bcmf_bus_dev_s *bus; /* Bus interface structure */
 
-  bool bc_bifup;             /* true:ifup false:ifdown */
-  struct work_s bc_rxwork;   /* For deferring rx work to the work queue */
-  struct work_s bc_pollwork; /* For deferring poll work to the work queue */
+  bool bc_bifup[CHIP_MAX_INTERFACE];  /* true:ifup false:ifdown */
+  struct work_s bc_rxwork;            /* For deferring rx work to the work queue */
+  struct work_s bc_pollwork;          /* For deferring poll work to the work queue */
 
   /* This holds the information visible to the NuttX network */
 
-  struct net_driver_s bc_dev;            /* Network interface structure */
-  FAR struct bcmf_frame_s *cur_tx_frame; /* Frame used to interface network layer */
+  struct net_driver_s                 /* Network interface structures */
+      bc_dev[CHIP_MAX_INTERFACE];
+  FAR struct bcmf_frame_s             /* Frame used to interface network layer */
+     *tx_frame[CHIP_MAX_INTERFACE];
 
   /* Event registration array */
 
@@ -101,6 +103,8 @@ struct bcmf_dev_s
   wsec_pmk_t auth_pmk;    /* Authentication pmk */
   bool auth_pending;      /* Authentication pending */
 
+  FAR sem_t *radio_signal;      /* Radio notification signal */
+
 #ifdef CONFIG_IEEE80211_BROADCOM_LOWPOWER
   struct work_s lp_work_ifdown; /* Ifdown work to work queue */
   struct work_s lp_work_dtim;   /* Low power work to work queue */
@@ -110,6 +114,35 @@ struct bcmf_dev_s
 #ifdef CONFIG_IEEE80211_BROADCOM_PTA_PRIORITY
   int pta_priority; /* Current priority of Packet Traffic Arbitration */
 #endif
+
+  struct
+  {
+    uint32_t mode;        /* Operation mode */
+    uint32_t assoc;       /* Associate status */
+    uint32_t mfp;         /* Management frame protection mode */
+    FAR sem_t *signal;    /* Notification signal */
+
+    struct
+    {
+      uint32_t iface;
+      uint32_t value;
+    } wsec;               /* Security type */
+
+    struct
+    {
+      uint32_t iface;
+      uint32_t value;
+    } wpa;                /* Authentication type */
+
+    struct
+    {
+      uint32_t iface;
+      uint32_t ssid_len;
+      uint8_t  SSID[32];
+    } ssid;               /* SSID */
+
+  } softap;
+
 };
 
 /* Default bus interface structure */
@@ -207,6 +240,7 @@ int bcmf_wl_get_iwrange(FAR struct bcmf_dev_s *priv, FAR struct iwreq *iwr);
 int bcmf_wl_set_country(FAR struct bcmf_dev_s *priv, FAR struct iwreq *iwr);
 int bcmf_wl_get_country(FAR struct bcmf_dev_s *priv, FAR struct iwreq *iwr);
 
+int bcmf_wl_set_channel(FAR struct bcmf_dev_s *priv, FAR struct iwreq *iwr);
 int bcmf_wl_get_channel(FAR struct bcmf_dev_s *priv, int interface);
 
 #ifdef CONFIG_IEEE80211_BROADCOM_PTA_PRIORITY
@@ -219,5 +253,9 @@ int bcmf_wl_set_pta_priority(FAR struct bcmf_dev_s *priv, uint32_t prio);
 # define bcmf_wl_set_pta(...)
 # define bcmf_wl_set_pta_priority(...)
 #endif
+
+int bcmf_wl_ap_init   (FAR struct bcmf_dev_s *priv);
+int bcmf_wl_ap_set_up (FAR struct bcmf_dev_s *priv, bool up);
+int bcmf_wl_ap_is_up  (FAR struct bcmf_dev_s *priv);
 
 #endif /* __DRIVERS_WIRELESS_IEEE80211_BCM43XXX_BCMF_DRIVER_H */

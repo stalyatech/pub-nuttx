@@ -95,7 +95,7 @@
 
 /* This is a helper pointer for accessing the contents of Ethernet header */
 
-#define BUF ((FAR struct eth_hdr_s *)priv->bc_dev.d_buf)
+#define BUF(itf) ((FAR struct eth_hdr_s *)priv->bc_dev[itf].d_buf)
 
 /****************************************************************************
  * Private Function Prototypes
@@ -104,8 +104,8 @@
 /* Common TX logic */
 
 static int  bcmf_transmit(FAR struct bcmf_dev_s *priv,
-                          FAR struct bcmf_frame_s *frame);
-static void bcmf_receive(FAR struct bcmf_dev_s *priv);
+                          FAR struct bcmf_frame_s *frame, int itf);
+static void bcmf_receive(FAR struct bcmf_dev_s *priv, int itf);
 static int  bcmf_txpoll(FAR struct net_driver_s *dev);
 static void bcmf_rxpoll_work(FAR void *arg);
 
@@ -137,9 +137,9 @@ static void bcmf_lowpower_poll(FAR struct bcmf_dev_s *priv);
  * Private Functions
  ****************************************************************************/
 
-int bcmf_netdev_alloc_tx_frame(FAR struct bcmf_dev_s *priv)
+int bcmf_netdev_alloc_tx_frame(FAR struct bcmf_dev_s *priv, int itf)
 {
-  if (priv->cur_tx_frame != NULL)
+  if (priv->tx_frame[itf] != NULL)
     {
       /* Frame available */
 
@@ -148,16 +148,16 @@ int bcmf_netdev_alloc_tx_frame(FAR struct bcmf_dev_s *priv)
 
   /* Allocate frame for TX */
 
-  priv->cur_tx_frame = bcmf_bdc_allocate_frame(priv,
-                                               MAX_NETDEV_PKTSIZE, false);
-  if (!priv->cur_tx_frame)
+  priv->tx_frame[itf] = bcmf_bdc_allocate_frame(priv,
+                                                MAX_NETDEV_PKTSIZE, false);
+  if (!priv->tx_frame[itf])
     {
       wlinfo("INFO: Cannot allocate TX frame\n");
       return -ENOMEM;
     }
 
-  priv->bc_dev.d_buf = priv->cur_tx_frame->data;
-  priv->bc_dev.d_len = 0;
+  priv->bc_dev[itf].d_buf = priv->tx_frame[itf]->data;
+  priv->bc_dev[itf].d_len = 0;
 
   return OK;
 }
@@ -170,7 +170,9 @@ int bcmf_netdev_alloc_tx_frame(FAR struct bcmf_dev_s *priv)
  *   handling or from watchdog based polling.
  *
  * Input Parameters:
- *   priv - Reference to the driver state structure
+ *   priv  - Reference to the driver state structure
+ *   frame - Reference to the buffer to be send
+ *   itf   - Interface number
  *
  * Returned Value:
  *   OK on success; a negated errno on failure
@@ -182,14 +184,14 @@ int bcmf_netdev_alloc_tx_frame(FAR struct bcmf_dev_s *priv)
  ****************************************************************************/
 
 static int bcmf_transmit(FAR struct bcmf_dev_s *priv,
-                         struct bcmf_frame_s *frame)
+                         struct bcmf_frame_s *frame, int itf)
 {
   int ret;
 
-  frame->len = priv->bc_dev.d_len +
+  frame->len = priv->bc_dev[itf].d_len +
       (unsigned int)(frame->data - frame->base);
 
-  ret = bcmf_bdc_transmit_frame(priv, frame);
+  ret = bcmf_bdc_transmit_frame(priv, frame, itf);
 
   if (ret)
     {
@@ -197,9 +199,119 @@ static int bcmf_transmit(FAR struct bcmf_dev_s *priv,
       return -EIO;
     }
 
-  NETDEV_TXPACKETS(&priv->bc_dev);
+  NETDEV_TXPACKETS(&priv->bc_dev[itf]);
 
   return OK;
+}
+
+/****************************************************************************
+ * Name: bcmf_rxproc
+ *
+ * Description:
+ *   Process the received frame
+ *
+ * Input Parameters:
+ *   priv  - Reference to the driver state structure
+ *   frame - Reference to the buffer to be process
+ *   itf   - Interface number
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   The network is locked.
+ *
+ ****************************************************************************/
+
+static int bcmf_rxproc(FAR struct bcmf_dev_s *priv, 
+                       struct bcmf_frame_s *frame, int itf)
+{
+  if (!priv->bc_bifup[itf])
+    {
+      /* Interface down, drop frame */
+
+      return -ENETDOWN;
+    }
+
+  priv->bc_dev[itf].d_buf = frame->data;
+  priv->bc_dev[itf].d_len = frame->len - (frame->data - frame->base);
+
+#ifdef CONFIG_NET_PKT
+  /* When packet sockets are enabled, feed the frame into the tap */
+
+    pkt_input(&priv->bc_dev[itf]);
+#endif
+
+  /* Check if this is an 802.1Q VLAN tagged packet */
+
+  if (BUF(itf)->type == HTONS(TPID_8021QVLAN))
+    {
+      /* Need to remove the 4 octet VLAN Tag, by moving src and dest
+        * addresses 4 octets to the right, and then read the actual
+        * ethertype. The VLAN ID and priority fields are currently
+        * ignored.
+        */
+
+      /* ### TODO ### Implement VLAN support */
+
+      uint8_t temp_buffer[12];
+      memcpy(temp_buffer, frame->data, 12);
+      memcpy(frame->data + 4, temp_buffer, 12);
+
+      priv->bc_dev[itf].d_buf = frame->data = frame->data + 4;
+      priv->bc_dev[itf].d_len -= 4;
+    }
+
+  /* We only accept IP packets of the configured type and ARP packets */
+
+#ifdef CONFIG_NET_IPv4
+  if (BUF(itf)->type == HTONS(ETHTYPE_IP))
+    {
+      ninfo("IPv4 frame\n");
+      NETDEV_RXIPV4(&priv->bc_dev[itf]);
+
+      /* Receive an IPv4 packet from the network device */
+
+      ipv4_input(&priv->bc_dev[itf]);
+
+      return OK;
+    }
+  else
+#endif
+#ifdef CONFIG_NET_IPv6
+  if (BUF(itf)->type == HTONS(ETHTYPE_IP6))
+    {
+      ninfo("IPv6 frame\n");
+      NETDEV_RXIPV6(&priv->bc_dev[itf]);
+
+      /* Give the IPv6 packet to the network layer */
+
+      ipv6_input(&priv->bc_dev[itf]);
+
+      return OK;
+    }
+  else
+#endif
+#ifdef CONFIG_NET_ARP
+  if (BUF(itf)->type == HTONS(ETHTYPE_ARP))
+    {
+      arp_input(&priv->bc_dev[itf]);
+      NETDEV_RXARP(&priv->bc_dev[itf]);
+      
+      return OK;
+    }
+  else
+#endif
+    {
+      /* On some routers, it may constantly receive mysterious packet...
+        * https://www.wireshark.org/docs/wsar_html/epan/etypes_8h.html
+        * for more etypes definitions.
+        */
+
+      NETDEV_RXDROPPED(&priv->bc_dev[itf]);
+
+      return -EAGAIN;
+    }
 }
 
 /****************************************************************************
@@ -219,7 +331,7 @@ static int bcmf_transmit(FAR struct bcmf_dev_s *priv,
  *
  ****************************************************************************/
 
-static void bcmf_receive(FAR struct bcmf_dev_s *priv)
+static void bcmf_receive(FAR struct bcmf_dev_s *priv, int itf)
 {
   struct bcmf_frame_s *frame;
 
@@ -237,7 +349,7 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
           break;
         }
 
-      if (!priv->bc_bifup)
+      if (!priv->bc_bifup[itf])
         {
           /* Interface down, drop frame */
 
@@ -245,18 +357,18 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
           continue;
         }
 
-      priv->bc_dev.d_buf = frame->data;
-      priv->bc_dev.d_len = frame->len - (frame->data - frame->base);
+      priv->bc_dev[itf].d_buf = frame->data;
+      priv->bc_dev[itf].d_len = frame->len - (frame->data - frame->base);
 
 #ifdef CONFIG_NET_PKT
       /* When packet sockets are enabled, feed the frame into the tap */
 
-       pkt_input(&priv->bc_dev);
+       pkt_input(&priv->bc_dev[itf]);
 #endif
 
       /* Check if this is an 802.1Q VLAN tagged packet */
 
-      if (BUF->type == HTONS(TPID_8021QVLAN))
+      if (BUF(itf)->type == HTONS(TPID_8021QVLAN))
         {
           /* Need to remove the 4 octet VLAN Tag, by moving src and dest
            * addresses 4 octets to the right, and then read the actual
@@ -270,31 +382,31 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
           memcpy(temp_buffer, frame->data, 12);
           memcpy(frame->data + 4, temp_buffer, 12);
 
-          priv->bc_dev.d_buf = frame->data = frame->data + 4;
-          priv->bc_dev.d_len -= 4;
+          priv->bc_dev[itf].d_buf = frame->data = frame->data + 4;
+          priv->bc_dev[itf].d_len -= 4;
         }
 
       /* We only accept IP packets of the configured type and ARP packets */
 
 #ifdef CONFIG_NET_IPv4
-      if (BUF->type == HTONS(ETHTYPE_IP))
+      if (BUF(itf)->type == HTONS(ETHTYPE_IP))
         {
           ninfo("IPv4 frame\n");
-          NETDEV_RXIPV4(&priv->bc_dev);
+          NETDEV_RXIPV4(&priv->bc_dev[itf]);
 
           /* Receive an IPv4 packet from the network device */
 
-          ipv4_input(&priv->bc_dev);
+          ipv4_input(&priv->bc_dev[itf]);
 
           /* If the above function invocation resulted in data that should be
            * sent out on the network, d_len field will set to a value > 0.
            */
 
-          if (priv->bc_dev.d_len > 0)
+          if (priv->bc_dev[itf].d_len > 0)
             {
               /* And send the packet */
 
-              bcmf_transmit(priv, frame);
+              bcmf_transmit(priv, frame, itf);
             }
           else
             {
@@ -306,24 +418,24 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
       else
 #endif
 #ifdef CONFIG_NET_IPv6
-      if (BUF->type == HTONS(ETHTYPE_IP6))
+      if (BUF(itf)->type == HTONS(ETHTYPE_IP6))
         {
           ninfo("IPv6 frame\n");
-          NETDEV_RXIPV6(&priv->bc_dev);
+          NETDEV_RXIPV6(&priv->bc_dev[itf]);
 
           /* Give the IPv6 packet to the network layer */
 
-          ipv6_input(&priv->bc_dev);
+          ipv6_input(&priv->bc_dev[itf]);
 
           /* If the above function invocation resulted in data that should be
            * sent out on the network, d_len field will set to a value > 0.
            */
 
-          if (priv->bc_dev.d_len > 0)
+          if (priv->bc_dev[itf].d_len > 0)
             {
               /* And send the packet */
 
-              bcmf_transmit(priv, frame);
+              bcmf_transmit(priv, frame, itf);
             }
           else
             {
@@ -335,18 +447,18 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
       else
 #endif
 #ifdef CONFIG_NET_ARP
-      if (BUF->type == HTONS(ETHTYPE_ARP))
+      if (BUF(itf)->type == HTONS(ETHTYPE_ARP))
         {
-          arp_input(&priv->bc_dev);
-          NETDEV_RXARP(&priv->bc_dev);
+          arp_input(&priv->bc_dev[itf]);
+          NETDEV_RXARP(&priv->bc_dev[itf]);
 
           /* If the above function invocation resulted in data that should be
            * sent out on the network, d_len field will set to a value > 0.
            */
 
-          if (priv->bc_dev.d_len > 0)
+          if (priv->bc_dev[itf].d_len > 0)
             {
-              bcmf_transmit(priv, frame);
+              bcmf_transmit(priv, frame, itf);
             }
           else
             {
@@ -363,7 +475,7 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
            * for more etypes definitions.
            */
 
-          NETDEV_RXDROPPED(&priv->bc_dev);
+          NETDEV_RXDROPPED(&priv->bc_dev[itf]);
           priv->bus->free_frame(priv, frame);
         }
     }
@@ -398,16 +510,17 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
 static int bcmf_txpoll(FAR struct net_driver_s *dev)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
+  int itf = dev->d_ifindex - 1;
 
   /* Send the packet */
 
-  bcmf_transmit(priv, priv->cur_tx_frame);
+  bcmf_transmit(priv, priv->tx_frame[itf], itf);
 
   /* TODO: Check if there is room in the device to hold another
    * packet. If not, return a non-zero value to terminate the poll.
    */
 
-  priv->cur_tx_frame = NULL;
+  priv->tx_frame[itf] = NULL;
   return 1;
 }
 
@@ -437,25 +550,28 @@ static void bcmf_tx_poll_work(FAR void *arg)
 
   net_lock();
 
-  /* Ignore the notification if the interface is not yet up */
-
-  if (priv->bc_bifup)
+  for (int itf = 0; itf < CHIP_MAX_INTERFACE; itf++)
     {
-      /* Check if there is room in the hardware to hold another packet. */
+      /* Ignore the notification if the interface is not yet up */
 
-      while (bcmf_netdev_alloc_tx_frame(priv) == OK)
+      if (priv->bc_bifup[itf])
         {
-          /* If so, then poll the network for new XMIT data */
+          /* Check if there is room in the hardware to hold another packet. */
 
-          devif_poll(&priv->bc_dev, bcmf_txpoll);
-
-          /* Break out the continuous send if IP stack has
-           * no data to send.
-           */
-
-          if (priv->cur_tx_frame != NULL)
+          while (bcmf_netdev_alloc_tx_frame(priv, itf) == OK)
             {
-              break;
+              /* If so, then poll the network for new XMIT data */
+
+              devif_poll(&priv->bc_dev[itf], bcmf_txpoll);
+
+              /* Break out the continuous send if IP stack has
+               * no data to send.
+               */
+
+              if (priv->tx_frame[itf] != NULL)
+                {
+                  break;
+                }
             }
         }
     }
@@ -481,8 +597,11 @@ static void bcmf_tx_poll_work(FAR void *arg)
 
 static void bcmf_rxpoll_work(FAR void *arg)
 {
+#if 1
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)arg;
-  FAR void *oldbuf;
+  FAR void *oldbuf[CHIP_MAX_INTERFACE];
+  struct bcmf_frame_s *frame;
+  int ret, itf, skip_rel;
 
   /* Lock the network and serialize driver operations if necessary.
    * NOTE: Serialization is only required in the case where the driver work
@@ -496,11 +615,66 @@ static void bcmf_rxpoll_work(FAR void *arg)
    * replace and cache the d_buf temporarily
    */
 
-  oldbuf = priv->bc_dev.d_buf;
+  /* Save the driver buffers */
 
-  bcmf_receive(priv);
+  for (itf = 0; itf < CHIP_MAX_INTERFACE; itf++)
+    {
+      oldbuf[itf] = priv->bc_dev[itf].d_buf;
+    }
 
-  priv->bc_dev.d_buf = oldbuf;
+  do
+  {
+    /* Request frame buffer from bus interface */
+
+    frame = bcmf_bdc_rx_frame(priv);
+
+    if (frame == NULL)
+      {
+        /* No more frame to process */
+
+        bcmf_netdev_notify_tx(priv);
+        break;
+      }
+
+      /* Scan all interfaces */
+
+      skip_rel = 0;
+      for (itf = 0; itf < CHIP_MAX_INTERFACE; itf++)
+        {
+          /* Process the received frame */
+
+          ret = bcmf_rxproc(priv, frame, itf);
+
+          if (ret == OK)
+            {
+              /* If the receive process invocation resulted in data that should be
+               * sent out on the network, d_len field will set to a value > 0.
+               */
+
+              if (priv->bc_dev[itf].d_len > 0)
+                {
+                  /* And send the packet */
+
+                  bcmf_transmit(priv, frame, itf);
+                  skip_rel++;
+                }
+            }
+        }
+
+    /* Release RX frame buffer */
+
+    if (skip_rel == 0)
+      {
+        priv->bus->free_frame(priv, frame);
+      }
+  } while (1);
+
+  /* Restore the driver buffers */
+
+  for (itf = 0; itf < CHIP_MAX_INTERFACE; itf++)
+    {
+      priv->bc_dev[itf].d_buf = oldbuf[itf];
+    }
 
   /* Check if a packet transmission just completed.  If so, call bcmf_txdone.
    * This may disable further Tx interrupts if there are no pending
@@ -511,6 +685,54 @@ static void bcmf_rxpoll_work(FAR void *arg)
   bcmf_txdone(priv);
 #endif
   net_unlock();
+#else
+  FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)arg;
+  FAR void *oldbuf[CHIP_MAX_INTERFACE];
+  int itf;
+
+  /* Lock the network and serialize driver operations if necessary.
+   * NOTE: Serialization is only required in the case where the driver work
+   * is performed on an LP worker thread and where more than one LP worker
+   * thread has been configured.
+   */
+
+  net_lock();
+
+  /* Tx work will hold the d_buf until there is data to send,
+   * replace and cache the d_buf temporarily
+   */
+
+  /* Save the current buffers */
+
+  for (itf = 0; itf < CHIP_MAX_INTERFACE; itf++)
+    {
+      oldbuf[itf] = priv->bc_dev[itf].d_buf;
+    }
+
+  /* Receive packets */
+
+  for (itf = 0; itf < CHIP_MAX_INTERFACE; itf++)
+    {
+      bcmf_receive(priv, itf);
+    }
+
+  /* Restore the saved buffers */
+
+  for (itf = 0; itf < CHIP_MAX_INTERFACE; itf++)
+    {
+      priv->bc_dev[itf].d_buf = oldbuf[itf];
+    }
+
+  /* Check if a packet transmission just completed.  If so, call bcmf_txdone.
+   * This may disable further Tx interrupts if there are no pending
+   * transmissions.
+   */
+
+#if 0
+  bcmf_txdone(priv);
+#endif
+  net_unlock();
+#endif
 }
 
 /****************************************************************************
@@ -574,6 +796,7 @@ void bcmf_netdev_notify_rx(FAR struct bcmf_dev_s *priv)
 static int bcmf_ifup(FAR struct net_driver_s *dev)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
+  int itf = dev->d_ifindex - 1;
   struct ether_addr zmac;
   irqstate_t flags;
   uint32_t out_len;
@@ -583,65 +806,82 @@ static int bcmf_ifup(FAR struct net_driver_s *dev)
 
   flags = enter_critical_section();
 
-  if (priv->bc_bifup)
+  if (priv->bc_bifup[itf])
     {
       goto errout_in_critical_section;
     }
 
-  ret = bcmf_wl_active(priv, true);
-  if (ret != OK)
+  if (itf == CHIP_STA_INTERFACE)
     {
-      goto errout_in_critical_section;
-    }
+      ret = bcmf_wl_active(priv, true);
+      if (ret != OK)
+        {
+          goto errout_in_critical_section;
+        }
 
-  /* Enable chip */
+      /* Enable chip */
 
-  ret = bcmf_wl_enable(priv, true);
-  if (ret != OK)
-    {
-      goto errout_in_wl_active;
-    }
+      ret = bcmf_wl_enable(priv, true);
+      if (ret != OK)
+        {
+          goto errout_in_wl_active;
+        }
 
-  /* Set customized MAC address */
+      /* Set customized MAC address */
 
-  memset(&zmac, 0, sizeof(zmac));
+      memset(&zmac, 0, sizeof(zmac));
 
-  if (memcmp(&priv->bc_dev.d_mac.ether, &zmac, sizeof(zmac)) != 0)
-    {
+      if (memcmp(&priv->bc_dev[itf].d_mac.ether, &zmac, sizeof(zmac)) != 0)
+        {
+          out_len = ETHER_ADDR_LEN;
+          bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
+                                 IOVAR_STR_CUR_ETHERADDR,
+                                 priv->bc_dev[itf].d_mac.ether.ether_addr_octet,
+                                 &out_len);
+        }
+
+      /* Query MAC address */
+
       out_len = ETHER_ADDR_LEN;
-      bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
-                             IOVAR_STR_CUR_ETHERADDR,
-                             priv->bc_dev.d_mac.ether.ether_addr_octet,
-                             &out_len);
+      ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, false,
+                                   IOVAR_STR_CUR_ETHERADDR,
+                                   priv->bc_dev[itf].d_mac.ether.ether_addr_octet,
+                                   &out_len);
+      if (ret != OK)
+        {
+          goto errout_in_wl_active;
+        }
+
+      if (CONFIG_IEEE80211_BROADCOM_DEFAULT_COUNTRY[0])
+        {
+          bcmf_wl_set_country_code(priv, CHIP_STA_INTERFACE,
+                                  CONFIG_IEEE80211_BROADCOM_DEFAULT_COUNTRY);
+        }
+
+#ifdef CONFIG_IEEE80211_BROADCOM_LOWPOWER
+      bcmf_lowpower_poll(priv);
+#endif
+      bcmf_wl_set_pta_priority(priv, IW_PTA_PRIORITY_COEX_HIGH);
     }
-
-  /* Query MAC address */
-
-  out_len = ETHER_ADDR_LEN;
-  ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, false,
-                               IOVAR_STR_CUR_ETHERADDR,
-                               priv->bc_dev.d_mac.ether.ether_addr_octet,
-                               &out_len);
-  if (ret != OK)
+  else
     {
-      goto errout_in_wl_active;
-    }
+      /* Query MAC address */
 
-  if (CONFIG_IEEE80211_BROADCOM_DEFAULT_COUNTRY[0])
-    {
-      bcmf_wl_set_country_code(priv, CHIP_STA_INTERFACE,
-                               CONFIG_IEEE80211_BROADCOM_DEFAULT_COUNTRY);
+      out_len = ETHER_ADDR_LEN;
+      ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, false,
+                                   IOVAR_STR_CUR_ETHERADDR,
+                                   priv->bc_dev[itf].d_mac.ether.ether_addr_octet,
+                                   &out_len);
+      if (ret != OK)
+        {
+          goto errout_in_wl_active;
+        }
+      priv->bc_dev[itf].d_mac.ether.ether_addr_octet[5]++;
     }
 
   /* Enable the hardware interrupt */
 
-  priv->bc_bifup = true;
-
-#ifdef CONFIG_IEEE80211_BROADCOM_LOWPOWER
-  bcmf_lowpower_poll(priv);
-#endif
-
-  bcmf_wl_set_pta_priority(priv, IW_PTA_PRIORITY_COEX_HIGH);
+  priv->bc_bifup[itf] = true;
 
   goto errout_in_critical_section;
 
@@ -675,34 +915,50 @@ errout_in_critical_section:
 static int bcmf_ifdown(FAR struct net_driver_s *dev)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
+  int itf = dev->d_ifindex - 1;
   irqstate_t flags;
 
   /* Disable the hardware interrupt */
 
   flags = enter_critical_section();
 
-  if (priv->bc_bifup)
+  if (itf == CHIP_STA_INTERFACE)
     {
-      /* Mark the device "down" */
+      if (priv->bc_bifup[itf])
+        {
+          /* Mark the device "down" */
 
-      priv->bc_bifup = false;
+          priv->bc_bifup[itf] = false;
 
 #ifdef CONFIG_IEEE80211_BROADCOM_LOWPOWER
-      if (!work_available(&priv->lp_work_dtim))
-        {
-          work_cancel(LPWORK, &priv->lp_work_dtim);
-        }
+          if (!work_available(&priv->lp_work_dtim))
+            {
+              work_cancel(LPWORK, &priv->lp_work_dtim);
+            }
 
-      if (!work_available(&priv->lp_work_ifdown))
-        {
-          work_cancel(LPWORK, &priv->lp_work_ifdown);
-        }
+          if (!work_available(&priv->lp_work_ifdown))
+            {
+              work_cancel(LPWORK, &priv->lp_work_ifdown);
+            }
 #endif
+          bcmf_wl_set_pta_priority(priv, IW_PTA_PRIORITY_COEX_MAXIMIZED);
 
-      bcmf_wl_set_pta_priority(priv, IW_PTA_PRIORITY_COEX_MAXIMIZED);
+          bcmf_wl_enable(priv, false);
+          bcmf_wl_active(priv, false);
+        }
+    }
+  else
+    {
+      if (priv->bc_bifup[itf])
+        {
+          /* Mark the device "down" */
 
-      bcmf_wl_enable(priv, false);
-      bcmf_wl_active(priv, false);
+          priv->bc_bifup[itf] = false;
+
+          /* Bring down the SoftAP */
+
+          bcmf_wl_ap_set_up(priv, false);
+        }
     }
 
   leave_critical_section(flags);
@@ -728,7 +984,7 @@ static bool bcmf_lowpower_expiration(FAR struct bcmf_dev_s *priv,
 {
   clock_t ticks;
 
-  if (priv->bc_bifup)
+  if (priv->bc_bifup[itf])
     {
       /* Disable the hardware interrupt */
 
@@ -754,7 +1010,7 @@ static void bcmf_lowpower_work(FAR void *arg)
   if (bcmf_lowpower_expiration(arg, &priv->lp_work_dtim, bcmf_lowpower_work,
                                SEC2TICK(LP_DTIM_TIMEOUT)))
     {
-      if (priv->bc_bifup)
+      if (priv->bc_bifup[itf])
         {
           bcmf_wl_set_dtim(priv, LP_DTIM_INTERVAL);
         }
@@ -769,9 +1025,9 @@ static void bcmf_lowpower_ifdown_work(FAR void *arg)
                                bcmf_lowpower_ifdown_work,
                                SEC2TICK(LP_IFDOWN_TIMEOUT)))
     {
-      if (priv->bc_bifup)
+      if (priv->bc_bifup[itf])
         {
-          netdev_ifdown(&priv->bc_dev);
+          netdev_ifdown(&priv->bc_dev[itf]);
         }
     }
 }
@@ -789,7 +1045,7 @@ static void bcmf_lowpower_ifdown_work(FAR void *arg)
 
 static void bcmf_lowpower_poll(FAR struct bcmf_dev_s *priv)
 {
-  if (priv->bc_bifup)
+  if (priv->bc_bifup[itf])
     {
       bcmf_wl_set_dtim(priv, 100); /* Listen-iterval to 100 ms */
 
@@ -917,9 +1173,10 @@ static int bcmf_ioctl(FAR struct net_driver_s *dev, int cmd,
                       unsigned long arg)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
+  int itf = dev->d_ifindex - 1;
   int ret;
 
-  if (!priv->bc_bifup)
+  if (!priv->bc_bifup[itf])
     {
       wlerr("ERROR: invalid state (unable to execute command: %x)\n", cmd);
       return -EPERM;
@@ -1005,10 +1262,9 @@ static int bcmf_ioctl(FAR struct net_driver_s *dev, int cmd,
           }
         else
           {
-            bcmf_wl_set_pta_priority(priv, (bcmf_wl_get_channel(priv,
-                                           CHIP_STA_INTERFACE) > 14) ?
-                                     IW_PTA_PRIORITY_COEX_MAXIMIZED :
-                                     IW_PTA_PRIORITY_BALANCED);
+            bcmf_wl_set_pta_priority(priv, (bcmf_wl_get_channel(priv, CHIP_STA_INTERFACE) > 14)
+                                            ? IW_PTA_PRIORITY_COEX_MAXIMIZED
+                                            : IW_PTA_PRIORITY_BALANCED);
           }
         break;
 
@@ -1060,6 +1316,25 @@ static int bcmf_ioctl(FAR struct net_driver_s *dev, int cmd,
         break;
 #endif
 
+      case SIOCSIWAPASSOC:
+        wlwarn("WARNING: SIOCSIWAPASSOC not implemented\n");
+        ret = -ENOSYS;
+        break;
+
+      case SIOCGIWAPASSOC:
+        struct iwreq *iwr = (struct iwreq *)arg;
+        ret = -EHOSTDOWN;
+
+        if (!strncpy(iwr->ifr_name, "wlan1", 5))
+          {
+            if (priv->softap.mode == IW_MODE_MASTER)
+              {
+                iwr->u.param.value = priv->softap.assoc;
+                ret = OK;
+              }
+          }
+        break;
+
       default:
         nerr("ERROR: Unrecognized IOCTL command: %x\n", cmd);
         ret = -ENOTTY;  /* Special return value for this case */
@@ -1094,33 +1369,37 @@ static int bcmf_ioctl(FAR struct net_driver_s *dev, int cmd,
 
 int bcmf_netdev_register(FAR struct bcmf_dev_s *priv)
 {
-  /* Initialize network driver structure */
+  /* Initialize network driver structures */
 
-  memset(&priv->bc_dev, 0, sizeof(priv->bc_dev));
-  priv->bc_dev.d_ifup    = bcmf_ifup;     /* I/F up (new IP address) callback */
-  priv->bc_dev.d_ifdown  = bcmf_ifdown;   /* I/F down callback */
-  priv->bc_dev.d_txavail = bcmf_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_MCASTGROUP
-  priv->bc_dev.d_addmac  = bcmf_addmac;   /* Add multicast MAC address */
-  priv->bc_dev.d_rmmac   = bcmf_rmmac;    /* Remove multicast MAC address */
-#endif
-#ifdef CONFIG_NETDEV_IOCTL
-  priv->bc_dev.d_ioctl   = bcmf_ioctl;    /* Handle network IOCTL commands */
-#endif
-  priv->bc_dev.d_private = priv;          /* Used to recover private state from dev */
+  for (int i = 0; i < CHIP_MAX_INTERFACE; i++)
+    {
+      memset(&priv->bc_dev[i], 0, sizeof(priv->bc_dev[i]));
+      priv->bc_dev[i].d_ifup    = bcmf_ifup;     /* I/F up (new IP address) callback */
+      priv->bc_dev[i].d_ifdown  = bcmf_ifdown;   /* I/F down callback */
+      priv->bc_dev[i].d_txavail = bcmf_txavail;  /* New TX data callback */
+    #ifdef CONFIG_NET_MCASTGROUP
+      priv->bc_dev[i].d_addmac  = bcmf_addmac;   /* Add multicast MAC address */
+      priv->bc_dev[i].d_rmmac   = bcmf_rmmac;    /* Remove multicast MAC address */
+    #endif
+    #ifdef CONFIG_NETDEV_IOCTL
+      priv->bc_dev[i].d_ioctl   = bcmf_ioctl;    /* Handle network IOCTL commands */
+    #endif
+      priv->bc_dev[i].d_private = priv;          /* Used to recover private state from dev */
 
-  /* Initialize network stack interface buffer */
+      /* Initialize network stack interface buffer */
 
-  priv->cur_tx_frame     = NULL;
-  priv->bc_dev.d_buf     = NULL;
+      priv->bc_dev[i].d_buf     = NULL;
+      priv->tx_frame[i]         = NULL;
 
-  /* Initialize MAC address */
+      /* Initialize MAC address */
 
-  bcmf_board_etheraddr(&priv->bc_dev.d_mac.ether);
+      bcmf_board_etheraddr(&priv->bc_dev[i].d_mac.ether, i);
 
-  /* Register the device with the OS so that socket IOCTLs can be performed */
+      /* Register the device with the OS so that socket IOCTLs can be performed */
 
-  netdev_register(&priv->bc_dev, NET_LL_IEEE80211);
+      netdev_register(&priv->bc_dev[i], NET_LL_IEEE80211);
+    }
+
   return OK;
 }
 

@@ -171,6 +171,11 @@
 #define SIOCSIWPTAPRIO      (SIOCIWFIRSTPRIV + 6)       /* Set PTA priority type */
 #define SIOCGIWPTAPRIO      (SIOCIWFIRSTPRIV + 7)       /* Get PTA priority type */
 
+/* WIFI AP assoc indicator */
+
+#define SIOCSIWAPASSOC      (SIOCIWFIRSTPRIV + 8)       /* Set AP Assoc indicator */
+#define SIOCGIWAPASSOC      (SIOCIWFIRSTPRIV + 9)       /* Get AP Assoc indicator */
+
 #define SIOCIWLASTPRIV      _WLIOC(0x00ff)
 
 /* ------------------------- IOCTL STUFF ------------------------- */

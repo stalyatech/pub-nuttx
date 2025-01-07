@@ -1,3 +1,6 @@
+# NVRAM file for CYW943439WLPTH
+# 2.4 GHz, 20 MHz BW mode
+
 NVRAMRev=$Rev: 726808 $
 manfid=0x2d0
 prodid=0x0727
@@ -6,7 +9,7 @@ devid=0x43e2
 boardtype=0x0887
 boardrev=0x1101
 boardnum=22
-macaddr=00:A0:50:b5:59:5e
+macaddr=00:90:4c:2d:a0:05
 sromrev=11
 boardflags=0x00404001
 boardflags3=0x08000000
@@ -46,3 +49,7 @@ spurconfig=0x3
 glitch_based_crsmin=1
 btc_mode=1
 bt_default_ant=0
+#swdiv_en=1
+#swdiv_gpio=2 
+tempbased_duty_cycle_en=0
+# End of NVRAM - do not remove this line #

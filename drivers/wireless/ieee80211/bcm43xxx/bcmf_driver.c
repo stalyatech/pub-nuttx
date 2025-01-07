@@ -91,6 +91,15 @@
 #define WLAN_AKM_PSK          0x02
 #define SUITE(oui, id)        (((oui) << 8) | (id))
 
+#define MAX_NUM_OF_ASSOCLIST  8     /* Max number of assoc list */
+
+#define AMPDU_RX_FACTOR_8K    0     /* Max receive AMPDU length is 8kb */
+#define AMPDU_RX_FACTOR_16K   1     /* Max receive AMPDU length is 16kb */
+#define AMPDU_RX_FACTOR_32K   2     /* Max receive AMPDU length is 32kb */
+#define AMPDU_RX_FACTOR_64K   3     /* Max receive AMPDU length is 64kb */
+#define AMPDU_MPDU_AUTO       (-1)  /* Auto number of mpdu in ampdu */
+
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -194,6 +203,26 @@ static int bcmf_wl_get_interface(FAR struct bcmf_dev_s *priv,
  * Private Functions
  ****************************************************************************/
 
+
+/****************************************************************************
+ * Name: wl_get_interface
+ ****************************************************************************/
+
+static int wl_get_interface(FAR const char *ifr_name)
+{
+  if (!strncmp(ifr_name, "wlan1", 5) || !strncmp(ifr_name, "wl0.1", 5))
+    {
+      return CHIP_AP_INTERFACE;
+    }
+
+  if (!strncmp(ifr_name, "wlan0", 5) || !strncmp(ifr_name, "wl0", 3))
+    {
+      return CHIP_STA_INTERFACE;
+    }
+
+  return -EINVAL;
+}
+
 /****************************************************************************
  * Name: bcmf_wl_channel_to_frequency
  ****************************************************************************/
@@ -230,8 +259,14 @@ static int bcmf_wl_channel_to_frequency(int chan)
 
 int bcmf_wl_set_mac_address(FAR struct bcmf_dev_s *priv, struct ifreq *req)
 {
-  int ret;
+  int ret, itf;
   uint32_t out_len = IFHWADDRLEN;
+
+  itf = wl_get_interface(req->ifr_name);
+  if (itf < 0)
+    {
+      return -EINVAL;
+    }
 
   ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
                               IOVAR_STR_CUR_ETHERADDR,
@@ -247,7 +282,7 @@ int bcmf_wl_set_mac_address(FAR struct bcmf_dev_s *priv, struct ifreq *req)
                 req->ifr_hwaddr.sa_data[2], req->ifr_hwaddr.sa_data[3],
                 req->ifr_hwaddr.sa_data[4], req->ifr_hwaddr.sa_data[5]);
 
-  memcpy(priv->bc_dev.d_mac.ether.ether_addr_octet,
+  memcpy(priv->bc_dev[itf].d_mac.ether.ether_addr_octet,
          req->ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
 
   return OK;
@@ -451,6 +486,69 @@ int bcmf_wl_active(FAR struct bcmf_dev_s *priv, bool active)
     }
 #endif
 
+  #if 0
+  /* Set antenna to chip antenna */
+
+  out_len = sizeof(value);
+  value   = 1;
+  ret = bcmf_cdc_ioctl(priv, interface, true,
+                       WLC_SET_ANTDIV, 
+                       (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+    {
+      goto errout_in_sdio_active;
+    }
+  #endif
+
+  /* Set the AMPDU window size */
+
+  out_len = sizeof(value);
+  value   = 8;
+  ret = bcmf_cdc_iovar_request(priv, interface, true,
+                               IOVAR_STR_AMPDU_BA_WINDOW_SIZE, 
+                               (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+    {
+      goto errout_in_sdio_active;
+    }
+
+  /* Set the AMPDU MPDU */
+
+  out_len = sizeof(value);
+  value   = AMPDU_MPDU_AUTO;
+  ret = bcmf_cdc_iovar_request(priv, interface, true,
+                               IOVAR_STR_AMPDU_MPDU, 
+                               (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+    {
+      goto errout_in_sdio_active;
+    }
+
+  /* Set the AMPDU RX factor */
+
+  out_len = sizeof(value);
+  value   = AMPDU_RX_FACTOR_64K;
+  ret = bcmf_cdc_iovar_request(priv, interface, true,
+                               IOVAR_STR_AMPDU_RX_FACTOR, 
+                               (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+    {
+      goto errout_in_sdio_active;
+    }
+
+  /* Set APSTA to on */
+
+  out_len = sizeof(value);
+  value   = 1;
+  ret = bcmf_cdc_iovar_request(priv, interface, true,
+                               IOVAR_STR_APSTA, 
+                               (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+    {
+      goto errout_in_sdio_active;
+    }
+
+
   /* Disable TX Gloming feature */
 
   out_len = 4;
@@ -571,6 +669,8 @@ int bcmf_driver_initialize(FAR struct bcmf_dev_s *priv)
   bcmf_event_register(priv, bcmf_wl_auth_event_handler,
                       WLC_E_ASSOC);
   bcmf_event_register(priv, bcmf_wl_auth_event_handler,
+                      WLC_E_ASSOC_IND);
+  bcmf_event_register(priv, bcmf_wl_auth_event_handler,
                       WLC_E_LINK);
   bcmf_event_register(priv, bcmf_wl_auth_event_handler,
                       WLC_E_PSK_SUP);
@@ -600,7 +700,10 @@ void bcmf_wl_radio_event_handler(FAR struct bcmf_dev_s *priv,
                                  FAR struct bcmf_event_s *event,
                                  unsigned int len)
 {
-  wlinfo("Unhandled radio event from <%s>\n", event->src_name);
+  if (priv->radio_signal)
+    {
+      nxsem_post(priv->radio_signal);
+    }
 }
 
 /****************************************************************************
@@ -616,8 +719,12 @@ void bcmf_wl_auth_event_handler(FAR struct bcmf_dev_s *priv,
   uint32_t reason;
   uint32_t status;
   uint32_t type;
+  uint16_t flags;
+  int itf;
 
-  type = bcmf_getle32(&event->type);
+  itf    = wl_get_interface(event->src_name);
+  flags  = bcmf_getle16(&event->flags);
+  type   = bcmf_getle32(&event->type);
   status = bcmf_getle32(&event->status);
   reason = bcmf_getle32(&event->reason);
 
@@ -625,49 +732,81 @@ void bcmf_wl_auth_event_handler(FAR struct bcmf_dev_s *priv,
          "status %" PRId32 " reason %" PRId32 " from <%s>\n",
          type, status, reason, event->src_name);
 
-  if (!priv->bc_bifup)
+  if (itf < 0 || !priv->bc_bifup[itf])
     {
       return;
     }
 
   bcmf_hexdump((FAR uint8_t *)event, len, (unsigned long)event);
 
-  if (type == WLC_E_PSK_SUP)
+  if (itf == CHIP_STA_INTERFACE)
     {
-      carrier = ((reason == WLC_E_SUP_OTHER) || (reason == 0)) ? 1 : 0;
-      if (priv->auth_pending)
+      if (type == WLC_E_PSK_SUP)
         {
-          priv->auth_status = reason;
-          auth = true;
+          carrier = ((reason == WLC_E_SUP_OTHER) || (reason == 0)) ? 1 : 0;
+          if (priv->auth_pending)
+            {
+              priv->auth_status = reason;
+              auth = true;
+            }
+        }
+      else if (type == WLC_E_SET_SSID)
+        {
+          carrier = (status == WLC_E_STATUS_SUCCESS) ? 1 : 0;
+          if (!priv->auth_pending || !carrier)
+            {
+              priv->auth_status = status;
+              auth = true;
+            }
+        }
+      else if (type == WLC_E_DEAUTH ||
+               type == WLC_E_DEAUTH_IND ||
+               type == WLC_E_DISASSOC ||
+               type == WLC_E_DISASSOC_IND ||
+              (type == WLC_E_LINK && reason != 0))
+        {
+          carrier = 0;
         }
     }
-  else if (type == WLC_E_SET_SSID)
+  else
     {
-      carrier = (status == WLC_E_STATUS_SUCCESS) ? 1 : 0;
-      if (!priv->auth_pending || !carrier)
+      if (type == WLC_E_LINK)
         {
-          priv->auth_status = status;
-          auth = true;
+          carrier = ((status == WLC_E_STATUS_SUCCESS) && flags) ? 1 : 0;
         }
-    }
-  else if (type == WLC_E_DEAUTH ||
-           type == WLC_E_DEAUTH_IND ||
-           type == WLC_E_DISASSOC ||
-           type == WLC_E_DISASSOC_IND ||
-           (type == WLC_E_LINK && reason != 0))
-    {
-      carrier = 0;
+      else if (type == WLC_E_DEAUTH ||
+               type == WLC_E_DEAUTH_IND)
+        {
+          carrier = 0;
+        }
+      else if (type == WLC_E_DISASSOC ||
+               type == WLC_E_DISASSOC_IND)
+        {
+          priv->softap.assoc = 0;
+        }
+      else if (type == WLC_E_ASSOC_IND)
+        {
+          if (status == WLC_E_STATUS_SUCCESS)
+            {
+              priv->softap.assoc = 1;
+            }
+        }
     }
 
   if (carrier >= 0)
     {
       if (carrier)
         {
-          netdev_carrier_on(&priv->bc_dev);
+          netdev_carrier_on(&priv->bc_dev[itf]);
         }
       else
         {
-          netdev_carrier_off(&priv->bc_dev);
+          netdev_carrier_off(&priv->bc_dev[itf]);
+        }
+
+      if (priv->softap.signal)
+        {
+          nxsem_post(priv->softap.signal);
         }
     }
 
@@ -1130,9 +1269,7 @@ void bcmf_wl_scan_timeout(wdparm_t arg)
 
 int bcmf_wl_get_interface(FAR struct bcmf_dev_s *priv, FAR struct iwreq *iwr)
 {
-  /* TODO resolve interface using iwr->ifr_name */
-
-  return CHIP_STA_INTERFACE;
+  return wl_get_interface(iwr->ifr_name);
 }
 
 /****************************************************************************
@@ -1196,16 +1333,30 @@ int bcmf_wl_enable(FAR struct bcmf_dev_s *priv, bool enable)
 {
   int ret;
   uint32_t out_len;
+  sem_t radio_signal;
+
+  /* Initialize the semaphore */
+
+  nxsem_init(&radio_signal, 0, 0);
+  priv->radio_signal = &radio_signal;
 
   /* TODO check device state */
 
   out_len = 0;
   ret = bcmf_cdc_ioctl(priv, CHIP_STA_INTERFACE, true,
                        enable ? WLC_UP : WLC_DOWN, NULL, &out_len);
+  if (ret == OK)
+    {
+      /* Wait for WLC_E_RADIO event */
 
-  /* TODO wait for WLC_E_RADIO event */
+      ret = nxsem_tickwait_uninterruptible(priv->radio_signal,
+										                       MSEC2TICK(3000));
+    }
 
-  nxsig_usleep(3000);
+  /* Release the semaphore */
+
+  priv->radio_signal = NULL;
+  nxsem_destroy(&radio_signal);
 
   if (ret == OK)
     {
@@ -1436,24 +1587,31 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
     {
       case IW_AUTH_WPA_VERSION:
         {
+          uint32_t mfp_auth = MFP_NONE;
           uint32_t wpa_version[2];
-          uint32_t auth_mode;
+          uint32_t wpa_auth;
 
           switch (iwr->u.param.value)
             {
               case IW_AUTH_WPA_VERSION_DISABLED:
                 wpa_version[1] = 0;
-                auth_mode = WPA_AUTH_DISABLED;
+                wpa_auth = WPA_AUTH_DISABLED;
                 break;
 
               case IW_AUTH_WPA_VERSION_WPA:
                 wpa_version[1] = 1;
-                auth_mode = WPA_AUTH_PSK;
+                wpa_auth = WPA_AUTH_PSK;
                 break;
 
               case IW_AUTH_WPA_VERSION_WPA2:
                 wpa_version[1] = 1;
-                auth_mode = WPA2_AUTH_PSK;
+                wpa_auth = WPA2_AUTH_PSK;
+                break;
+
+              case IW_AUTH_WPA_VERSION_WPA3:
+                wpa_version[1] = 1;
+                wpa_auth = WPA3_AUTH_SAE_PSK;
+                mfp_auth = MFP_REQUIRED;
                 break;
 
               default:
@@ -1461,6 +1619,19 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
                       iwr->u.param.value);
                 return -EINVAL;
             }
+
+          /* Is it SoftAP interface ? */
+
+          if (interface == CHIP_AP_INTERFACE)
+            {
+              priv->softap.wpa.iface = interface;
+              priv->softap.wpa.value = wpa_auth;
+              priv->softap.mfp = mfp_auth;
+
+              return OK;
+            }
+
+          /* Station mode fall back */
 
           out_len = 8;
           wpa_version[0] = interface;
@@ -1475,7 +1646,7 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
 
           out_len = 4;
           if (bcmf_cdc_ioctl(priv, interface, true, WLC_SET_WPA_AUTH,
-                             (FAR uint8_t *)&auth_mode, &out_len))
+                             (FAR uint8_t *)&wpa_auth, &out_len))
             {
               return -EIO;
             }
@@ -1486,26 +1657,31 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
       case IW_AUTH_CIPHER_PAIRWISE:
       case IW_AUTH_CIPHER_GROUP:
         {
+          uint32_t auth_type;
           uint32_t cipher_mode;
           uint32_t wep_auth = 0;
 
           switch (iwr->u.param.value)
             {
               case IW_AUTH_CIPHER_NONE:
+                auth_type = CYW43_AUTH_OPEN;
                 cipher_mode = OPEN_AUTH;
                 break;
 
               case IW_AUTH_CIPHER_WEP40:
               case IW_AUTH_CIPHER_WEP104:
+                auth_type = CYW43_AUTH_OPEN;
                 cipher_mode = WEP_ENABLED;
                 wep_auth = 1;
                 break;
 
               case IW_AUTH_CIPHER_TKIP:
+                auth_type = CYW43_AUTH_WPA_TKIP_PSK;
                 cipher_mode = TKIP_ENABLED;
                 break;
 
               case IW_AUTH_CIPHER_CCMP:
+                auth_type = CYW43_AUTH_WPA2_AES_PSK;
                 cipher_mode = AES_ENABLED;
                 break;
 
@@ -1514,6 +1690,18 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
                       iwr->u.param.value);
                 return -EINVAL;
             }
+
+          /* Is it SoftAP interface ? */
+
+          if (interface == CHIP_AP_INTERFACE)
+            {
+              priv->softap.wsec.iface = interface;
+              priv->softap.wsec.value = auth_type;
+
+              return OK;
+            }
+
+          /* Station mode fall back */
 
           out_len = 4;
           if (bcmf_cdc_ioctl(priv, interface, true,
@@ -1572,6 +1760,22 @@ int bcmf_wl_set_mode(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
   if (interface < 0)
     {
       return -EINVAL;
+    }
+
+  /* Is it SoftAP interface ? */
+
+  if (interface == CHIP_AP_INTERFACE)
+    {
+      /* Store the requested mode */
+
+      priv->softap.mode = iwr->u.mode;
+
+      if (priv->softap.mode == IW_MODE_MASTER)
+        {
+          /* We will initialize the SoftAP mode later */
+
+          return OK;
+        }
     }
 
   out_len = sizeof(value);
@@ -1701,6 +1905,43 @@ int bcmf_wl_get_bssid(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
 
   return bcmf_cdc_ioctl(priv, interface, false, WLC_GET_BSSID,
                         (FAR uint8_t *)iwr->u.ap_addr.sa_data, &out_len);
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_set_channel
+ *
+ * Description:
+ *   Set the channel for the device
+ ****************************************************************************/
+
+int bcmf_wl_set_channel(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
+{
+  channel_info_t ci;
+  uint32_t out_len;
+  int interface;
+  int ret;
+
+  interface = bcmf_wl_get_interface(priv, iwr);
+
+  if (interface < 0)
+    {
+      return -EINVAL;
+    }
+
+  out_len = sizeof(ci);
+  ret = bcmf_cdc_ioctl(priv, interface, false,
+                       WLC_GET_CHANNEL, 
+                       (FAR uint8_t *)&ci, &out_len);
+  if (ret == OK)
+    {
+      ci.hw_channel = iwr->u.freq.i;
+
+      ret = bcmf_cdc_ioctl(priv, interface, true,
+                           WLC_SET_CHANNEL, 
+                           (FAR uint8_t *)&ci, &out_len);
+    }
+
+  return ret;
 }
 
 /****************************************************************************
@@ -1967,6 +2208,32 @@ int bcmf_wl_set_ssid(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
     {
       return -EINVAL;
     }
+
+
+  /* Is it SoftAP interface ? */
+
+  if (interface == CHIP_AP_INTERFACE)
+    {
+      /* Save the SSID info */
+
+      priv->softap.ssid.iface    = interface;
+      priv->softap.ssid.ssid_len = iwr->u.essid.length;
+      memcpy(priv->softap.ssid.SSID, iwr->u.essid.pointer, iwr->u.essid.length);
+
+      /* Initialize the SoftAP mode */
+
+      ret = bcmf_wl_ap_init(priv);
+      if (ret == OK)
+        {
+          /* Bring up the SoftAP */
+
+          ret = bcmf_wl_ap_set_up(priv, true);
+        }
+
+      return ret;
+    }
+
+  /* Station mode fall back */
 
   out_len = sizeof(scbval);
   memset(&scbval, 0x0, out_len);
@@ -2268,3 +2535,282 @@ int bcmf_wl_set_pta(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
 }
 
 #endif
+
+/****************************************************************************
+ * Name: bcmf_wl_ap_is_up
+ ****************************************************************************/
+
+int bcmf_wl_ap_is_up(FAR struct bcmf_dev_s *priv)
+{
+  uint32_t out_len;
+  uint32_t value;
+  int ret;
+  
+  /* Get state of AP */
+
+  out_len = sizeof(value);
+  value   = CHIP_AP_INTERFACE;
+  ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, false,
+                               IOVAR_STR_BSS, 
+                               (FAR uint8_t *)&value, &out_len);
+
+  if (ret == OK)
+    {
+      /* Check the value */
+
+    }
+  else if (priv->control_status == 0xffffffe2)
+    {
+      /* AP is not up */
+
+      value = 0; 
+    }
+
+  return (value != 0);
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_ap_set_up
+ ****************************************************************************/
+
+int bcmf_wl_ap_set_up(FAR struct bcmf_dev_s *priv, bool up)
+{
+  sem_t softap_signal;
+  uint32_t out_len;
+  int ret;
+
+  struct
+  {
+    uint32_t iface;
+    uint32_t value;
+  } bss;
+  
+  /* Initialize the semaphore */
+
+  nxsem_init(&softap_signal, 0, 0);
+  priv->softap.signal = &softap_signal;
+
+  /* TODO check device state */
+
+  out_len   = sizeof(bss);
+  bss.iface = CHIP_AP_INTERFACE;
+  bss.value = up;
+  ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
+                               IOVAR_STR_BSS, 
+                               (FAR uint8_t *)&bss, &out_len);
+  if (ret == OK)
+    {
+      /* Wait until AP is brought up/down */
+
+      ret = nxsem_tickwait_uninterruptible(priv->softap.signal,
+										                       MSEC2TICK(10000));
+
+      /* Check the SoftAP status  */
+
+      if (ret == OK)
+      {
+        if (bcmf_wl_ap_is_up(priv) != up)
+          {
+            ret = -EIO;
+          }
+      }
+    }
+
+  /* Release the semaphore */
+
+  priv->softap.signal = NULL;
+  nxsem_destroy(&softap_signal);
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_ap_init
+ ****************************************************************************/
+
+int bcmf_wl_ap_init(FAR struct bcmf_dev_s *priv)
+{
+  uint32_t out_len;
+  uint32_t value;
+  int ret;
+
+  /* Check the SoftAP mode  */
+  
+  if (bcmf_wl_ap_is_up(priv))
+    {
+      /* Already up ... */
+
+      return OK;
+    }
+
+  #if 1
+  /* Set channel */
+
+  out_len = sizeof(value);
+  value   = 6;
+  ret = bcmf_cdc_ioctl(priv, CHIP_STA_INTERFACE, true,
+                       WLC_SET_CHANNEL, 
+                       (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+  #endif
+
+  /* Set SSID */
+
+  out_len = sizeof(priv->softap.ssid);
+  ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
+                               IOVAR_STR_BSSCFG_SSID, 
+                               (FAR uint8_t *)&priv->softap.ssid, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Set security type */
+
+  out_len = sizeof(priv->softap.wsec);
+  ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
+							                 IOVAR_STR_BSSCFG_WSEC, 
+							                 (FAR uint8_t *)&priv->softap.wsec, &out_len);
+  if (ret != OK)
+	{
+	  return ret;
+	}
+
+  /* Set WPA/WPA2/WPA3 auth params */
+
+  out_len = sizeof(priv->softap.wpa);
+  ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
+							                 IOVAR_STR_BSSCFG_WPA_AUTH, 
+							                 (FAR uint8_t *)&priv->softap.wpa, &out_len);
+  if (ret != OK)
+	{
+	  return ret;
+	}
+
+  /* Set management frame protection */
+
+  out_len = sizeof(priv->softap.mfp);
+  ret = bcmf_cdc_iovar_request(priv, CHIP_AP_INTERFACE, true,
+							                 IOVAR_STR_MFP, 
+							                 (FAR uint8_t *)&priv->softap.mfp, &out_len);
+  if (ret != OK)
+	{
+	  return ret;
+	}
+
+  /* Set password */
+
+  out_len = sizeof(priv->auth_pmk);
+  ret = bcmf_cdc_ioctl(priv, CHIP_AP_INTERFACE, true,
+                       WLC_SET_WSEC_PMK,
+                       (FAR uint8_t *)&priv->auth_pmk, &out_len);
+  if (ret != OK)
+	{
+	  return ret;
+	}
+
+  /* Set GMode to auto */
+
+  out_len = sizeof(value);
+  value   = GMODE_AUTO;
+  ret = bcmf_cdc_ioctl(priv, CHIP_AP_INTERFACE, true,
+                       WLC_SET_GMODE, 
+                       (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+    {
+      //return ret;
+    }
+
+  /* Set multicast tx rate to 11Mbps */
+
+  out_len = sizeof(value);
+  value   = 11000000 / 500000;
+  ret = bcmf_cdc_iovar_request(priv, CHIP_AP_INTERFACE, true,
+							                 IOVAR_STR_2G_MULTICAST_RATE, 
+							                 (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+	{
+	  return ret;
+	}
+
+  /* Set DTIM period */
+
+#ifdef CONFIG_IEEE80211_BROADCOM_LOWPOWER
+  out_len = sizeof(value);
+  value   = 1;
+  ret = bcmf_cdc_ioctl(priv, CHIP_AP_INTERFACE, true,
+					             WLC_SET_DTIMPRD, 
+					             (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+	{
+	  return ret;
+	}
+#endif
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_ap_get_stas
+ ****************************************************************************/
+
+int bcmf_wl_ap_get_stas(FAR struct bcmf_dev_s *priv, int *num_stas, uint8_t *macs)
+{
+  uint32_t out_len;
+  uint32_t maxassoc;
+  int ret;
+  
+  /* Get the associated station number */
+
+  out_len   = sizeof(maxassoc);
+  maxassoc  = 0;
+  ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, false,
+                               IOVAR_STR_MAX_ASSOC, 
+                               (FAR uint8_t *)&maxassoc, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Make sure all MACs will fit in buffer; size specified in num_stas */
+
+  maxassoc = MIN(maxassoc, MAX_NUM_OF_ASSOCLIST);
+
+  /* Save the associated station number */
+
+  if (num_stas)
+    {
+      *num_stas = maxassoc;
+    }
+
+  /* Get the current list of associated STAs */
+
+  struct
+  {
+    uint32_t num;
+    struct ether_addr mac[maxassoc];
+  } maclist;
+
+  out_len = sizeof(maclist);
+  memset(&maclist, 0, sizeof(maclist));
+  maclist.num = maxassoc;
+  ret = bcmf_cdc_ioctl(priv, CHIP_AP_INTERFACE, false,
+                       WLC_GET_ASSOCLIST, 
+                       (FAR uint8_t *)&maclist, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Save the associated station list */
+
+  if (macs)
+    {
+      memcpy(macs, maclist.mac, sizeof(maclist.mac));
+    }
+
+  return ret;
+}

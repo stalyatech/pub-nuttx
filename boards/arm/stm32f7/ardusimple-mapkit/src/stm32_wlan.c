@@ -124,7 +124,7 @@ void bcmf_board_setup_oob_irq(int minor, int (*func)(void *), void *arg)
  * Name: bcmf_board_etheraddr
  ****************************************************************************/
 
-bool bcmf_board_etheraddr(struct ether_addr *ethaddr)
+bool bcmf_board_etheraddr(struct ether_addr *ethaddr, int itf)
 {
   return false;
 }

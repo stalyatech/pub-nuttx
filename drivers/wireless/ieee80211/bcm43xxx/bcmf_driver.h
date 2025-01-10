@@ -33,7 +33,6 @@
 #include <net/if.h>
 #include <nuttx/wdog.h>
 #include <nuttx/wqueue.h>
-#include <nuttx/wireless/wireless.h>
 
 #include "bcmf_ioctl.h"
 
@@ -52,6 +51,7 @@ struct bcmf_bus_dev_s;
 
 #define CHIP_STA_INTERFACE   0
 #define CHIP_AP_INTERFACE    1
+#define CHIP_P2P_INTERFACE   2
 #define CHIP_MAX_INTERFACE   2
 
 /****************************************************************************
@@ -98,12 +98,12 @@ struct bcmf_dev_s
   FAR wl_bss_info_t *scan_result;      /* Temp buffer that holds results */
   unsigned int scan_result_entries;    /* Current entries of temp buffer */
 
+  FAR sem_t *radio_signal;/* Radio notification signal */
   FAR sem_t *auth_signal; /* Authentication notification signal */
   uint32_t auth_status;   /* Authentication status */
   wsec_pmk_t auth_pmk;    /* Authentication pmk */
   bool auth_pending;      /* Authentication pending */
 
-  FAR sem_t *radio_signal;      /* Radio notification signal */
 
 #ifdef CONFIG_IEEE80211_BROADCOM_LOWPOWER
   struct work_s lp_work_ifdown; /* Ifdown work to work queue */
@@ -117,10 +117,14 @@ struct bcmf_dev_s
 
   struct
   {
-    uint32_t mode;        /* Operation mode */
-    uint32_t assoc;       /* Associate status */
-    uint32_t mfp;         /* Management frame protection mode */
     FAR sem_t *signal;    /* Notification signal */
+    uint32_t assoc;       /* Associate status */
+
+    struct
+    {
+      uint32_t iface;
+      uint32_t value;
+    } mfp;                /* Management frame protection mode */
 
     struct
     {
@@ -192,7 +196,8 @@ int bcmf_driver_initialize(FAR struct bcmf_dev_s *priv);
 int bcmf_wl_set_mac_address(FAR struct bcmf_dev_s *priv,
                             FAR struct ifreq *req);
 
-int bcmf_wl_enable(FAR struct bcmf_dev_s *priv, bool enable);
+int bcmf_wl_enable(FAR struct bcmf_dev_s *priv, bool enable,
+                   uint8_t iface);
 
 int bcmf_wl_active(FAR struct bcmf_dev_s *priv, bool active);
 
@@ -254,8 +259,10 @@ int bcmf_wl_set_pta_priority(FAR struct bcmf_dev_s *priv, uint32_t prio);
 # define bcmf_wl_set_pta_priority(...)
 #endif
 
+int bcmf_wl_ap_get_stas(FAR struct bcmf_dev_s *priv, struct iwreq *iwr);
+
 int bcmf_wl_ap_init   (FAR struct bcmf_dev_s *priv);
-int bcmf_wl_ap_set_up (FAR struct bcmf_dev_s *priv, bool up);
 int bcmf_wl_ap_is_up  (FAR struct bcmf_dev_s *priv);
+int bcmf_wl_ap_set_up (FAR struct bcmf_dev_s *priv, bool up, uint32_t timeout);
 
 #endif /* __DRIVERS_WIRELESS_IEEE80211_BCM43XXX_BCMF_DRIVER_H */

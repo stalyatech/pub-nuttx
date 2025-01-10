@@ -883,6 +883,7 @@ end_packed_struct wlc_iov_trx_t;
 #define IOVAR_STR_CCGPIOPUTEN            "ccgpioputen"
 #define IOVAR_STR_COEX_PARA              "coex_para"
 #define IOVAR_STR_MFP                    "mfp"
+#define IOVAR_STR_CHANSPEC               "chanspec"
 
 #define WLC_IOCTL_MAGIC                    ( 0x14e46c77 )
 #define WLC_IOCTL_VERSION                  (          1 )
@@ -3364,5 +3365,8 @@ typedef enum
 
   WLC_E_REASON_FORCE_32_BIT     = 0x7ffffffe                     /* Force enum to be stored in 32 bit variable */
 } wl_event_reason_t;
+
+#define WL_AP_UP_TIMEOUT    (10000)
+#define WL_AP_DOWN_TIMEOUT  (2000)
 
 #endif /* __DRIVERS_WIRELESS_IEEE80211_BCM43XXX_BCMF_IOCTL_H */

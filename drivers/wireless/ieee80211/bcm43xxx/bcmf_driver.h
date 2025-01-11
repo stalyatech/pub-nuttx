@@ -74,6 +74,7 @@ struct bcmf_dev_s
       bc_dev[CHIP_MAX_INTERFACE];
   FAR struct bcmf_frame_s             /* Frame used to interface network layer */
      *tx_frame[CHIP_MAX_INTERFACE];
+  uint8_t tx_imask;                    /* Transmit interface mask */
 
   /* Event registration array */
 

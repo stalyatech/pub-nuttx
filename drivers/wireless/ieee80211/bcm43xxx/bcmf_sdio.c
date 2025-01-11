@@ -1065,6 +1065,14 @@ int bcmf_sdio_thread(int argc, char **argv)
           ret = bcmf_sdpcm_sendframe(priv);
         }
       while (ret == OK);
+
+      if (ret == -EAGAIN)
+        {
+          /* No credit to send frame */
+          /* yield the other tasks */
+
+          nxsig_usleep(1000);
+        }
     }
 
   wlinfo("Exit\n");

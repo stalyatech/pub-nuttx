@@ -265,7 +265,7 @@ int bcmf_sdpcm_readframe(FAR struct bcmf_dev_s *priv)
       goto exit_abort;
     }
 
-#if 1
+#if 0
   wlinfo("Receive frame %p %d\n", iframe, len);
 
   wlinfo("size:%d  seq: %d, channel: %d  next len: %d\n",
@@ -411,9 +411,9 @@ int bcmf_sdpcm_sendframe(FAR struct bcmf_dev_s *priv)
 
   if (ret == OK && is_txframe)
     {
-      /* Notify upper layer at least one TX buffer is available */
+      /* Notify upper layer with interface mask at least one TX buffer is available */
 
-      bcmf_netdev_notify_tx(priv);
+      bcmf_netdev_notify_tx(priv, (1 << iframe->header.data[2]));
     }
 
   wlinfo("return %d\n", ret);

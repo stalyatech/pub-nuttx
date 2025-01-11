@@ -149,7 +149,7 @@ int bcmf_netdev_alloc_tx_frame(FAR struct bcmf_dev_s *priv, uint8_t iface)
   /* Allocate frame for TX */
 
   priv->tx_frame[iface] = bcmf_bdc_allocate_frame(priv,
-                                                MAX_NETDEV_PKTSIZE, false);
+                                                  MAX_NETDEV_PKTSIZE, false);
   if (!priv->tx_frame[iface])
     {
       wlinfo("INFO: Cannot allocate TX frame\n");
@@ -236,7 +236,8 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
         {
           /* No more frame to process */
 
-          bcmf_netdev_notify_tx(priv);
+          bcmf_netdev_notify_tx(priv, (1 << CHIP_STA_INTERFACE) | \
+                                      (1 << CHIP_AP_INTERFACE));
           break;
         }
 
@@ -445,7 +446,7 @@ static void bcmf_tx_poll_work(FAR void *arg)
     {
       /* Ignore the notification if the interface is not yet up */
 
-      if (priv->bc_bifup[iface])
+      if ((priv->tx_imask & (1 << iface)) && priv->bc_bifup[iface])
         {
           /* Check if there is room in the hardware to hold another packet. */
 
@@ -466,6 +467,8 @@ static void bcmf_tx_poll_work(FAR void *arg)
             }
         }
     }
+
+  priv->tx_imask = 0;
 
   net_unlock();
 }
@@ -542,12 +545,13 @@ static void bcmf_rxpoll_work(FAR void *arg)
  *
  ****************************************************************************/
 
-void bcmf_netdev_notify_tx(FAR struct bcmf_dev_s *priv)
+void bcmf_netdev_notify_tx(FAR struct bcmf_dev_s *priv, uint8_t tx_imask)
 {
   /* Schedule to perform a poll for new Tx data the worker thread. */
 
   if (work_available(&priv->bc_pollwork))
     {
+      priv->tx_imask = tx_imask;
       work_queue(BCMFWORK, &priv->bc_pollwork,
                  bcmf_tx_poll_work, priv, 0);
     }
@@ -907,7 +911,7 @@ static int bcmf_txavail(FAR struct net_driver_s *dev)
 #ifdef CONFIG_IEEE80211_BROADCOM_LOWPOWER
   bcmf_lowpower_poll(priv);
 #endif
-  bcmf_netdev_notify_tx(priv);
+  bcmf_netdev_notify_tx(priv, 1 << (dev->d_ifindex - 1));
   return OK;
 }
 

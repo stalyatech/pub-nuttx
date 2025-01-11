@@ -102,11 +102,13 @@
 #define CHAN_STA_DEFAULT_NUM  8     /* Default STA channel number */
 #define CHAN_MAX_2G_NUM       14    /* Max channel number in 2G band */
 
+#define RATE_SETTING_11_MBPS        (11000000 / 500000)
 #define AMPDU_STA_DEFAULT_BA_WSIZE  8
 #define AMPDU_STA_DEFAULT_MPDU      4
 
 #define WL_CHANSPEC_CHAN_MASK       (0x00ff)
 
+#define CHSPEC_IS2G(id,chspec)      (chspec & (wl_get_chanspec_band_mask(id) == wl_get_chanspec_band_2G(id)))
 #define CHSPEC_CHANNEL(chspec)      (chanspec_t)( (chspec) & WL_CHANSPEC_CHAN_MASK )
 #define CH20MHZ_CHSPEC(id, chspec)  (chanspec_t)( CHSPEC_CHANNEL(chspec)          | \
                                                   wl_get_chanspec_bw_20(id)       | \
@@ -253,6 +255,25 @@ static uint32_t wl_get_chanspec_ctl_sb_none(uint16_t wlan_chip_id)
   else
     {
       return 0x0000;
+    }
+}
+
+/****************************************************************************
+ * Name: wl_get_chanspec_band_mask
+ ****************************************************************************/
+
+static uint32_t wl_get_chanspec_band_mask(uint16_t wlan_chip_id)
+{
+  if ((wlan_chip_id == SDIO_DEVICE_ID_BROADCOM_43362) || 
+      (wlan_chip_id == SDIO_DEVICE_ID_BROADCOM_4334)  || 
+      (wlan_chip_id == SDIO_DEVICE_ID_BROADCOM_43340) || 
+      (wlan_chip_id == SDIO_DEVICE_ID_BROADCOM_43342))
+    {
+      return 0xf000;
+    }
+  else
+    {
+      return 0xc000;
     }
 }
 
@@ -1705,7 +1726,7 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
 
               case IW_AUTH_WPA_VERSION_WPA2:
                 wpa_version[1] = 1;
-                wpa_auth = WPA_AUTH_PSK | WPA2_AUTH_PSK;
+                wpa_auth = WPA2_AUTH_PSK;
                 break;
 
               case IW_AUTH_WPA_VERSION_WPA3:
@@ -2047,6 +2068,21 @@ int bcmf_wl_set_channel(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
       ret = bcmf_cdc_iovar_request(priv, interface, true,
                                    IOVAR_STR_CHANSPEC,
                                    (FAR uint8_t *)&value, &out_len);
+      if (ret != OK)
+        {
+          return ret;
+        }
+
+      /* Set multicast tx rate to 11Mbps */
+
+      if (CHSPEC_IS2G(sbus->cur_chip_id, iwr->u.freq.m))
+        {
+          out_len = sizeof(value);
+          value   = RATE_SETTING_11_MBPS;
+          ret = bcmf_cdc_iovar_request(priv, interface, true,
+                                       IOVAR_STR_2G_MULTICAST_RATE,
+                                       (FAR uint8_t *)&value, &out_len);
+        }
     }
 
   return ret;
@@ -2859,18 +2895,6 @@ int bcmf_wl_ap_init(FAR struct bcmf_dev_s *priv)
     {
 	    return ret;
     }
-
-  /* Set multicast tx rate to 11Mbps */
-
-  out_len = sizeof(value);
-  value   = 11000000 / 500000;
-  ret = bcmf_cdc_iovar_request(priv, CHIP_AP_INTERFACE, true,
-							                 IOVAR_STR_2G_MULTICAST_RATE,
-							                 (FAR uint8_t *)&value, &out_len);
-  if (ret != OK)
-	{
-	  return ret;
-	}
 
   /* Set channel */
 

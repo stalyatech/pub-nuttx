@@ -421,14 +421,17 @@ out:
 
   /* Write image */
 
-  ret = bcmf_upload_binary(ibus,
-                           ibus->chip->ram_size - 4 - nvram_sz
-                           + ibus->chip->ram_base,
-                           nvram_buf, nvram_sz);
+  if (nvram_buf != NULL && nvram_sz > 0)
+    {
+      ret = bcmf_upload_binary(ibus,
+                               ibus->chip->ram_size - 4 - nvram_sz
+                               + ibus->chip->ram_base,
+                               nvram_buf, nvram_sz);
 
 #ifdef CONFIG_IEEE80211_BROADCOM_FWFILES
-  kmm_free(nvram_buf);
+      kmm_free(nvram_buf);
 #endif
+    }
 
   if (ret != OK)
     {

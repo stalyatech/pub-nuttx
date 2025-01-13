@@ -102,13 +102,16 @@
 #define CHAN_STA_NUMBER_DEF   6     /* Default STA channel number */
 #define CHAN_MAX_2G_NUM       14    /* Max channel number in 2G band */
 
+#define RATE_SETTING_1_MBPS         ( 1000000 / 500000)
+#define RATE_SETTING_2_MBPS         ( 2000000 / 500000)
+#define RATE_SETTING_5_5_MBPS       ( 5500000 / 500000)
 #define RATE_SETTING_11_MBPS        (11000000 / 500000)
-#define AMPDU_AP_BA_WSIZE_DEF       (8)
+#define AMPDU_AP_BA_WSIZE_DEF       (2)
 #define AMPDU_STA_BA_WSIZE_DEF      (8)
 #define AMPDU_STA_MPDU_DEF          (4)
 
 #define BEAC_AP_INTERVAL_DEF        (100)   /* Default AP beacon interval */
-#define DTIM_AP_INTERVAL_DEF        (1)     /* Default AP DTIM interval */
+#define DTIM_AP_INTERVAL_DEF        (3)     /* Default AP DTIM interval */
 
 #define PM2_SLEEP_RET_TIME_MIN      (1)     /* Minimum return-to-sleep in milliseconds */
 #define PM2_SLEEP_RET_TIME_MAX      (200)   /* Maximum return-to-sleep in milliseconds */
@@ -116,7 +119,7 @@
 
 #define WL_CHANSPEC_CHAN_MASK       (0x00ff)
 
-#define CHSPEC_IS2G(id,chspec)      (chspec & (wl_get_chanspec_band_mask(id) == wl_get_chanspec_band_2G(id)))
+#define CHSPEC_IS2G(id,chspec)      ((chspec & wl_get_chanspec_band_mask(id)) == wl_get_chanspec_band_2G(id))
 #define CHSPEC_CHANNEL(chspec)      (chanspec_t)( (chspec) & WL_CHANSPEC_CHAN_MASK )
 #define CH20MHZ_CHSPEC(id, chspec)  (chanspec_t)( CHSPEC_CHANNEL(chspec)          | \
                                                   wl_get_chanspec_bw_20(id)       | \
@@ -2086,12 +2089,12 @@ int bcmf_wl_set_channel(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
           return ret;
         }
 
-      /* Set multicast tx rate to 11Mbps */
+      /* Set multicast tx rate to 2Mbps */
 
       if (CHSPEC_IS2G(sbus->cur_chip_id, iwr->u.freq.m))
         {
           out_len = sizeof(value);
-          value   = RATE_SETTING_11_MBPS;
+          value   = RATE_SETTING_2_MBPS;
           ret = bcmf_cdc_iovar_request(priv, interface, true,
                                        IOVAR_STR_2G_MULTICAST_RATE,
                                        (FAR uint8_t *)&value, &out_len);

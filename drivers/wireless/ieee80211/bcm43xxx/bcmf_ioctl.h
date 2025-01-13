@@ -3366,6 +3366,15 @@ typedef enum
   WLC_E_REASON_FORCE_32_BIT     = 0x7ffffffe                     /* Force enum to be stored in 32 bit variable */
 } wl_event_reason_t;
 
+/* Enumeration of 802.11 radio bands */
+
+typedef enum wl_802_11_band
+{
+    WL_802_11_BAND_5GHZ   = 0,  /* Denotes 5GHz radio band */
+    WL_802_11_BAND_2_4GHZ = 1,  /* Denotes 2.4GHz radio band */
+    WL_802_11_BAND_6GHZ   = 2   /* Denotes 6GHz radio band  */
+} wl_802_11_band_t;
+
 #define WL_AP_UP_TIMEOUT    (10000)
 #define WL_AP_DOWN_TIMEOUT  (2000)
 

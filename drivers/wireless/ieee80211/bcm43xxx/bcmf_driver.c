@@ -98,13 +98,21 @@
 #define AMPDU_RX_FACTOR_32K   2     /* Max receive AMPDU length is 32kb */
 #define AMPDU_RX_FACTOR_64K   3     /* Max receive AMPDU length is 64kb */
 
-#define CHAN_AP_DEFAULT_NUM   3     /* Default AP channel number */
-#define CHAN_STA_DEFAULT_NUM  8     /* Default STA channel number */
+#define CHAN_AP_NUMBER_DEF    11    /* Default AP channel number */
+#define CHAN_STA_NUMBER_DEF   6     /* Default STA channel number */
 #define CHAN_MAX_2G_NUM       14    /* Max channel number in 2G band */
 
 #define RATE_SETTING_11_MBPS        (11000000 / 500000)
-#define AMPDU_STA_DEFAULT_BA_WSIZE  8
-#define AMPDU_STA_DEFAULT_MPDU      4
+#define AMPDU_AP_BA_WSIZE_DEF       (8)
+#define AMPDU_STA_BA_WSIZE_DEF      (8)
+#define AMPDU_STA_MPDU_DEF          (4)
+
+#define BEAC_AP_INTERVAL_DEF        (100)   /* Default AP beacon interval */
+#define DTIM_AP_INTERVAL_DEF        (1)     /* Default AP DTIM interval */
+
+#define PM2_SLEEP_RET_TIME_MIN      (1)     /* Minimum return-to-sleep in milliseconds */
+#define PM2_SLEEP_RET_TIME_MAX      (200)   /* Maximum return-to-sleep in milliseconds */
+#define PM2_SLEEP_RET_TIME_DEF      (20)    /* Default return-to-sleep in milliseconds */
 
 #define WL_CHANSPEC_CHAN_MASK       (0x00ff)
 
@@ -588,6 +596,8 @@ int bcmf_wl_active(FAR struct bcmf_dev_s *priv, bool active)
   struct iwreq iwr;
   uint32_t out_len;
   uint32_t value;
+  wl_li_t li;
+  wl_pm_t pm;
   int ret;
 
   ninfo("Entered\n");
@@ -613,7 +623,7 @@ int bcmf_wl_active(FAR struct bcmf_dev_s *priv, bool active)
   /* Set the AMPDU window size */
 
   out_len = sizeof(value);
-  value   = AMPDU_STA_DEFAULT_BA_WSIZE;
+  value   = AMPDU_STA_BA_WSIZE_DEF;
   ret = bcmf_cdc_iovar_request(priv, interface, true,
                                IOVAR_STR_AMPDU_BA_WINDOW_SIZE,
                                (FAR uint8_t *)&value, &out_len);
@@ -625,7 +635,7 @@ int bcmf_wl_active(FAR struct bcmf_dev_s *priv, bool active)
   /* Set the AMPDU MPDU */
 
   out_len = sizeof(value);
-  value   = AMPDU_STA_DEFAULT_MPDU;
+  value   = AMPDU_STA_MPDU_DEF;
   ret = bcmf_cdc_iovar_request(priv, interface, true,
                                IOVAR_STR_AMPDU_MPDU,
                                (FAR uint8_t *)&value, &out_len);
@@ -672,21 +682,20 @@ int bcmf_wl_active(FAR struct bcmf_dev_s *priv, bool active)
 
   /* Set default power save mode */
 
-  out_len = 4;
-  value   = PM_OFF;
-  ret     = bcmf_cdc_ioctl(priv, interface, true, WLC_SET_PM,
-                           (FAR uint8_t *)&value, &out_len);
+  pm.mode = PM_OFF;
+  pm.pm2w = PM2_SLEEP_RET_TIME_DEF;
+  ret = bcmf_wl_set_pm(priv, interface, &pm);  
   if (ret != OK)
     {
       goto errout_in_sdio_active;
     }
 
-  /* Set the GMode to auto */
+  /* Set default listen intervals */
 
-  out_len = 4;
-  value = GMODE_AUTO;
-  ret = bcmf_cdc_ioctl(priv, interface, true, WLC_SET_GMODE,
-                       (FAR uint8_t *)&value, &out_len);
+  li.dtim   = 0;
+  li.assoc  = 0;
+  li.beacon = 0;
+  ret = bcmf_wl_set_li(priv, interface, &li);  
   if (ret != OK)
     {
       goto errout_in_sdio_active;
@@ -725,7 +734,7 @@ int bcmf_wl_active(FAR struct bcmf_dev_s *priv, bool active)
 
   memset(&iwr, 0, sizeof(struct iwreq));
   strlcpy(iwr.ifr_name, "wlan0", IFNAMSIZ);
-  iwr.u.freq.m = CHAN_STA_DEFAULT_NUM;
+  iwr.u.freq.m = CHAN_STA_NUMBER_DEF;
   bcmf_wl_set_channel(priv, &iwr);
 
   /* Query firmware version string */
@@ -1459,7 +1468,7 @@ int bcmf_wl_enable(FAR struct bcmf_dev_s *priv, bool enable,
 
   /* Delay required to allow radio firmware to be ready to avoid intermittent failure */
 
-  nxsig_usleep(5000);
+  nxsig_usleep(100 * 1000);
 
   /* TODO check device state */
 
@@ -1745,6 +1754,10 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
 
           if (interface == CHIP_AP_INTERFACE)
             {
+              if (wpa_auth & WPA2_AUTH_PSK)
+                {
+                  wpa_auth |= WPA_AUTH_PSK;
+                }
               priv->softap.wpa.iface = interface;
               priv->softap.wpa.value = wpa_auth;
               priv->softap.mfp.iface = interface;
@@ -2704,6 +2717,317 @@ int bcmf_wl_set_pta(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
 #endif
 
 /****************************************************************************
+ * Name: bcmf_wl_set_pm
+ ****************************************************************************/
+
+int bcmf_wl_set_pm(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_pm_t *pm)
+{
+  uint32_t out_len;
+  uint32_t value;
+  int ret;
+
+  if (pm == NULL)
+    {
+      return -EIO;
+    }
+
+  /* 
+   * Value passed to pm2_sleep_ret measured in ms, 
+   * must be multiple of 10, between 10 and 2000 
+   */
+
+  if (pm->pm2w < PM2_SLEEP_RET_TIME_MIN) 
+    {
+      pm->pm2w = PM2_SLEEP_RET_TIME_MIN;
+    } 
+  else if (pm->pm2w > PM2_SLEEP_RET_TIME_MAX) 
+    {
+      pm->pm2w = PM2_SLEEP_RET_TIME_MAX;
+    }
+
+  /* Set the maximum time to wait before going back to sleep */
+
+  out_len = sizeof(pm->pm2w);
+  ret = bcmf_cdc_iovar_request(priv, iface, true,
+                               IOVAR_STR_PM2_SLEEP_RET,
+                               (FAR uint8_t *)&pm->pm2w, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Set powersave mode */
+
+  out_len = sizeof(pm->mode);
+  ret = bcmf_cdc_ioctl(priv, iface, true,
+                       WLC_SET_PM,
+                       (FAR uint8_t *)&pm->mode, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Set GMode to auto */
+
+  out_len = sizeof(value);
+  value   = GMODE_AUTO;
+  ret = bcmf_cdc_ioctl(priv, iface, true,
+                       WLC_SET_GMODE,
+                       (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+    {
+	    return ret;
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_get_pm
+ ****************************************************************************/
+
+int bcmf_wl_get_pm(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_pm_t *pm)
+{
+  uint32_t out_len;
+  int ret;
+
+  if (pm == NULL)
+    {
+      return -EIO;
+    }
+
+  /* Get the maximum time to wait before going back to sleep */
+
+  out_len = sizeof(pm->pm2w);
+  ret = bcmf_cdc_iovar_request(priv, iface, false,
+                               IOVAR_STR_PM2_SLEEP_RET,
+                               (FAR uint8_t *)&pm->pm2w, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Get powersave mode */
+
+  out_len = sizeof(pm->mode);
+  ret = bcmf_cdc_ioctl(priv, iface, false,
+                       WLC_GET_PM,
+                       (FAR uint8_t *)&pm->mode, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_set_li
+ ****************************************************************************/
+
+int bcmf_wl_set_li(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_li_t *li)
+{
+  uint32_t out_len;
+  int ret;
+
+  if (li == NULL)
+    {
+      return -EIO;
+    }
+
+  /* Set listen interval beacon */
+
+  out_len = sizeof(li->beacon);
+  ret = bcmf_cdc_iovar_request(priv, iface, true,
+                               IOVAR_STR_LISTEN_INTERVAL_BEACON,
+                               (FAR uint8_t *)&li->beacon, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Set listen interval DTIM */
+
+  out_len = sizeof(li->dtim);
+  ret = bcmf_cdc_iovar_request(priv, iface, true,
+                               IOVAR_STR_LISTEN_INTERVAL_DTIM,
+                               (FAR uint8_t *)&li->dtim, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Set listen interval assoc */
+
+  out_len = sizeof(li->assoc);
+  ret = bcmf_cdc_iovar_request(priv, iface, true,
+                               IOVAR_STR_LISTEN_INTERVAL_ASSOC,
+                               (FAR uint8_t *)&li->assoc, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_get_li
+ ****************************************************************************/
+
+int bcmf_wl_get_li(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_li_t *li)
+{
+  uint32_t out_len;
+  int ret;
+
+  if (li == NULL)
+    {
+      return -EIO;
+    }
+
+  /* Get listen interval beacon */
+
+  out_len = sizeof(li->beacon);
+  ret = bcmf_cdc_iovar_request(priv, iface, false,
+                               IOVAR_STR_LISTEN_INTERVAL_BEACON,
+                               (FAR uint8_t *)&li->beacon, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Get listen interval DTIM */
+
+  out_len = sizeof(li->dtim);
+  ret = bcmf_cdc_iovar_request(priv, iface, false,
+                               IOVAR_STR_LISTEN_INTERVAL_DTIM,
+                               (FAR uint8_t *)&li->dtim, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Get listen interval assoc */
+
+  out_len = sizeof(li->assoc);
+  ret = bcmf_cdc_iovar_request(priv, iface, false,
+                               IOVAR_STR_LISTEN_INTERVAL_ASSOC,
+                               (FAR uint8_t *)&li->assoc, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_ap_set_beacon_interval
+ ****************************************************************************/
+
+int bcmf_wl_ap_set_beacon_interval(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                                   uint32_t interval)
+{
+  uint32_t out_len;
+  int ret;
+
+  /* Set AP beacon interval */
+
+  out_len = sizeof(interval);
+  ret = bcmf_cdc_ioctl(priv, iface, true,
+                       WLC_SET_BCNPRD,
+                       (FAR uint8_t *)&interval, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_ap_get_beacon_interval
+ ****************************************************************************/
+
+int bcmf_wl_ap_get_beacon_interval(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                                   uint32_t *interval)
+{
+  uint32_t out_len;
+  int ret;
+
+  if (interval == NULL)
+    {
+      return -EIO;
+    }
+
+  /* Get AP beacon interval */
+
+  out_len = sizeof(*interval);
+  ret = bcmf_cdc_ioctl(priv, iface, false,
+                       WLC_GET_BCNPRD,
+                       (FAR uint8_t *)interval, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_ap_set_dtim_interval
+ ****************************************************************************/
+
+int bcmf_wl_ap_set_dtim_interval(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                                 uint32_t interval)
+{
+  uint32_t out_len;
+  int ret;
+
+  /* Set AP DTIM interval */
+
+  out_len = sizeof(interval);
+  ret = bcmf_cdc_ioctl(priv, iface, true,
+                       WLC_SET_DTIMPRD,
+                       (FAR uint8_t *)&interval, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_ap_get_dtim_interval
+ ****************************************************************************/
+
+int bcmf_wl_ap_get_dtim_interval(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                                 uint32_t *interval)
+{
+  uint32_t out_len;
+  int ret;
+
+  if (interval == NULL)
+    {
+      return -EIO;
+    }
+
+  /* Get AP DTIM interval */
+
+  out_len = sizeof(*interval);
+  ret = bcmf_cdc_ioctl(priv, iface, false,
+                       WLC_GET_DTIMPRD,
+                       (FAR uint8_t *)interval, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  return OK;
+}
+
+/****************************************************************************
  * Name: bcmf_wl_ap_is_up
  ****************************************************************************/
 
@@ -2800,6 +3124,8 @@ int bcmf_wl_ap_init(FAR struct bcmf_dev_s *priv)
   struct iwreq iwr;
   uint32_t out_len;
   uint32_t value;
+  wl_li_t li;
+  wl_pm_t pm;
   int ret;
 
   /* Check the SoftAP mode  */
@@ -2811,9 +3137,21 @@ int bcmf_wl_ap_init(FAR struct bcmf_dev_s *priv)
       return OK;
     }
 
+  /* Set the AMPDU window size for AP */
+
+  out_len = sizeof(value);
+  value   = AMPDU_AP_BA_WSIZE_DEF;
+  ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
+                               IOVAR_STR_AMPDU_BA_WINDOW_SIZE,
+                               (FAR uint8_t *)&value, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
   /* Set SSID */
 
-  if (priv->softap.ssid.iface != CHIP_STA_INTERFACE)
+  if (priv->softap.ssid.iface == CHIP_AP_INTERFACE)
     {
       out_len = sizeof(priv->softap.ssid);
       ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
@@ -2827,7 +3165,7 @@ int bcmf_wl_ap_init(FAR struct bcmf_dev_s *priv)
 
   /* Set security type */
 
-  if (priv->softap.wsec.iface != CHIP_STA_INTERFACE)
+  if (priv->softap.wsec.iface == CHIP_AP_INTERFACE)
     {
       out_len = sizeof(priv->softap.wsec);
       ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
@@ -2841,7 +3179,7 @@ int bcmf_wl_ap_init(FAR struct bcmf_dev_s *priv)
 
   /* Set WPA/WPA2/WPA3 auth params */
 
-  if (priv->softap.wpa.iface != CHIP_STA_INTERFACE)
+  if (priv->softap.wpa.iface == CHIP_AP_INTERFACE)
     {
       out_len = sizeof(priv->softap.wpa);
       ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
@@ -2872,7 +3210,7 @@ int bcmf_wl_ap_init(FAR struct bcmf_dev_s *priv)
 
   /* Set management frame protection */
 
-  if (priv->softap.mfp.iface != CHIP_STA_INTERFACE)
+  if (priv->softap.mfp.iface == CHIP_AP_INTERFACE)
     {
       out_len = sizeof(priv->softap.mfp.value);
       ret = bcmf_cdc_iovar_request(priv, priv->softap.mfp.iface, true,
@@ -2884,39 +3222,52 @@ int bcmf_wl_ap_init(FAR struct bcmf_dev_s *priv)
       }
     }
 
-  /* Set GMode to auto */
+  /* Set default power save mode */
 
-  out_len = sizeof(value);
-  value   = GMODE_AUTO;
-  ret = bcmf_cdc_ioctl(priv, CHIP_AP_INTERFACE, true,
-                       WLC_SET_GMODE,
-                       (FAR uint8_t *)&value, &out_len);
+  pm.mode = PM_OFF;
+  pm.pm2w = PM2_SLEEP_RET_TIME_DEF;
+  ret = bcmf_wl_set_pm(priv, CHIP_AP_INTERFACE, &pm);  
   if (ret != OK)
     {
-	    return ret;
+      return ret;
+    }
+
+  /* Set default listen intervals */
+
+  li.dtim   = 0;
+  li.assoc  = 0;
+  li.beacon = 0;
+  ret = bcmf_wl_set_li(priv, CHIP_AP_INTERFACE, &li);  
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Set default beacon interval */
+
+  ret = bcmf_wl_ap_set_beacon_interval(priv, CHIP_AP_INTERFACE, 
+                                       BEAC_AP_INTERVAL_DEF);  
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  /* Set default DTIM interval */
+
+  ret = bcmf_wl_ap_set_dtim_interval(priv, CHIP_AP_INTERFACE, 
+                                     DTIM_AP_INTERVAL_DEF);  
+  if (ret != OK)
+    {
+      return ret;
     }
 
   /* Set channel */
 
   memset(&iwr, 0, sizeof(struct iwreq));
   strlcpy(iwr.ifr_name, "wlan1", IFNAMSIZ);
-  iwr.u.freq.m = CHAN_AP_DEFAULT_NUM;
+  iwr.u.freq.m = CHAN_AP_NUMBER_DEF;
 
   bcmf_wl_set_channel(priv, &iwr);
-
-  /* Set DTIM period */
-
-#ifdef CONFIG_IEEE80211_BROADCOM_LOWPOWER
-  out_len = sizeof(value);
-  value   = 1;
-  ret = bcmf_cdc_ioctl(priv, CHIP_AP_INTERFACE, true,
-					             WLC_SET_DTIMPRD,
-					             (FAR uint8_t *)&value, &out_len);
-  if (ret != OK)
-	{
-	  return ret;
-	}
-#endif
 
   return OK;
 }

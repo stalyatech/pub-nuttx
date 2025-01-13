@@ -260,6 +260,22 @@ int bcmf_wl_set_pta_priority(FAR struct bcmf_dev_s *priv, uint32_t prio);
 # define bcmf_wl_set_pta_priority(...)
 #endif
 
+int bcmf_wl_set_pm(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_pm_t *pm);
+int bcmf_wl_get_pm(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_pm_t *pm);
+
+int bcmf_wl_set_li(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_li_t *li);
+int bcmf_wl_get_li(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_li_t *li);
+
+int bcmf_wl_ap_set_beacon_interval(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                                   uint32_t interval);
+int bcmf_wl_ap_get_beacon_interval(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                                   uint32_t *interval);
+
+int bcmf_wl_ap_set_dtim_interval(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                                 uint32_t interval);
+int bcmf_wl_ap_get_dtim_interval(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                                 uint32_t *interval);
+
 int bcmf_wl_ap_get_stas(FAR struct bcmf_dev_s *priv, struct iwreq *iwr);
 
 int bcmf_wl_ap_init   (FAR struct bcmf_dev_s *priv);

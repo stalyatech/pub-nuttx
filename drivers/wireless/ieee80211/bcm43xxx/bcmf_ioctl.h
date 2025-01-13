@@ -3369,4 +3369,21 @@ typedef enum
 #define WL_AP_UP_TIMEOUT    (10000)
 #define WL_AP_DOWN_TIMEOUT  (2000)
 
+begin_packed_struct
+typedef struct wl_li
+{
+	uint32_t beacon;    /* Listen interval in beacon periods */
+	uint32_t dtim;      /* Listen interval in DTIM periods */
+	uint32_t assoc;     /* Listen interval as sent to APs */
+} 
+end_packed_struct wl_li_t;
+
+begin_packed_struct
+typedef struct wl_pm
+{
+	uint32_t mode;      /* Power management mode */
+	uint32_t pm2w;      /* Time to wait before go to sleep for PM2 */
+}
+end_packed_struct wl_pm_t;
+
 #endif /* __DRIVERS_WIRELESS_IEEE80211_BCM43XXX_BCMF_IOCTL_H */

@@ -331,6 +331,7 @@ static int load_bcm4343x_firmware(FAR const struct btuart_lowerhalf_s *lower)
             {
               wlwarn("block offset %x upload failed, retrying\n",
                             rp - g_bt_firmware_hcd);
+              nxsig_usleep(1000);
             }
         }
       while ((ret != 0) && (++blockattempts < 3));
@@ -350,9 +351,20 @@ static int load_bcm4343x_firmware(FAR const struct btuart_lowerhalf_s *lower)
 
   if (command == g_hcd_launch_command)
     {
-      lower->write(lower, &istx, 1);
-      ret = uartwriteconf(lower, &rxsem, rp, 3 + txlen,
-                          launch_resp, sizeof(launch_resp));
+      blockattempts = 0;
+      do
+        {
+          lower->write(lower, &istx, 1);
+          ret = uartwriteconf(lower, &rxsem, rp, 3 + txlen,
+                              launch_resp, sizeof(launch_resp));
+          if (ret)
+            {
+              wlwarn("launch command failed, retrying\n");
+              nxsig_usleep(1000);
+            }
+        }
+      while ((ret != 0) && (++blockattempts < 3));
+
       if (ret != 0)
         {
           wlerr("failed to launch firmware\n");

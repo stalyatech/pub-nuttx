@@ -402,11 +402,14 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
 static int bcmf_txpoll(FAR struct net_driver_s *dev)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
-  uint8_t iface = (dev->d_ifindex - 1) & 1;
+  uint8_t iface = (dev->d_ifindex - 1) % CHIP_MAX_INTERFACE;
 
   /* Send the packet */
 
-  bcmf_transmit(priv, priv->tx_frame[iface], iface);
+  if (priv->tx_frame[iface] != NULL)
+    {
+      bcmf_transmit(priv, priv->tx_frame[iface], iface);
+    }
 
   /* TODO: Check if there is room in the device to hold another
    * packet. If not, return a non-zero value to terminate the poll.
@@ -597,7 +600,7 @@ void bcmf_netdev_notify_rx(FAR struct bcmf_dev_s *priv)
 static int bcmf_ifup(FAR struct net_driver_s *dev)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
-  uint8_t iface = (dev->d_ifindex - 1) & 1;
+  uint8_t iface = (dev->d_ifindex - 1) % CHIP_MAX_INTERFACE;
   struct ether_addr zmac;
   irqstate_t flags;
   uint32_t out_len;
@@ -725,7 +728,7 @@ errout_in_critical_section:
 static int bcmf_ifdown(FAR struct net_driver_s *dev)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
-  uint8_t iface = (dev->d_ifindex - 1) & 1;
+  uint8_t iface = (dev->d_ifindex - 1) % CHIP_MAX_INTERFACE;
   irqstate_t flags;
 
   /* Disable the hardware interrupt */
@@ -907,11 +910,12 @@ static void bcmf_lowpower_poll(FAR struct bcmf_dev_s *priv)
 static int bcmf_txavail(FAR struct net_driver_s *dev)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
+  uint8_t iface = (dev->d_ifindex - 1) % CHIP_MAX_INTERFACE;
 
 #ifdef CONFIG_IEEE80211_BROADCOM_LOWPOWER
   bcmf_lowpower_poll(priv);
 #endif
-  bcmf_netdev_notify_tx(priv, 1 << (dev->d_ifindex - 1));
+  bcmf_netdev_notify_tx(priv, 1 << iface);
   return OK;
 }
 
@@ -988,7 +992,7 @@ static int bcmf_ioctl(FAR struct net_driver_s *dev, int cmd,
                       unsigned long arg)
 {
   FAR struct bcmf_dev_s *priv = (FAR struct bcmf_dev_s *)dev->d_private;
-  uint8_t iface = (dev->d_ifindex - 1) & 1;
+  uint8_t iface = (dev->d_ifindex - 1) % CHIP_MAX_INTERFACE;
   int ret;
 
   if (!priv->bc_bifup[iface])

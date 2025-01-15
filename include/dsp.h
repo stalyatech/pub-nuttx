@@ -618,6 +618,7 @@ int pmsm_model_mech(FAR struct pmsm_model_f32_s *model, float load);
 void avg_filter_data_init(FAR struct avg_filter_data_s *data,
                           float prev_avg, float k);
 float avg_filter(FAR struct avg_filter_data_s *data, float x);
+float exp_filter(FAR struct avg_filter_data_s *data, float x);
 
 #undef EXTERN
 #if defined(__cplusplus)

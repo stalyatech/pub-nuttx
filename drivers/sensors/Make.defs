@@ -24,6 +24,9 @@
 
 ifeq ($(CONFIG_SENSORS),y)
 
+include sensors/bosch/Make.defs
+include sensors/ceva/Make.defs
+
 CSRCS += sensor.c
 
 ifeq ($(CONFIG_USENSOR),y)
@@ -54,6 +57,10 @@ ifeq ($(CONFIG_SENSORS_GOLDFISH_SENSOR),y)
   CSRCS += goldfish_sensor_uorb.c
 endif
 
+ifeq ($(CONFIG_SENSORS_UBLOX_GNSS),y)
+  CSRCS += ublox_gnss_uorb.c
+endif
+
 ifeq ($(CONFIG_SENSORS_HCSR04),y)
   CSRCS += hc_sr04.c
 endif
@@ -73,6 +80,22 @@ ifeq ($(CONFIG_SENSORS_BMI270_UORB),y)
 else
   CSRCS += bmi270.c
 endif
+endif
+
+ifeq ($(CONFIG_SENSORS_BNO055),y)
+  ifeq ($(CONFIG_SENSORS_BNO055_UORB),y)
+    CSRCS += bno055_uorb.c
+  else
+    CSRCS += bno055.c
+  endif
+endif
+
+ifeq ($(CONFIG_SENSORS_BNO085),y)
+  ifeq ($(CONFIG_SENSORS_BNO085_UORB),y)
+    CSRCS += bno085_uorb.c
+  else
+    CSRCS += bno085.c
+  endif
 endif
 
 # These drivers depend on I2C support
@@ -228,7 +251,12 @@ ifeq ($(CONFIG_SENSORS_MLX90614),y)
 endif
 
 ifeq ($(CONFIG_SENSORS_MS56XX),y)
-  CSRCS += ms56xx_uorb.c
+  CSRCS += ms56xx_base.c
+  ifeq ($(CONFIG_SENSORS_MS56XX_UORB),y)
+    CSRCS += ms56xx_uorb.c
+  else
+    CSRCS += ms56xx.c
+  endif
 endif
 
 ifeq ($(CONFIG_SENSORS_MS58XX),y)
@@ -338,7 +366,11 @@ ifeq ($(CONFIG_SENSORS_MPL115A),y)
 endif
 
 ifeq ($(CONFIG_SENSORS_LIS3MDL),y)
+ifeq ($(CONFIG_SENSORS_LIS3MDL_UORB),y)
+  CSRCS += lis3mdl_uorb.c
+else
   CSRCS += lis3mdl.c
+endif
 endif
 
 ifeq ($(CONFIG_SENSORS_LSM330SPI),y)
@@ -423,6 +455,15 @@ endif
 
 ifeq ($(CONFIG_SENSORS_MAX31865),y)
   CSRCS += max31865.c
+endif
+
+ifeq ($(CONFIG_SENSORS_ICM20689),y)
+  CSRCS += icm20689_base.c
+  ifeq ($(CONFIG_SENSORS_ICM20689_UORB),y)
+    CSRCS += icm20689_uorb.c
+  else
+    CSRCS += icm20689.c
+  endif
 endif
 
 # Include sensor driver build support

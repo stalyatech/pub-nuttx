@@ -38,6 +38,9 @@
 #include <nuttx/clock.h>
 #include <nuttx/uorb.h>
 
+#include <nuttx/list.h>
+#include <nuttx/circbuf.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -177,9 +180,57 @@ static inline uint64_t sensor_get_timestamp(void)
  * Public Types
  ****************************************************************************/
 
-/* The sensor lower half driver interface */
+typedef enum sensor_role_e
+{
+  SENSOR_ROLE_NONE,
+  SENSOR_ROLE_WR,
+  SENSOR_ROLE_RD,
+  SENSOR_ROLE_RDWR,
+} sensor_role_t;
+
+/* This structure describes user info of sensor, the user may be
+ * advertiser or subscriber
+ */
+
+struct sensor_user_s
+{
+  /* The common info */
+
+  struct list_node node;       /* Node of users list */
+  struct pollfd   *fds;        /* The poll structure of thread waiting events */
+  sensor_role_t    role;       /* The is used to indicate user's role based on open flags */
+  bool             changed;    /* This is used to indicate event happens and need to
+                                * asynchronous notify other users
+                                */
+  unsigned int     event;      /* The event of this sensor, eg: SENSOR_EVENT_FLUSH_COMPLETE. */
+  bool             flushing;   /* The is used to indicate user is flushing */
+  sem_t            buffersem;  /* Wakeup user waiting for data in circular buffer */
+  size_t           bufferpos;  /* The index of user generation in buffer */
+
+  struct circbuf_s timing;     /* The circular buffer of generation */
+  struct circbuf_s buffer;     /* The circular buffer of data */
+
+  /* The subscriber info
+   * Support multi advertisers to subscribe their own data when they
+   * appear in dual role
+   */
+
+  struct sensor_ustate_s state;
+};
+
+/* This structure describes the state of the upper half driver */
 
 struct sensor_lowerhalf_s;
+struct sensor_upperhalf_s
+{
+  FAR struct sensor_lowerhalf_s *lower;  /* The handle of lower half driver */
+  struct sensor_state_s          state;  /* The state of sensor device */
+  rmutex_t           lock;               /* Manages exclusive access to file operations */
+  struct list_node   userlist;           /* List of users */
+};
+
+/* The sensor lower half driver interface */
+
 struct sensor_ops_s
 {
   /**************************************************************************

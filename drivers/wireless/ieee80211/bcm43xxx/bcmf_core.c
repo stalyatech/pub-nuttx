@@ -329,8 +329,13 @@ errout_with_file:
 
 int bcmf_upload_nvram(FAR bcmf_interface_dev_t *ibus)
 {
+#ifndef CONFIG_IEEE80211_BROADCOM_FWFILES
   FAR uint8_t *nvram_buf = ibus->chip->nvram_image;
   uint32_t nvram_sz = *ibus->chip->nvram_image_size;
+#else
+  FAR uint8_t *nvram_buf = NULL;
+  uint32_t nvram_sz = 0;
+#endif /* CONFIG_IEEE80211_BROADCOM_FWFILES */
   uint32_t token;
   int ret;
 
@@ -418,17 +423,17 @@ out:
 
   /* Write image */
 
-  ret = bcmf_upload_binary(ibus,
-                           ibus->chip->ram_size - 4 - nvram_sz
-                           + ibus->chip->ram_base,
-                           nvram_buf, nvram_sz);
+  if (nvram_buf != NULL && nvram_sz > 0)
+    {
+      ret = bcmf_upload_binary(ibus,
+                               ibus->chip->ram_size - 4 - nvram_sz
+                               + ibus->chip->ram_base,
+                               nvram_buf, nvram_sz);
 
 #ifdef CONFIG_IEEE80211_BROADCOM_FWFILES
-  if (nvram_buf != ibus->chip->nvram_image)
-    {
       kmm_free(nvram_buf);
-    }
 #endif
+    }
 
   if (ret != OK)
     {

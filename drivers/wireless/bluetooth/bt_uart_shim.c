@@ -42,6 +42,7 @@
 #include <nuttx/spinlock.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/serial/tioctl.h>
+#include <nuttx/ioexpander/gpio.h>
 #include <nuttx/wireless/bluetooth/bt_uart_shim.h>
 
 /****************************************************************************
@@ -68,6 +69,7 @@ struct hciuart_config_s
 
   struct btuart_lowerhalf_s lower;    /* Generic UART lower half */
   struct hciuart_state_s state;       /* Variable state */
+  FAR const char *bt_reg_path;        /* BT REG control GPIO path */
 };
 
 /****************************************************************************
@@ -94,6 +96,118 @@ static int hciuart_ioctl(FAR const struct btuart_lowerhalf_s *lower,
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: hciuart_power_on()
+ *
+ * Description:
+ *   Power on the HCI device.
+ *
+ ****************************************************************************/
+
+static int hciuart_power_on(FAR const struct btuart_lowerhalf_s *lower)
+{
+  struct hciuart_config_s *config = (FAR struct hciuart_config_s *)lower;
+  struct file fd;
+  int ret;
+
+  /* Open the GPIO device */
+
+  ret = file_open(&fd, config->bt_reg_path, O_WRONLY);
+  if (ret < 0)
+    {
+      wlerr("ERROR: open %s failed: %d\n", config->bt_reg_path, ret);
+      return ret;
+    }
+
+  /* Update the BT_REG_ON pin */
+
+  file_ioctl(&fd, GPIOC_WRITE, (unsigned long)1);
+
+  /* Close GPIO device */
+
+  file_close(&fd);
+
+  /* Wait for wake up */
+
+  nxsig_usleep(500 * 1000L);
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: hciuart_power_off()
+ *
+ * Description:
+ *   Power off the HCI device.
+ *
+ ****************************************************************************/
+
+static int hciuart_power_off(FAR const struct btuart_lowerhalf_s *lower)
+{
+  struct hciuart_config_s *config = (FAR struct hciuart_config_s *)lower;
+  struct file fd;
+  int ret;
+
+  /* Open the GPIO device */
+
+  ret = file_open(&fd, config->bt_reg_path, O_WRONLY);
+  if (ret < 0)
+    {
+      wlerr("ERROR: open %s failed: %d\n", config->bt_reg_path, ret);
+      return ret;
+    }
+
+  /* Update the BT_REG_ON pin */
+
+  file_ioctl(&fd, GPIOC_WRITE, (unsigned long)0);
+
+  /* Close GPIO device */
+
+  file_close(&fd);
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: hciuart_reset()
+ *
+ * Description:
+ *   Reset the HCI device.
+ *
+ ****************************************************************************/
+
+static int hciuart_reset(FAR const struct btuart_lowerhalf_s *lower)
+{
+  struct hciuart_config_s *config = (FAR struct hciuart_config_s *)lower;
+  struct file fd;
+  int ret;
+
+  /* Open the GPIO device */
+
+  ret = file_open(&fd, config->bt_reg_path, O_WRONLY);
+  if (ret < 0)
+    {
+      wlerr("ERROR: open %s failed: %d\n", config->bt_reg_path, ret);
+      return ret;
+    }
+
+  /* Cycle the BT_REG_ON pin */
+
+  file_ioctl(&fd, GPIOC_WRITE, (unsigned long)0);
+  nxsig_usleep(10 * 1000L);
+  file_ioctl(&fd, GPIOC_WRITE, (unsigned long)1);
+
+  /* Wait for wake up */
+
+  nxsig_usleep(500 * 1000L);
+
+  /* Close GPIO device */
+
+  file_close(&fd);
+
+  return ret;
+}
 
 /****************************************************************************
  * Name: hciuart_rxattach
@@ -322,6 +436,21 @@ static int hciuart_ioctl(FAR const struct btuart_lowerhalf_s *lower,
   FAR struct hciuart_config_s *config = (FAR struct hciuart_config_s *)lower;
   FAR struct hciuart_state_s *s = &config->state;
 
+  switch (cmd)
+  {
+    case TIOCRESET:
+      return hciuart_reset(lower);
+
+    case TIOCPOWERON:
+      return hciuart_power_on(lower);
+
+    case TIOCPOWEROFF:
+      return hciuart_power_off(lower);
+
+    default:
+      break;
+  }
+
   return file_ioctl(&s->f, cmd, arg);
 }
 
@@ -344,7 +473,8 @@ static int hciuart_ioctl(FAR const struct btuart_lowerhalf_s *lower,
  *
  ****************************************************************************/
 
-FAR struct btuart_lowerhalf_s *btuart_shim_getdevice(FAR const char *path)
+FAR struct btuart_lowerhalf_s *btuart_shim_getdevice(FAR const char *bt_tty_path,
+                                                     FAR const char *bt_reg_path)
 {
   FAR struct hciuart_config_s *n;
   FAR struct hciuart_state_s *s;
@@ -362,7 +492,7 @@ FAR struct btuart_lowerhalf_s *btuart_shim_getdevice(FAR const char *path)
 
   s = &n->state;
 
-  ret = file_open(&s->f, path, O_RDWR | O_CLOEXEC | O_NONBLOCK);
+  ret = file_open(&s->f, bt_tty_path, O_RDWR | O_CLOEXEC);
   if (ret < 0)
     {
       kmm_free(n);
@@ -385,6 +515,7 @@ FAR struct btuart_lowerhalf_s *btuart_shim_getdevice(FAR const char *path)
   n->lower.write    = hciuart_write;
   n->lower.rxdrain  = hciuart_rxdrain;
   n->lower.ioctl    = hciuart_ioctl;
+  n->bt_reg_path    = bt_reg_path;
 
   return (FAR struct btuart_lowerhalf_s *)n;
 }

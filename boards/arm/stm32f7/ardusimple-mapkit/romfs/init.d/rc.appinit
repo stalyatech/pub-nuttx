@@ -1,0 +1,5 @@
+# start the ftp service on RNDIS interface
+ftpd_start -4 -i eth0 &
+
+# start the web server service on RNDIS interface
+mg_smart -p 8001 -r /data0/www_eth -g -h 10.0.0.20 &

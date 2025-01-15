@@ -228,7 +228,7 @@ int bcmf_event_push_config(FAR struct bcmf_dev_s *priv)
 }
 
 int bcmf_bdc_transmit_frame(FAR struct bcmf_dev_s *priv,
-                            struct bcmf_frame_s *frame)
+                            struct bcmf_frame_s *frame, uint8_t iface)
 {
   struct bcmf_bdc_header *header;
 
@@ -241,7 +241,7 @@ int bcmf_bdc_transmit_frame(FAR struct bcmf_dev_s *priv,
 
   header->flags       = 0x20; /* Set bdc protocol version */
   header->priority    = 0;    /* TODO handle priority */
-  header->flags2      = CHIP_STA_INTERFACE;
+  header->flags2      = iface;
   header->data_offset = 0;
 
   /* Send frame */
@@ -249,7 +249,8 @@ int bcmf_bdc_transmit_frame(FAR struct bcmf_dev_s *priv,
   return priv->bus->txframe(priv, frame, false);
 }
 
-struct bcmf_frame_s *bcmf_bdc_rx_frame(FAR struct bcmf_dev_s *priv)
+struct bcmf_frame_s *bcmf_bdc_rx_frame(FAR struct bcmf_dev_s *priv,
+                                       uint8_t *iface)
 {
   unsigned int frame_len;
   struct bcmf_frame_s *frame = priv->bus->rxframe(priv);
@@ -275,7 +276,14 @@ struct bcmf_frame_s *bcmf_bdc_rx_frame(FAR struct bcmf_dev_s *priv)
 
   /* Transmit frame to upper layer */
 
-  header       = (struct bcmf_bdc_header *)frame->data;
+  header = (struct bcmf_bdc_header *)frame->data;
+  if (iface)
+    {
+      /* Save the received frame interface */
+
+      *iface = header->flags2;
+    }
+
   frame->data += sizeof(struct bcmf_bdc_header) + header->data_offset * 4;
   return frame;
 }

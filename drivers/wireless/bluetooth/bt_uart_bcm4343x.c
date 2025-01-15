@@ -42,6 +42,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/irq.h>
+#include <nuttx/signal.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/kthread.h>
 #include <nuttx/semaphore.h>
@@ -54,8 +55,13 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define HCIUART_DEFAULT_SPEED 2000000
-#define HCIUART_LOW_SPEED     115200
+#ifdef CONFIG_BLUETOOTH_BCM4343X_UART_BAUDRATE
+# define HCIUART_DEFAULT_SPEED  CONFIG_BLUETOOTH_BCM4343X_UART_BAUDRATE
+#else
+# define HCIUART_DEFAULT_SPEED  921600
+#endif
+
+#define HCIUART_LOW_SPEED 115200
 
 /****************************************************************************
  * Private Data
@@ -324,6 +330,7 @@ static int load_bcm4343x_firmware(FAR const struct btuart_lowerhalf_s *lower)
             {
               wlwarn("block offset %x upload failed, retrying\n",
                             rp - g_bt_firmware_hcd);
+              nxsig_usleep(1000);
             }
         }
       while ((ret != 0) && (++blockattempts < 3));
@@ -343,9 +350,20 @@ static int load_bcm4343x_firmware(FAR const struct btuart_lowerhalf_s *lower)
 
   if (command == g_hcd_launch_command)
     {
-      lower->write(lower, &istx, 1);
-      ret = uartwriteconf(lower, &rxsem, rp, 3 + txlen,
-                          launch_resp, sizeof(launch_resp));
+      blockattempts = 0;
+      do
+        {
+          lower->write(lower, &istx, 1);
+          ret = uartwriteconf(lower, &rxsem, rp, 3 + txlen,
+                              launch_resp, sizeof(launch_resp));
+          if (ret)
+            {
+              wlwarn("launch command failed, retrying\n");
+              nxsig_usleep(1000);
+            }
+        }
+      while ((ret != 0) && (++blockattempts < 3));
+
       if (ret != 0)
         {
           wlerr("failed to launch firmware\n");

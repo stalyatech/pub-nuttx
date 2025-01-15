@@ -413,9 +413,9 @@ int bcmf_sdpcm_sendframe(FAR struct bcmf_dev_s *priv)
 
   if (ret == OK && is_txframe)
     {
-      /* Notify upper layer at least one TX buffer is available */
+      /* Notify upper layer with interface mask at least one TX buffer is available */
 
-      bcmf_netdev_notify_tx(priv);
+      bcmf_netdev_notify_tx(priv, 1 << (iframe->header.data[2] % CHIP_MAX_INTERFACE));
     }
 
   wlinfo("return %d\n", ret);

@@ -93,3 +93,32 @@ float avg_filter(FAR struct avg_filter_data_s *data, float x)
   return avg;
 }
 
+
+/****************************************************************************
+ * Name: exp_filter
+ *
+ * Description:
+ *   Calculate the exponential average of a signal in the time
+ *
+ * Input Parameters:
+ *   prev_avg - pointer to previous average variable
+ *   k - pointer to alpha variable
+ *   x - current signal value
+ *
+ * Returned Value:
+ *   Average value
+ *
+ ****************************************************************************/
+
+float exp_filter(FAR struct avg_filter_data_s *data, float x)
+{
+  float avg;
+
+  LIBDSP_DEBUGASSERT(data != NULL);
+
+  avg = data->prev_avg + ((x - data->prev_avg) * data->k);
+
+  data->prev_avg = avg;
+
+  return avg;
+}

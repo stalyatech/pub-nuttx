@@ -41,7 +41,6 @@
 #include <nuttx/circbuf.h>
 #include <nuttx/mutex.h>
 #include <nuttx/sensors/sensor.h>
-#include <nuttx/lib/lib.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -75,53 +74,6 @@ struct sensor_meta_s
 {
   size_t esize;
   FAR char *name;
-};
-
-typedef enum sensor_role_e
-{
-  SENSOR_ROLE_NONE,
-  SENSOR_ROLE_WR,
-  SENSOR_ROLE_RD,
-  SENSOR_ROLE_RDWR,
-} sensor_role_t;
-
-/* This structure describes user info of sensor, the user may be
- * advertiser or subscriber
- */
-
-struct sensor_user_s
-{
-  /* The common info */
-
-  struct list_node node;       /* Node of users list */
-  struct pollfd   *fds;        /* The poll structure of thread waiting events */
-  sensor_role_t    role;       /* The is used to indicate user's role based on open flags */
-  bool             changed;    /* This is used to indicate event happens and need to
-                                * asynchronous notify other users
-                                */
-  unsigned int     event;      /* The event of this sensor, eg: SENSOR_EVENT_FLUSH_COMPLETE. */
-  bool             flushing;   /* The is used to indicate user is flushing */
-  sem_t            buffersem;  /* Wakeup user waiting for data in circular buffer */
-  size_t           bufferpos;  /* The index of user generation in buffer */
-
-  /* The subscriber info
-   * Support multi advertisers to subscribe their own data when they
-   * appear in dual role
-   */
-
-  struct sensor_ustate_s state;
-};
-
-/* This structure describes the state of the upper half driver */
-
-struct sensor_upperhalf_s
-{
-  FAR struct sensor_lowerhalf_s *lower;  /* The handle of lower half driver */
-  struct sensor_state_s          state;  /* The state of sensor device */
-  struct circbuf_s   timing;             /* The circular buffer of generation */
-  struct circbuf_s   buffer;             /* The circular buffer of data */
-  rmutex_t           lock;               /* Manages exclusive access to file operations */
-  struct list_node   userlist;           /* List of users */
 };
 
 /****************************************************************************
@@ -214,6 +166,7 @@ static const struct sensor_meta_s g_sensor_meta[] =
   {sizeof(struct sensor_gnss_measurement),    "gnss_measurement"},
   {sizeof(struct sensor_gnss_clock),          "gnss_clock"},
   {sizeof(struct sensor_gnss_geofence_event), "gnss_geofence_event"},
+  {sizeof(struct sensor_gnss_raw),            "gnss_raw"},
 };
 
 static const struct file_operations g_sensor_fops =
@@ -387,6 +340,7 @@ update:
 }
 
 static void sensor_generate_timing(FAR struct sensor_upperhalf_s *upper,
+                                   struct sensor_user_s *user,
                                    unsigned long nums)
 {
   uint32_t interval = upper->state.min_interval != UINT32_MAX ?
@@ -394,7 +348,7 @@ static void sensor_generate_timing(FAR struct sensor_upperhalf_s *upper,
   while (nums-- > 0)
     {
       upper->state.generation += interval;
-      circbuf_overwrite(&upper->timing, &upper->state.generation,
+      circbuf_overwrite(&user->timing, &upper->state.generation,
                         TIMING_BUF_ESIZE);
     }
 }
@@ -433,11 +387,11 @@ static void sensor_catch_up(FAR struct sensor_upperhalf_s *upper,
   uint32_t generation;
   long delta;
 
-  circbuf_peek(&upper->timing, &generation, TIMING_BUF_ESIZE);
+  circbuf_peek(&user->timing, &generation, TIMING_BUF_ESIZE);
   delta = (long long)generation - user->state.generation;
   if (delta > 0)
     {
-      user->bufferpos = upper->timing.tail / TIMING_BUF_ESIZE;
+      user->bufferpos = user->timing.tail / TIMING_BUF_ESIZE;
       if (user->state.interval == UINT32_MAX)
         {
           user->state.generation = generation - 1;
@@ -462,7 +416,7 @@ static ssize_t sensor_do_samples(FAR struct sensor_upperhalf_s *upper,
   size_t end;
 
   sensor_catch_up(upper, user);
-  nums = upper->timing.head / TIMING_BUF_ESIZE - user->bufferpos;
+  nums = user->timing.head / TIMING_BUF_ESIZE - user->bufferpos;
   if (len < nums * upper->state.esize)
     {
       nums = len / upper->state.esize;
@@ -476,7 +430,7 @@ static ssize_t sensor_do_samples(FAR struct sensor_upperhalf_s *upper,
     {
       if (buffer != NULL)
         {
-          ret = circbuf_peekat(&upper->buffer,
+          ret = circbuf_peekat(&user->buffer,
                                user->bufferpos * upper->state.esize,
                                buffer, len);
         }
@@ -486,7 +440,7 @@ static ssize_t sensor_do_samples(FAR struct sensor_upperhalf_s *upper,
         }
 
       user->bufferpos += nums;
-      circbuf_peekat(&upper->timing,
+      circbuf_peekat(&user->timing,
                      (user->bufferpos - 1) * TIMING_BUF_ESIZE,
                      &user->state.generation, TIMING_BUF_ESIZE);
       return ret;
@@ -509,22 +463,22 @@ static ssize_t sensor_do_samples(FAR struct sensor_upperhalf_s *upper,
    */
 
   pos = user->bufferpos;
-  end = upper->timing.head / TIMING_BUF_ESIZE;
-  circbuf_peekat(&upper->timing, pos * TIMING_BUF_ESIZE,
+  end = user->timing.head / TIMING_BUF_ESIZE;
+  circbuf_peekat(&user->timing, pos * TIMING_BUF_ESIZE,
                  &generation, TIMING_BUF_ESIZE);
   while (pos++ != end)
     {
       uint32_t next_generation;
       long delta;
 
-      if (pos * TIMING_BUF_ESIZE == upper->timing.head)
+      if (pos * TIMING_BUF_ESIZE == user->timing.head)
         {
           next_generation = upper->state.generation +
                             upper->state.min_interval;
         }
       else
         {
-          circbuf_peekat(&upper->timing, pos * TIMING_BUF_ESIZE,
+          circbuf_peekat(&user->timing, pos * TIMING_BUF_ESIZE,
                          &next_generation, TIMING_BUF_ESIZE);
         }
 
@@ -534,7 +488,7 @@ static ssize_t sensor_do_samples(FAR struct sensor_upperhalf_s *upper,
         {
           if (buffer != NULL)
             {
-              ret += circbuf_peekat(&upper->buffer,
+              ret += circbuf_peekat(&user->buffer,
                                     (pos - 1) * upper->state.esize,
                                     buffer + ret, upper->state.esize);
             }
@@ -649,12 +603,12 @@ static int sensor_open(FAR struct file *filep)
   if (upper->state.generation && lower->persist)
     {
       user->state.generation = upper->state.generation - 1;
-      user->bufferpos = upper->timing.head / TIMING_BUF_ESIZE - 1;
+      user->bufferpos = user->timing.head / TIMING_BUF_ESIZE - 1;
     }
   else
     {
       user->state.generation = upper->state.generation;
-      user->bufferpos = upper->timing.head / TIMING_BUF_ESIZE;
+      user->bufferpos = user->timing.head / TIMING_BUF_ESIZE;
     }
 
   user->state.interval = UINT32_MAX;
@@ -773,7 +727,7 @@ static ssize_t sensor_read(FAR struct file *filep, FAR char *buffer,
 
         ret = lower->ops->fetch(lower, filep, buffer, len);
     }
-  else if (circbuf_is_empty(&upper->buffer))
+  else if (circbuf_is_empty(&user->buffer))
     {
       ret = -ENODATA;
     }
@@ -791,7 +745,7 @@ static ssize_t sensor_read(FAR struct file *filep, FAR char *buffer,
         {
           /* Persistent device can get latest old data if not updated. */
 
-          ret = circbuf_peekat(&upper->buffer,
+          ret = circbuf_peekat(&user->buffer,
                                (user->bufferpos - 1) * upper->state.esize,
                                buffer, upper->state.esize);
         }
@@ -910,7 +864,7 @@ static int sensor_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case SNIOC_SET_BUFFER_NUMBER:
         {
           nxrmutex_lock(&upper->lock);
-          if (!circbuf_is_init(&upper->buffer))
+          if (!circbuf_is_init(&user->buffer))
             {
               if (arg1 >= lower->nbuffer)
                 {
@@ -1117,32 +1071,32 @@ static ssize_t sensor_push_event(FAR void *priv, FAR const void *data,
       return -EINVAL;
     }
 
-  if (!circbuf_is_init(&upper->buffer))
-    {
-      /* Initialize sensor buffer when data is first generated */
-
-      ret = circbuf_init(&upper->buffer, NULL, lower->nbuffer *
-                         upper->state.esize);
-      if (ret < 0)
-        {
-          nxrmutex_unlock(&upper->lock);
-          return ret;
-        }
-
-      ret = circbuf_init(&upper->timing, NULL, lower->nbuffer *
-                         TIMING_BUF_ESIZE);
-      if (ret < 0)
-        {
-          circbuf_uninit(&upper->buffer);
-          nxrmutex_unlock(&upper->lock);
-          return ret;
-        }
-    }
-
-  circbuf_overwrite(&upper->buffer, data, bytes);
-  sensor_generate_timing(upper, envcount);
   list_for_every_entry(&upper->userlist, user, struct sensor_user_s, node)
     {
+      if (!circbuf_is_init(&user->buffer))
+        {
+          /* Initialize sensor buffer when data is first generated */
+
+          ret = circbuf_init(&user->buffer, NULL, lower->nbuffer *
+                             upper->state.esize);
+          if (ret < 0)
+            {
+              nxrmutex_unlock(&upper->lock);
+              return ret;
+            }
+
+          ret = circbuf_init(&user->timing, NULL, lower->nbuffer *
+                             TIMING_BUF_ESIZE);
+          if (ret < 0)
+            {
+              circbuf_uninit(&user->buffer);
+              nxrmutex_unlock(&upper->lock);
+              return ret;
+            }
+        }
+
+      circbuf_overwrite(&user->buffer, data, bytes);
+      sensor_generate_timing(upper, user, envcount);
       if (sensor_is_updated(upper, user))
         {
           nxsem_get_value(&user->buffersem, &semcount);
@@ -1427,6 +1381,7 @@ void sensor_custom_unregister(FAR struct sensor_lowerhalf_s *lower,
                               FAR const char *path)
 {
   FAR struct sensor_upperhalf_s *upper;
+  FAR struct sensor_user_s *user;
 
   DEBUGASSERT(lower != NULL);
   DEBUGASSERT(lower->priv != NULL);
@@ -1441,10 +1396,13 @@ void sensor_custom_unregister(FAR struct sensor_lowerhalf_s *lower,
 #endif
 
   nxrmutex_destroy(&upper->lock);
-  if (circbuf_is_init(&upper->buffer))
+  list_for_every_entry(&upper->userlist, user, struct sensor_user_s, node)
     {
-      circbuf_uninit(&upper->buffer);
-      circbuf_uninit(&upper->timing);
+      if (circbuf_is_init(&user->buffer))
+        {
+          circbuf_uninit(&user->buffer);
+          circbuf_uninit(&user->timing);
+        }
     }
 
   kmm_free(upper);

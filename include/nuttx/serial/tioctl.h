@@ -200,6 +200,12 @@
 
 #define SER_SWAP_ENABLED   (1 << 0) /* Enable/disable RX/TX swap */
 
+/* Power Control Support */
+
+#define TIOCPOWERON     _TIOC(0xf000)  /* Set power on   */
+#define TIOCPOWEROFF    _TIOC(0xf001)  /* Set power off  */
+#define TIOCRESET       _TIOC(0xf002)  /* Apply reset    */
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/

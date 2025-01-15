@@ -46,7 +46,8 @@ config IEEE80211_BROADCOM_FWFILES
 	depends on IEEE80211_BROADCOM_BCM4301X || \
                IEEE80211_BROADCOM_BCM43362 || \
                IEEE80211_BROADCOM_BCM43438 || \
-               IEEE80211_BROADCOM_BCM43455
+               IEEE80211_BROADCOM_BCM43455 || \
+               IEEE80211_INFINEON_CYW43439
 	---help---
 		By default, firmware and CLM files are provided in memory.
 		This selection enables an option to load the firmware and CLM
@@ -98,8 +99,8 @@ config IEEE80211_BROADCOM_FWFILENAME
 		the firmware can be found.
 
 config IEEE80211_BROADCOM_NVFILENAME
-	string "Firmware file"
-	default "/mnt/sdcard/nvram.bin"
+	string "NVRAM file"
+	default "/mnt/sdcard/nvram.txt"
 	depends on IEEE80211_BROADCOM_FWFILES
 	---help---
 		If firmware files are provided on a file system, then this option

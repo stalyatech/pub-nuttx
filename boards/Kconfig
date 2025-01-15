@@ -1014,6 +1014,15 @@ config ARCH_BOARD_M100PFSEVP_MPFS
 		This is the board configuration for the port of NuttX to the
 		MicroChip m100pfsevp-mpfs board. This board features the RISC-V MPFS.
 
+config ARCH_BOARD_DISCO_MPFS
+	bool "Microchip Polarfire SoC Discovery Kit"
+	depends on ARCH_CHIP_MPFS
+	select MPFS_EMMCSD_MUX_GPIO if !MPFS_WITH_QEMU
+  select ARCH_HAVE_LEDS if !MPFS_WITH_QEMU
+	---help---
+		This is the board configuration for the port of NuttX to the
+		Microchip Polarfire SoC Discovery Kit. This board features the RISC-V MPFS.
+
 config ARCH_BOARD_MAX32660_EVSYS
 	bool "Maxim Integrated MAX32660-EVSYS"
 	depends on ARCH_CHIP_MAX32660
@@ -1814,6 +1823,15 @@ config ARCH_BOARD_OPENH743I
 	depends on ARCH_CHIP_STM32H743II
 	---help---
 		Waveshare OpenH743I board based on the STMicro STM32H743II MCU.
+
+config ARCH_BOARD_STALYA_FMU
+	bool "Stalya FMU"
+	depends on ARCH_CHIP_STM32H743VI
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+  select ARCH_HAVE_IRQBUTTONS
+	---help---
+		Stalya FMU board based on the STMicro STM32H743VI MCU.
 
 config ARCH_BOARD_NUCLEO_L152RE
 	bool "STM32L152 Nucleo L152RE"
@@ -2698,6 +2716,29 @@ config ARCH_BOARD_STEVAL_ETH001V1
 		The STMicro STEVAL-ETH001V1 servo drive evaluation board featuring
 		the STM32F767ZI MCU.
 
+config ARCH_BOARD_ARDUSIMPLE_SBC
+  bool "Ardusimple simpleRTK2B-SBC board"
+  depends on ARCH_CHIP_STM32F745VG
+  select ARCH_HAVE_LEDS
+  select ARCH_HAVE_BUTTONS
+  select ARCH_HAVE_IRQBUTTONS
+  ---help---
+    Ardusimple simpleRTK2B-SBC OEM board featuring the STM32F745VG MCU.
+    The STM32F745VG  is a 216MHz Cortex-M7 operation with 1024Kb Flash
+    memory and 320Kb SRAM.
+
+config ARCH_BOARD_ARDUSIMPLE_MAPKIT
+  bool "Ardusimple MappingKit board"
+  depends on ARCH_CHIP_STM32F745VG
+  select ARCH_HAVE_LEDS
+  select ARCH_HAVE_BUTTONS
+  select ARCH_HAVE_IRQBUTTONS
+  select ARCH_HAVE_POWEROFF
+  ---help---
+    Ardusimple MappingKit board featuring the STM32F745VG MCU.
+    The STM32F745VG  is a 216MHz Cortex-M7 operation with 1024Kb Flash
+    memory and 320Kb SRAM.
+
 config ARCH_BOARD_STM32H747I_DISCO
 	bool "STMicro STM32H747I-DISCO board"
 	depends on ARCH_CHIP_STM32H747XI
@@ -3379,6 +3420,7 @@ config ARCH_BOARD
 	default "smartl-c906"               if ARCH_BOARD_SMARTL_C906
 	default "icicle"                    if ARCH_BOARD_ICICLE_MPFS
 	default "m100pfsevp"                if ARCH_BOARD_M100PFSEVP_MPFS
+	default "mpfs-disco"                if ARCH_BOARD_DISCO_MPFS
 	default "maple"                     if ARCH_BOARD_MAPLE
 	default "makerlisp"                 if ARCH_BOARD_MAKERLISP
 	default "max32660-evsys"            if ARCH_BOARD_MAX32660_EVSYS
@@ -3436,6 +3478,7 @@ config ARCH_BOARD
 	default "stm32h745i-disco"          if ARCH_BOARD_STM32H745I_DISCO
 	default "linum-stm32h753bi"         if ARCH_BOARD_LINUM_STM32H753BI
 	default "openh743i"                 if ARCH_BOARD_OPENH743I
+	default "stalya-fmu"                if ARCH_BOARD_STALYA_FMU
 	default "nucleo-l073rz"             if ARCH_BOARD_NUCLEO_L073RZ
 	default "nucleo-l152re"             if ARCH_BOARD_NUCLEO_L152RE
 	default "nucleo-l432kc"             if ARCH_BOARD_NUCLEO_L432KC
@@ -3559,6 +3602,8 @@ config ARCH_BOARD
 	default "stm32f746g-disco"          if ARCH_BOARD_STM32F746G_DISCO
 	default "stm32f769i-disco"          if ARCH_BOARD_STM32F769I_DISCO
 	default "steval-eth001v1"           if ARCH_BOARD_STEVAL_ETH001V1
+	default "ardusimple-sbc"            if ARCH_BOARD_ARDUSIMPLE_SBC
+	default "ardusimple-mapkit"         if ARCH_BOARD_ARDUSIMPLE_MAPKIT
 	default "stm32h747i-disco"          if ARCH_BOARD_STM32H747I_DISCO
 	default "stm32f746-ws"              if ARCH_BOARD_STM32F746_WS
 	default "stm32f777zit6-meadow"      if ARCH_BOARD_MEADOW_F7MICRO
@@ -4101,6 +4146,12 @@ endif
 if ARCH_BOARD_STEVAL_ETH001V1
 source "boards/arm/stm32f7/steval-eth001v1/Kconfig"
 endif
+if ARCH_BOARD_ARDUSIMPLE_SBC
+source "boards/arm/stm32f7/ardusimple-sbc/Kconfig"
+endif
+if ARCH_BOARD_ARDUSIMPLE_MAPKIT
+source "boards/arm/stm32f7/ardusimple-mapkit/Kconfig"
+endif
 if ARCH_BOARD_STM32H747I_DISCO
 source "boards/arm/stm32h7/stm32h747i-disco/Kconfig"
 endif
@@ -4124,6 +4175,9 @@ source "boards/arm/stm32h7/linum-stm32h753bi/Kconfig"
 endif
 if ARCH_BOARD_OPENH743I
 source "boards/arm/stm32h7/openh743i/Kconfig"
+endif
+if ARCH_BOARD_STALYA_FMU
+source "boards/arm/stm32h7/stalya-fmu/Kconfig"
 endif
 if ARCH_BOARD_B_L475E_IOT01A
 source "boards/arm/stm32l4/b-l475e-iot01a/Kconfig"
@@ -4466,6 +4520,9 @@ source "boards/risc-v/mpfs/icicle/Kconfig"
 endif
 if ARCH_BOARD_M100PFSEVP_MPFS
 source "boards/risc-v/mpfs/m100pfsevp/Kconfig"
+endif
+if ARCH_BOARD_DISCO_MPFS
+source "boards/risc-v/mpfs/mpfs-disco/Kconfig"
 endif
 if ARCH_BOARD_RV32M1_VEGA
 source "boards/risc-v/rv32m1/rv32m1-vega/Kconfig"

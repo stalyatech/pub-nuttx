@@ -72,6 +72,8 @@ include wchar/Make.defs
 include wctype/Make.defs
 include wqueue/Make.defs
 include fdt/Make.defs
+include nmea/Make.defs
+include flash/Make.defs
 
 # Use double delim to fix windows native build and give an error:
 # makefile:132: *** target mode do not include“%”. stop.

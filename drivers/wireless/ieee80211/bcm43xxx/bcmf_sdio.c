@@ -90,6 +90,9 @@
 #ifdef CONFIG_IEEE80211_BROADCOM_BCM43455
   extern const struct bcmf_chip_data bcmf_43455_config_data;
 #endif
+#ifdef CONFIG_IEEE80211_INFINEON_CYW43439
+  extern const struct bcmf_chip_data g_cyw43439_config_data;
+#endif
 
 /****************************************************************************
  * Private Function Prototypes
@@ -948,6 +951,13 @@ int bcmf_chipinitialize(FAR struct bcmf_sdio_dev_s *sbus)
         break;
 #endif
 
+#ifdef CONFIG_IEEE80211_INFINEON_CYW43439
+      case SDIO_DEVICE_ID_INFINEON_CYW43439:
+        wlinfo("cyw43439 chip detected\n");
+        sbus->chip = (struct bcmf_chip_data *)&g_cyw43439_config_data;
+        break;
+#endif
+
       default:
         wlerr("chip 0x%x is not supported\n", chipid);
         return -ENODEV;
@@ -1057,6 +1067,14 @@ int bcmf_sdio_thread(int argc, char **argv)
           ret = bcmf_sdpcm_sendframe(priv);
         }
       while (ret == OK);
+
+      if (ret == -EAGAIN)
+        {
+          /* No credit to send frame */
+          /* yield the other tasks */
+
+          nxsig_usleep(1000);
+        }
     }
 
   wlinfo("Exit\n");

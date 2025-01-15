@@ -44,6 +44,9 @@
 #ifdef CONFIG_FS_PROCFS
 #include <nuttx/fs/procfs.h>
 #endif
+#ifdef CONFIG_ARCH_HAVE_PROGMEM
+#include <nuttx/progmem.h>
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -236,8 +239,22 @@ static int part_erase(FAR struct mtd_dev_s *dev, off_t startblock,
    * NOTE: the offset here is in units of erase blocks.
    */
 
-  eoffset = priv->firstblock / priv->blkpererase;
-  DEBUGASSERT(eoffset * priv->blkpererase == priv->firstblock);
+#ifdef CONFIG_ARCH_HAVE_PROGMEM
+  if ((priv->parent->name != NULL) && !strcmp(priv->parent->name, "progmem"))
+    {
+      /* Get start of erase block */
+
+      eoffset = up_progmem_geteraseblock(priv->firstblock *
+                                         priv->geo.blocksize);
+
+      DEBUGASSERT(up_progmem_getpage(eoffset) == priv->firstblock);
+    }
+  else
+#endif /* CONFIG_ARCH_HAVE_PROGMEM */
+    {
+      eoffset = priv->firstblock / priv->blkpererase;
+      DEBUGASSERT(eoffset * priv->blkpererase == priv->firstblock);
+    }
 
   return priv->parent->erase(priv->parent, startblock + eoffset, nblocks);
 }
@@ -456,9 +473,23 @@ static int part_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
         {
           /* Erase the entire partition */
 
-          ret = priv->parent->erase(priv->parent,
-                                    priv->firstblock / priv->blkpererase,
-                                    priv->geo.neraseblocks);
+#ifdef CONFIG_ARCH_HAVE_PROGMEM
+          if ((priv->parent->name != NULL) && !strcmp(priv->parent->name, "progmem"))
+            {
+              off_t eoffset = up_progmem_geteraseblock(priv->firstblock *
+                                                       priv->geo.blocksize);
+
+              ret = priv->parent->erase(priv->parent,
+                                        eoffset,
+                                        priv->geo.neraseblocks);
+            }
+          else
+#endif /* CONFIG_ARCH_HAVE_PROGMEM */
+            {
+              ret = priv->parent->erase(priv->parent,
+                                        priv->firstblock / priv->blkpererase,
+                                        priv->geo.neraseblocks);
+            }
         }
         break;
 
@@ -468,10 +499,26 @@ static int part_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 
           FAR struct mtd_erase_s *erase = (FAR struct mtd_erase_s *)arg;
 
-          ret = priv->parent->erase(priv->parent,
-                                    priv->firstblock / priv->blkpererase +
-                                    erase->startblock,
-                                    erase->nblocks);
+#ifdef CONFIG_ARCH_HAVE_PROGMEM
+          if ((priv->parent->name != NULL) && !strcmp(priv->parent->name, "progmem"))
+            {
+              off_t eoffset = up_progmem_geteraseblock(priv->firstblock *
+                                                       priv->geo.blocksize);
+
+              ret = priv->parent->erase(priv->parent,
+                                        eoffset +
+                                        erase->startblock,
+                                        erase->nblocks);
+
+            }
+          else
+#endif /* CONFIG_ARCH_HAVE_PROGMEM */
+            {
+              ret = priv->parent->erase(priv->parent,
+                                        priv->firstblock / priv->blkpererase +
+                                        erase->startblock,
+                                        erase->nblocks);
+            }
         }
         break;
 
@@ -505,8 +552,20 @@ static int part_isbad(FAR struct mtd_dev_s *dev, off_t block)
 
   if (priv->parent->isbad)
     {
-      return priv->parent->isbad(priv->parent, block +
-                                 priv->firstblock / priv->blkpererase);
+#ifdef CONFIG_ARCH_HAVE_PROGMEM
+      if ((priv->parent->name != NULL) && !strcmp(priv->parent->name, "progmem"))
+        {
+          off_t eoffset = up_progmem_geteraseblock(priv->firstblock *
+                                                   priv->geo.blocksize);
+
+          return priv->parent->isbad(priv->parent, block + eoffset);
+        }
+      else
+#endif /* CONFIG_ARCH_HAVE_PROGMEM */
+        {
+          return priv->parent->isbad(priv->parent, block +
+                                     priv->firstblock / priv->blkpererase);
+        }
     }
 
   /* The underlying MTD driver does not support the isbad() method */
@@ -532,8 +591,20 @@ static int part_markbad(FAR struct mtd_dev_s *dev, off_t block)
 
   if (priv->parent->markbad)
     {
-      return priv->parent->markbad(priv->parent, block +
-                                   priv->firstblock / priv->blkpererase);
+#ifdef CONFIG_ARCH_HAVE_PROGMEM
+      if ((priv->parent->name != NULL) && !strcmp(priv->parent->name, "progmem"))
+        {
+          off_t eoffset = up_progmem_geteraseblock(priv->firstblock *
+                                                   priv->geo.blocksize);
+
+          return priv->parent->markbad(priv->parent, block + eoffset);
+        }
+      else
+#endif /* CONFIG_ARCH_HAVE_PROGMEM */
+        {
+          return priv->parent->markbad(priv->parent, block +
+                                       priv->firstblock / priv->blkpererase);
+        }
     }
 
   /* The underlying MTD driver does not support the markbad() method */

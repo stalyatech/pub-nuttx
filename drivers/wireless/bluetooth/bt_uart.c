@@ -101,8 +101,8 @@ static ssize_t btuart_read(FAR struct btuart_upperhalf_s *upper,
 
 static void btuart_rxwork(FAR void *arg)
 {
+  static uint8_t data[BLUETOOTH_MAX_FRAMELEN];
   FAR struct btuart_upperhalf_s *upper;
-  uint8_t data[CONFIG_BLUETOOTH_UART_RXBUFSIZE];
   enum bt_buf_type_e type;
   unsigned int hdrlen;
   unsigned int pktlen;
@@ -167,6 +167,12 @@ static void btuart_rxwork(FAR void *arg)
       else
         {
           wlerr("ERROR: Unknown H4 type %u\n", data[0]);
+          break;
+        }
+
+      if (pktlen > (BLUETOOTH_MAX_FRAMELEN - (H4_HEADER_SIZE + hdrlen)))
+        {
+          wlerr("ERROR: Packet size is too big %u\n", pktlen);
           break;
         }
 
@@ -345,6 +351,18 @@ int btuart_register(FAR const struct btuart_lowerhalf_s *lower)
     {
       return ret;
     }
+
+  /* Set the file to non-blocking */
+
+#ifdef FIONBIO
+  int val = 1;
+  ret = lower->ioctl(lower, FIONBIO, (unsigned long)((uintptr_t)&val));
+  if (ret < 0)
+    {
+      wlerr("ERROR: ioctl(FIONBIO) failed: %d\n", ret);
+      kmm_free(driver);
+    }
+#endif
 
   ret = bt_driver_register(driver);
   if (ret < 0)

@@ -127,6 +127,8 @@ static int     uart_unlink(FAR struct inode *inode);
  * Public Function Prototypes
  ****************************************************************************/
 
+void *up_dma_txhandle(struct uart_dev_s *dev);
+
 #ifdef CONFIG_TTY_LAUNCH_ENTRY
 /* Lanch program entry, this must be supplied by the application. */
 
@@ -1491,6 +1493,16 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
       uart_dmatxavail(dev);
 #endif
       uart_enabletxint(dev);
+#ifdef CONFIG_SERIAL_TXDMA
+      if (oktoblock && up_dma_txhandle(dev))
+        {
+          ret = nxsem_wait(&dev->xmitsem);
+          if (ret < 0)
+            {
+              nwritten = ret;
+            }
+        }
+#endif
     }
 
   nxmutex_unlock(&dev->xmit.lock);

@@ -487,7 +487,7 @@ end_packed_struct wl_wsec_key_t;
 
 #define WSEC_MIN_PSK_LEN    8
 #define WSEC_MAX_PSK_LEN    64
-#define WSEC_PASSPHRASE        (1<<0)
+#define WSEC_PASSPHRASE     (1<<0)
 
 begin_packed_struct
 typedef struct
@@ -511,11 +511,25 @@ end_packed_struct wsec_pmk_t;
 #define WPA_AUTH_PSK                0x0004
 #define WPA2_AUTH_UNSPECIFIED       0x0040
 #define WPA2_AUTH_PSK               0x0080
+#define WPA3_AUTH_SAE_PSK           0x40000
 #define BRCM_AUTH_PSK               0x0100
 #define BRCM_AUTH_DPT               0x0200
 #define WPA_AUTH_PFN_ANY            0xffffffff
 #define MAXPMKID                    16
 #define WPA2_PMKID_LEN              16
+
+/* management frame protection */
+
+#define MFP_NONE      0
+#define MFP_CAPABLE   1
+#define MFP_REQUIRED  2
+
+#define CYW43_AUTH_OPEN               (0)           /* No authorisation required (open) */
+#define CYW43_AUTH_WPA_TKIP_PSK       (0x00200002)  /* WPA authorisation */
+#define CYW43_AUTH_WPA2_AES_PSK       (0x00400004)  /* WPA2 authorisation (preferred) */
+#define CYW43_AUTH_WPA2_MIXED_PSK     (0x00400006)  /* WPA2/WPA mixed authorisation */
+#define CYW43_AUTH_WPA3_SAE_AES_PSK   (0x01000004)  /* WPA3 AES authorisation */
+#define CYW43_AUTH_WPA3_WPA2_AES_PSK  (0x01400004)  /* WPA2/WPA3 authorisation */
 
 begin_packed_struct
 typedef struct _pmkid
@@ -869,6 +883,8 @@ end_packed_struct wlc_iov_trx_t;
 #define IOVAR_STR_CCGPIOOUT              "ccgpioout"
 #define IOVAR_STR_CCGPIOPUTEN            "ccgpioputen"
 #define IOVAR_STR_COEX_PARA              "coex_para"
+#define IOVAR_STR_MFP                    "mfp"
+#define IOVAR_STR_CHANSPEC               "chanspec"
 
 #define WLC_IOCTL_MAGIC                    ( 0x14e46c77 )
 #define WLC_IOCTL_VERSION                  (          1 )
@@ -3350,5 +3366,34 @@ typedef enum
 
   WLC_E_REASON_FORCE_32_BIT     = 0x7ffffffe                     /* Force enum to be stored in 32 bit variable */
 } wl_event_reason_t;
+
+/* Enumeration of 802.11 radio bands */
+
+typedef enum wl_802_11_band
+{
+    WL_802_11_BAND_5GHZ   = 0,  /* Denotes 5GHz radio band */
+    WL_802_11_BAND_2_4GHZ = 1,  /* Denotes 2.4GHz radio band */
+    WL_802_11_BAND_6GHZ   = 2   /* Denotes 6GHz radio band  */
+} wl_802_11_band_t;
+
+#define WL_AP_UP_TIMEOUT    (10000)
+#define WL_AP_DOWN_TIMEOUT  (2000)
+
+begin_packed_struct
+typedef struct wl_li
+{
+	uint32_t beacon;    /* Listen interval in beacon periods */
+	uint32_t dtim;      /* Listen interval in DTIM periods */
+	uint32_t assoc;     /* Listen interval as sent to APs */
+}
+end_packed_struct wl_li_t;
+
+begin_packed_struct
+typedef struct wl_pm
+{
+	uint32_t mode;      /* Power management mode */
+	uint32_t pm2w;      /* Time to wait before go to sleep for PM2 */
+}
+end_packed_struct wl_pm_t;
 
 #endif /* __DRIVERS_WIRELESS_IEEE80211_BCM43XXX_BCMF_IOCTL_H */

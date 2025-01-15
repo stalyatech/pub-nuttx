@@ -290,6 +290,7 @@ config PL2303
 	bool "Prolific PL2303 serial/USB converter emulation"
 	default n
 	select SERIAL_REMOVABLE
+  select ARCH_HAVE_SERIAL_TERMIOS
 	---help---
 		This logic emulates the Prolific PL2303 serial/USB converter
 
@@ -431,6 +432,7 @@ endif # PL2303
 menuconfig CDCACM
 	bool "USB Modem (CDC/ACM) support"
 	default n
+  select ARCH_HAVE_SERIAL_TERMIOS
 	select SERIAL_REMOVABLE
 	select SERIAL_TXDMA
 	select SERIAL_RXDMA
@@ -473,6 +475,7 @@ menuconfig CDCACM_COMPOSITE
 	bool "CDC/ACM composite support"
 	default n
 	depends on USBDEV_COMPOSITE
+  select ARCH_HAVE_SERIAL_TERMIOS
 	---help---
 		Configure the CDC serial driver as part of a composite driver
 		(only if USBDEV_COMPOSITE is also defined)

@@ -171,7 +171,7 @@
 #define SIOCSIWPTAPRIO      (SIOCIWFIRSTPRIV + 6)       /* Set PTA priority type */
 #define SIOCGIWPTAPRIO      (SIOCIWFIRSTPRIV + 7)       /* Get PTA priority type */
 
-/* WIFI AP assoc indicator */
+/* WIFI AP associated STA list */
 
 #define SIOCSIWAPASSOC      (SIOCIWFIRSTPRIV + 8)       /* Set AP Assoc indicator */
 #define SIOCGIWAPASSOC      (SIOCIWFIRSTPRIV + 9)       /* Get AP Assoc indicator */
@@ -382,6 +382,7 @@
 #define IW_AUTH_CIPHER_CCMP          0x00000008
 #define IW_AUTH_CIPHER_WEP104        0x00000010
 #define IW_AUTH_CIPHER_AES_CMAC      0x00000020
+#define IW_AUTH_CIPHER_AES_SAE       0x00000040
 
 /* IW_AUTH_KEY_MGMT values (bit field) */
 
@@ -412,6 +413,7 @@
 #define IW_ENCODE_ALG_CCMP           3
 #define IW_ENCODE_ALG_PMK            4
 #define IW_ENCODE_ALG_AES_CMAC       5
+#define IW_ENCODE_ALG_SAE            6
 
 /* IW_COEX_PTA_PRIORITY values */
 

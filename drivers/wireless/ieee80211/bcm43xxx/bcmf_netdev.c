@@ -668,35 +668,45 @@ static int bcmf_ifup(FAR struct net_driver_s *dev)
       bcmf_lowpower_poll(priv);
 #endif
       bcmf_wl_set_pta_priority(priv, IW_PTA_PRIORITY_COEX_HIGH);
+
+      /* Enable the hardware interrupt */
+
+      priv->bc_bifup[iface] = true;
     }
   else
     {
-      /* Enable chip */
-      #if 0
-      ret = bcmf_wl_enable(priv, true, iface);
-      if (ret != OK)
-        {
-          goto errout_in_wl_active;
-        }
-      #endif
+      /* Enable the hardware interrupt */
 
-      /* Query MAC address */
+      priv->bc_bifup[iface] = true;
 
-      out_len = ETHER_ADDR_LEN;
-      ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, false,
-                                   IOVAR_STR_CUR_ETHERADDR,
-                                   priv->bc_dev[iface].d_mac.ether.ether_addr_octet,
-                                   &out_len);
-      if (ret != OK)
+      /* Setup is comleted ? */
+
+      if (priv->softap.setup)
         {
-          goto errout_in_wl_active;
+          /* Bring up the SoftAP */
+
+          ret = bcmf_wl_ap_set_up(priv, true, WL_AP_UP_TIMEOUT);
+          if (ret != OK)
+            {
+              goto errout_in_wl_active;
+            }
         }
-      priv->bc_dev[iface].d_mac.ether.ether_addr_octet[5]++;
+      else
+        {
+          /* Query MAC address */
+
+          out_len = ETHER_ADDR_LEN;
+          ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, false,
+                                      IOVAR_STR_CUR_ETHERADDR,
+                                      priv->bc_dev[iface].d_mac.ether.ether_addr_octet,
+                                      &out_len);
+          if (ret != OK)
+            {
+              goto errout_in_wl_active;
+            }
+          priv->bc_dev[iface].d_mac.ether.ether_addr_octet[5]++;
+        }
     }
-
-  /* Enable the hardware interrupt */
-
-  priv->bc_bifup[iface] = true;
 
   goto errout_in_critical_section;
 
@@ -766,18 +776,13 @@ static int bcmf_ifdown(FAR struct net_driver_s *dev)
     {
       if (priv->bc_bifup[iface])
         {
-          /* Mark the device "down" */
-
-          priv->bc_bifup[iface] = false;
-
           /* Bring down the SoftAP */
 
           bcmf_wl_ap_set_up(priv, false, WL_AP_DOWN_TIMEOUT);
 
-          /* Disable the interface */
-          #if 0
-          bcmf_wl_enable(priv, false, iface);
-          #endif
+          /* Mark the device "down" */
+
+          priv->bc_bifup[iface] = false;
         }
     }
 

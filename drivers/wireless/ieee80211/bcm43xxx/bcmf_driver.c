@@ -93,6 +93,7 @@
 #define WLAN_AKM_PSK          0x02
 #define SUITE(oui, id)        (((oui) << 8) | (id))
 
+#define MAX_CAPS_BUFFER_SIZE  768
 #define MAX_NUM_OF_ASSOCLIST  8     /* Max number of assoc list */
 
 #define AMPDU_RX_FACTOR_8K    0     /* Max receive AMPDU length is 8kb */
@@ -128,6 +129,9 @@
                                                   wl_get_chanspec_ctl_sb_none(id) | \
                                                   wl_channel_to_band(id, chspec))
 
+/* Determine size (number of elements) in an array */
+
+#define ARRAY_SIZE(a)               (sizeof(a) / sizeof(a[0]) )
 
 
 /****************************************************************************
@@ -161,6 +165,16 @@ enum
   DL_TYPE_UCODE = 1,
   DL_TYPE_CLM = 2
 };
+
+/* Expand fw capabilities list to enumeration */
+
+typedef enum wl_fwcap_id
+{
+    WL_FWCAP_SAE      = 0,  /* Internal SAE */
+    WL_FWCAP_SAE_EXT  = 1,  /* External SAE */
+    WL_FWCAP_OFFLOADS = 2,  /* Offload config */
+    WL_FWCAP_GCMP     = 3,  /* GCMP */
+} wl_fwcap_id_t;
 
 begin_packed_struct struct wpa_cipher_suite
 {
@@ -203,6 +217,24 @@ begin_packed_struct struct wpa_ie_fixed
 } end_packed_struct;
 
 typedef struct wpa_ie_fixed wpa_ie_fixed_t;
+
+/* Firmware capability map */
+
+begin_packed_struct struct wl_fwcap
+{
+    wl_fwcap_id_t feature;
+    const char *const fwcap_name;
+} end_packed_struct;
+
+typedef struct wl_fwcap wl_fwcap_t;
+
+static const wl_fwcap_t wl_fwcap_map[]=
+{
+    { WL_FWCAP_SAE,     "sae "},
+    { WL_FWCAP_SAE_EXT, "sae_ext "},
+    { WL_FWCAP_OFFLOADS,"offloads "},
+    { WL_FWCAP_GCMP,    "gcmp" },
+};
 
 /****************************************************************************
  * Private Function Prototypes
@@ -405,9 +437,9 @@ int bcmf_wl_set_mac_address(FAR struct bcmf_dev_s *priv, struct ifreq *req)
     }
 
   ret = bcmf_cdc_iovar_request(priv, CHIP_STA_INTERFACE, true,
-                              IOVAR_STR_CUR_ETHERADDR,
-                              (FAR uint8_t *)req->ifr_hwaddr.sa_data,
-                              &out_len);
+                               IOVAR_STR_CUR_ETHERADDR,
+                               (FAR uint8_t *)req->ifr_hwaddr.sa_data,
+                               &out_len);
   if (ret != OK)
     {
       return ret;
@@ -735,6 +767,10 @@ int bcmf_wl_active(FAR struct bcmf_dev_s *priv, bool active)
       goto errout_in_sdio_active;
     }
 
+  /* Get FW Capability */
+
+  bcmf_wl_get_fwcap(priv, interface, &priv->fwcap);
+
   /* Set channel */
 
   memset(&iwr, 0, sizeof(struct iwreq));
@@ -837,6 +873,30 @@ void bcmf_wl_radio_event_handler(FAR struct bcmf_dev_s *priv,
 }
 
 /****************************************************************************
+ * Name: net_carrier_on
+ ****************************************************************************/
+
+static void net_carrier_on(struct net_driver_s *dev)
+{
+  if (dev && !IFF_IS_RUNNING(dev->d_flags))
+    {
+      dev->d_flags |= IFF_RUNNING;
+    }
+}
+
+/****************************************************************************
+ * Name: net_carrier_off
+ ****************************************************************************/
+
+static void net_carrier_off(struct net_driver_s *dev)
+{
+  if (dev && IFF_IS_RUNNING(dev->d_flags))
+    {
+      dev->d_flags &= ~IFF_RUNNING;
+    }
+}
+
+/****************************************************************************
  * Name: bcmf_wl_auth_event_handler
  ****************************************************************************/
 
@@ -927,11 +987,11 @@ void bcmf_wl_auth_event_handler(FAR struct bcmf_dev_s *priv,
     {
       if (carrier)
         {
-          netdev_carrier_on(&priv->bc_dev[iface]);
+          net_carrier_on(&priv->bc_dev[iface]);
         }
       else
         {
-          netdev_carrier_off(&priv->bc_dev[iface]);
+          net_carrier_off(&priv->bc_dev[iface]);
         }
 
       if (priv->softap.signal)
@@ -1741,12 +1801,17 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
               case IW_AUTH_WPA_VERSION_WPA2:
                 wpa_version[1] = 1;
                 wpa_auth = WPA2_AUTH_PSK;
+                mfp_auth = MFP_CAPABLE;
+                if (interface == CHIP_AP_INTERFACE)
+                  {
+                    wpa_auth |= WPA_AUTH_PSK;
+                  }
                 break;
 
               case IW_AUTH_WPA_VERSION_WPA3:
                 wpa_version[1] = 1;
-                wpa_auth = WPA3_AUTH_SAE_PSK;
-                mfp_auth = MFP_REQUIRED;
+                wpa_auth = WPA3_AUTH_SAE_PSK | WPA2_AUTH_PSK;
+                mfp_auth = MFP_CAPABLE;
                 break;
 
               default:
@@ -1759,12 +1824,9 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
 
           if (interface == CHIP_AP_INTERFACE)
             {
-              if (wpa_auth & WPA2_AUTH_PSK)
-                {
-                  wpa_auth |= WPA_AUTH_PSK;
-                }
               priv->softap.wpa.iface = interface;
               priv->softap.wpa.value = wpa_auth;
+              
               priv->softap.mfp.iface = interface;
               priv->softap.mfp.value = mfp_auth;
 
@@ -1785,7 +1847,8 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
             }
 
           out_len = 4;
-          if (bcmf_cdc_ioctl(priv, interface, true, WLC_SET_WPA_AUTH,
+          if (bcmf_cdc_ioctl(priv, interface, true,
+                             WLC_SET_WPA_AUTH,
                              (FAR uint8_t *)&wpa_auth, &out_len))
             {
               return -EIO;
@@ -1804,24 +1867,29 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
           switch (iwr->u.param.value)
             {
               case IW_AUTH_CIPHER_NONE:
-                auth_type = CYW43_AUTH_OPEN;
+                auth_type = OPEN_AUTH;
                 cipher_mode = OPEN_AUTH;
                 break;
 
               case IW_AUTH_CIPHER_WEP40:
               case IW_AUTH_CIPHER_WEP104:
-                auth_type = CYW43_AUTH_OPEN;
+                auth_type = WEP_ENABLED;
                 cipher_mode = WEP_ENABLED;
                 wep_auth = 1;
                 break;
 
               case IW_AUTH_CIPHER_TKIP:
-                auth_type = CYW43_AUTH_WPA_TKIP_PSK;
+                auth_type = TKIP_ENABLED;
                 cipher_mode = TKIP_ENABLED;
                 break;
 
               case IW_AUTH_CIPHER_CCMP:
-                auth_type = CYW43_AUTH_WPA2_AES_PSK;
+                auth_type = AES_ENABLED;
+                cipher_mode = AES_ENABLED;
+                break;
+
+              case IW_AUTH_CIPHER_AES_SAE:
+                auth_type = AES_ENABLED;
                 cipher_mode = AES_ENABLED;
                 break;
 
@@ -1835,6 +1903,21 @@ int bcmf_wl_set_auth_param(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
 
           if (interface == CHIP_AP_INTERFACE)
             {
+              if (priv->softap.wpa.value & WPA3_AUTH_SAE_PSK)
+                {
+                  auth_type |= WPA3_SECURITY;
+                }
+
+              if (priv->softap.wpa.value & WPA2_AUTH_PSK)
+                {
+                  auth_type |= WPA2_SECURITY;
+                }
+
+              if (priv->softap.wpa.value & WPA_AUTH_PSK)
+                {
+                  auth_type |= WPA_SECURITY;
+                }
+
               priv->softap.wsec.iface = interface;
               priv->softap.wsec.value = auth_type;
 
@@ -2091,12 +2174,12 @@ int bcmf_wl_set_channel(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
           return ret;
         }
 
-      /* Set multicast tx rate to 2Mbps */
+      /* Set multicast tx rate to 11Mbps */
 
       if (CHSPEC_IS2G(sbus->cur_chip_id, iwr->u.freq.m))
         {
           out_len = sizeof(value);
-          value   = RATE_SETTING_2_MBPS;
+          value   = RATE_SETTING_11_MBPS;
           ret = bcmf_cdc_iovar_request(priv, interface, true,
                                        IOVAR_STR_2G_MULTICAST_RATE,
                                        (FAR uint8_t *)&value, &out_len);
@@ -2349,12 +2432,15 @@ int bcmf_wl_set_encode_ext(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
 
   switch (ext->alg)
     {
+      case IW_ENCODE_ALG_WEP:
+        break;
       case IW_ENCODE_ALG_TKIP:
         break;
       case IW_ENCODE_ALG_CCMP:
         break;
-      case IW_ENCODE_ALG_NONE:
-      case IW_ENCODE_ALG_WEP:
+      case IW_ENCODE_ALG_SAE:
+        break;
+
       default:
         wlerr("Unknown algo %d\n", ext->alg);
         return -EINVAL;
@@ -3099,7 +3185,7 @@ int bcmf_wl_ap_set_up(FAR struct bcmf_dev_s *priv, bool up, uint32_t timeout)
       /* Wait until AP is brought up/down */
 
       ret = nxsem_tickwait_uninterruptible(priv->softap.signal,
-																				 MSEC2TICK(timeout));
+																				   MSEC2TICK(timeout));
 
       /* Check the SoftAP status  */
 
@@ -3108,6 +3194,10 @@ int bcmf_wl_ap_set_up(FAR struct bcmf_dev_s *priv, bool up, uint32_t timeout)
         if (bcmf_wl_ap_is_up(priv) != up)
           {
             ret = -EIO;
+          }
+        else
+          {
+            priv->softap.setup = 1;
           }
       }
     }
@@ -3200,6 +3290,15 @@ int bcmf_wl_ap_init(FAR struct bcmf_dev_s *priv)
 
   if (priv->auth_pmk.key_len > 0)
     {
+      if ((priv->softap.wsec.value & WPA3_SECURITY) && 
+          (priv->fwcap & (1 << WL_FWCAP_SAE)))
+        {
+          /* Set the SAE password */
+
+          bcmf_wl_set_sae_password(priv, CHIP_AP_INTERFACE, 
+                                   priv->auth_pmk.key, priv->auth_pmk.key_len);
+        }
+
       /* Delay required to allow radio firmware to be ready to receive PMK and avoid intermittent failure */
 
       nxsig_usleep(1000);
@@ -3210,6 +3309,13 @@ int bcmf_wl_ap_init(FAR struct bcmf_dev_s *priv)
       if (ret != OK)
         {
           return ret;
+        }
+
+      if (priv->softap.wsec.value & WPA3_SECURITY)
+        {
+           /* Adjust PWE Loop Count(WPA3-R1 Compatibility Issue) */
+
+          bcmf_wl_set_sae_pwe_loop(priv, CHIP_AP_INTERFACE, 4);
         }
     }
 
@@ -3343,4 +3449,124 @@ int bcmf_wl_ap_get_stas(FAR struct bcmf_dev_s *priv, struct iwreq *iwr)
     }
 
   return ret;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_get_fwcap
+ ****************************************************************************/
+
+int bcmf_wl_get_fwcap(FAR struct bcmf_dev_s *priv, uint8_t iface, uint32_t *fwcap)
+{
+  wl_fwcap_id_t id;
+  uint32_t out_len;
+  char *caps;
+  int ret;
+
+  /* Allocate the working buffer */
+
+  caps = kmm_malloc(MAX_CAPS_BUFFER_SIZE);
+  if (caps == NULL)
+    {
+      return -ENOMEM;
+    }
+
+  /* Get the firmware capabilities */
+
+  out_len = MAX_CAPS_BUFFER_SIZE;
+  ret = bcmf_cdc_iovar_request(priv, iface, false,
+                               IOVAR_STR_CAP,
+                               (FAR uint8_t *)caps, &out_len);
+  if (ret != OK)
+    {
+      kmm_free(caps);
+      return ret;
+    }
+
+  /* Extract the capability */
+
+  if (fwcap != NULL)
+    {
+      *fwcap = 0;
+      for (uint32_t i = 0; i < ARRAY_SIZE(wl_fwcap_map); i++)
+        {
+          if (strstr(caps, wl_fwcap_map[i].fwcap_name))
+            {
+              id = wl_fwcap_map[i].feature;
+              *fwcap |= (1 << id);
+            }
+        }
+    }
+
+  /* Release the buffer */
+
+  kmm_free(caps);
+
+  return OK;
+}
+
+
+/****************************************************************************
+ * Name: bcmf_wl_set_sae_password
+ ****************************************************************************/
+
+int bcmf_wl_set_sae_password(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                             const uint8_t *key, uint8_t key_len)
+{
+  wsec_sae_pwd_t pwd;
+  uint32_t out_len;
+  int ret;
+
+  /* Check the input validity */
+
+  if (!key || (key_len == 0) || (key_len > WSEC_MAX_SAE_PASSWORD_LEN))
+    {
+      return -EIO;
+    }
+
+  /* Copy the security information */
+
+  memset(&pwd, 0, sizeof(wsec_sae_pwd_t));
+  memcpy(pwd.pwd, key, key_len);
+  pwd.len = key_len;
+
+  /* Delay required to allow radio firmware to be ready to receive PMK and avoid intermittent failure */
+
+  nxsig_usleep(1000);
+
+  /* Set the SAE password */
+
+  out_len = sizeof(wsec_sae_pwd_t);
+  ret = bcmf_cdc_iovar_request(priv, iface, true,
+                               IOVAR_STR_SAE_PASSWORD,
+                               (FAR uint8_t *)&pwd, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: bcmf_wl_set_sae_pwe_loop
+ ****************************************************************************/
+
+int bcmf_wl_set_sae_pwe_loop(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                             uint32_t max_loop)
+{
+  uint32_t out_len;
+  int ret;
+
+  /* Set the SAE maximum error loop count */
+
+  out_len = sizeof(max_loop);
+  ret = bcmf_cdc_iovar_request(priv, iface, true,
+                               IOVAR_STR_SAE_PWE_LOOP,
+                               (FAR uint8_t *)&max_loop, &out_len);
+  if (ret != OK)
+    {
+      return ret;
+    }
+
+  return OK;
 }

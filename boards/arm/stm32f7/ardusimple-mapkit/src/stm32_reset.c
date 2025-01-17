@@ -77,51 +77,51 @@ int board_reset_cause(struct boardioc_reset_cause_s *cause)
 
   if (rst_cause & STM32_RESET_PORRSTF)
     {
-        /* Power on reset */
+      /* Power on reset */
 
-        cause->cause = BOARDIOC_RESETCAUSE_SYS_CHIPPOR;
+      cause->cause = BOARDIOC_RESETCAUSE_SYS_CHIPPOR;
     }
 
   else if (rst_cause & STM32_RESET_BORRSTF)
     {
-        /* Brown-out reset */
+      /* Brown-out reset */
 
-        cause->cause = BOARDIOC_RESETCAUSE_SYS_BOR;
+      cause->cause = BOARDIOC_RESETCAUSE_SYS_BOR;
     }
 
   else if (rst_cause & STM32_RESET_LPWRRSTF)
     {
-        /* Low power reset */
+      /* Low power reset */
 
-        cause->cause = BOARDIOC_RESETCAUSE_LOWPOWER;
+      cause->cause = BOARDIOC_RESETCAUSE_LOWPOWER;
     }
 
   else if (rst_cause & STM32_RESET_WWDGRSTF)
     {
-        /* Window watchdog reset */
+      /* Window watchdog reset */
 
-        cause->cause = BOARDIOC_RESETCAUSE_CPU_RWDT;
+      cause->cause = BOARDIOC_RESETCAUSE_CPU_RWDT;
     }
 
   else if (rst_cause & STM32_RESET_IWDGRSTF)
     {
-        /* Independent watchdog reset */
+      /* Independent watchdog reset */
 
-        cause->cause = BOARDIOC_RESETCAUSE_CPU_RWDT;
+      cause->cause = BOARDIOC_RESETCAUSE_CPU_RWDT;
     }
 
   else if (rst_cause & STM32_RESET_SFTRSTF)
     {
-        /* Software reset */
+      /* Software reset */
 
-        cause->cause = BOARDIOC_RESETCAUSE_CPU_SOFT;
+      cause->cause = BOARDIOC_RESETCAUSE_CPU_SOFT;
     }
 
   else if (rst_cause & STM32_RESET_PINRSTF)
     {
-        /* Pin reset */
+      /* Pin reset */
 
-        cause->cause = BOARDIOC_RESETCAUSE_PIN;
+      cause->cause = BOARDIOC_RESETCAUSE_PIN;
     }
 
   /* Clear the reset flags */

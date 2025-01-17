@@ -48,6 +48,7 @@
 
 void bcmf_hexdump(FAR uint8_t *data, unsigned int len, unsigned long offset)
 {
+#ifdef CONFIG_BCMF_HEXDUMP
   unsigned int i;
   unsigned int char_count = 0;
   char char_line[20];
@@ -79,4 +80,5 @@ void bcmf_hexdump(FAR uint8_t *data, unsigned int len, unsigned long offset)
       hex_line[3 * LINE_LEN] = 0;
       wlinfo("%08lx: %s%s\n", offset + i - char_count, hex_line, char_line);
     }
+#endif /* CONFIG_BCMF_HEXDUMP */
 }

@@ -107,7 +107,6 @@ struct bcmf_dev_s
   wsec_pmk_t auth_pmk;    /* Authentication pmk */
   bool auth_pending;      /* Authentication pending */
 
-
 #ifdef CONFIG_IEEE80211_BROADCOM_LOWPOWER
   struct work_s lp_work_ifdown; /* Ifdown work to work queue */
   struct work_s lp_work_dtim;   /* Low power work to work queue */
@@ -118,10 +117,13 @@ struct bcmf_dev_s
   int pta_priority; /* Current priority of Packet Traffic Arbitration */
 #endif
 
+  uint32_t fwcap;         /* Firmware capability */
+
   struct
   {
     FAR sem_t *signal;    /* Notification signal */
-    uint32_t assoc;       /* Associate status */
+    uint16_t setup;      /* Linkup status */
+    uint16_t assoc;       /* Associate status */
 
     struct
     {
@@ -283,5 +285,12 @@ int bcmf_wl_ap_get_stas(FAR struct bcmf_dev_s *priv, struct iwreq *iwr);
 int bcmf_wl_ap_init   (FAR struct bcmf_dev_s *priv);
 int bcmf_wl_ap_is_up  (FAR struct bcmf_dev_s *priv);
 int bcmf_wl_ap_set_up (FAR struct bcmf_dev_s *priv, bool up, uint32_t timeout);
+
+int bcmf_wl_get_fwcap(FAR struct bcmf_dev_s *priv, uint8_t iface, uint32_t *fwcap);
+
+int bcmf_wl_set_sae_password(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                             const uint8_t *key, uint8_t key_len);
+int bcmf_wl_set_sae_pwe_loop(FAR struct bcmf_dev_s *priv, uint8_t iface, 
+                             uint32_t max_loop);
 
 #endif /* __DRIVERS_WIRELESS_IEEE80211_BCM43XXX_BCMF_DRIVER_H */

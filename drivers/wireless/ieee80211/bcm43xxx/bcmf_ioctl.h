@@ -500,36 +500,50 @@ end_packed_struct wsec_pmk_t;
 
 #define OPEN_AUTH                   0x0000
 #define SHARED_AUTH                 0x0001
+
 #define WEP_ENABLED                 0x0001
 #define TKIP_ENABLED                0x0002
 #define AES_ENABLED                 0x0004
 #define WSEC_SWFLAG                 0x0008
+
+#define SHARED_ENABLED              0x00008000
+#define WPA_SECURITY                0x00200000
+#define WPA2_SECURITY               0x00400000
+#define WPA2_SHA256_SECURITY        0x00800000
+#define WPA3_SECURITY               0x01000000
+
+#define ENTERPRISE_ENABLED          0x02000000
+#define WPS_ENABLED                 0x10000000
+#define IBSS_ENABLED                0x20000000
+#define FBT_ENABLED                 0x40000000
+
 #define SES_OW_ENABLED              0x0040
 #define WPA_AUTH_DISABLED           0x0000
 #define WPA_AUTH_NONE               0x0001
 #define WPA_AUTH_UNSPECIFIED        0x0002
 #define WPA_AUTH_PSK                0x0004
+#define WPA_AUTH_CCKM               0x0008
+#define WPA2_AUTH_CCKM              0x0010
 #define WPA2_AUTH_UNSPECIFIED       0x0040
 #define WPA2_AUTH_PSK               0x0080
+#define WPA2_AUTH_FILS_SHA256       0x10000
+#define WPA2_AUTH_FILS_SHA384       0x20000
 #define WPA3_AUTH_SAE_PSK           0x40000
+#define WPA3_AUTH_SAE_FBT           0x80000
+#define WPA3_AUTH_1X_SUITE_B_SHA384 0x400000
+#define WPA3_AUTH_OWE               0x100000
 #define BRCM_AUTH_PSK               0x0100
 #define BRCM_AUTH_DPT               0x0200
+#define WPA_AUTH_WAPI               0x0400
 #define WPA_AUTH_PFN_ANY            0xffffffff
 #define MAXPMKID                    16
 #define WPA2_PMKID_LEN              16
 
 /* management frame protection */
 
-#define MFP_NONE      0
-#define MFP_CAPABLE   1
-#define MFP_REQUIRED  2
-
-#define CYW43_AUTH_OPEN               (0)           /* No authorisation required (open) */
-#define CYW43_AUTH_WPA_TKIP_PSK       (0x00200002)  /* WPA authorisation */
-#define CYW43_AUTH_WPA2_AES_PSK       (0x00400004)  /* WPA2 authorisation (preferred) */
-#define CYW43_AUTH_WPA2_MIXED_PSK     (0x00400006)  /* WPA2/WPA mixed authorisation */
-#define CYW43_AUTH_WPA3_SAE_AES_PSK   (0x01000004)  /* WPA3 AES authorisation */
-#define CYW43_AUTH_WPA3_WPA2_AES_PSK  (0x01400004)  /* WPA2/WPA3 authorisation */
+#define MFP_NONE      0   /* Disables the client support for MFP */
+#define MFP_CAPABLE   1   /* Allows both MFP-capable and clients that do not support MFP to join the network */
+#define MFP_REQUIRED  2   /* Clients are allowed to associate only if MFP is negotiated */
 
 begin_packed_struct
 typedef struct _pmkid
@@ -885,6 +899,9 @@ end_packed_struct wlc_iov_trx_t;
 #define IOVAR_STR_COEX_PARA              "coex_para"
 #define IOVAR_STR_MFP                    "mfp"
 #define IOVAR_STR_CHANSPEC               "chanspec"
+#define IOVAR_STR_CAP                    "cap"
+#define IOVAR_STR_SAE_PASSWORD           "sae_password"
+#define IOVAR_STR_SAE_PWE_LOOP           "sae_max_pwe_loop"
 
 #define WLC_IOCTL_MAGIC                    ( 0x14e46c77 )
 #define WLC_IOCTL_VERSION                  (          1 )
@@ -3395,5 +3412,15 @@ typedef struct wl_pm
 	uint32_t pm2w;      /* Time to wait before go to sleep for PM2 */
 }
 end_packed_struct wl_pm_t;
+
+#define WSEC_MAX_SAE_PASSWORD_LEN 128
+
+begin_packed_struct
+typedef struct wsec_sae_pwd
+{
+    uint16_t len;                             /* Octets in key materials  */
+    uint8_t  pwd[WSEC_MAX_SAE_PASSWORD_LEN];  /* Maximum key len for SAE passphrase */
+} 
+end_packed_struct wsec_sae_pwd_t;
 
 #endif /* __DRIVERS_WIRELESS_IEEE80211_BCM43XXX_BCMF_IOCTL_H */

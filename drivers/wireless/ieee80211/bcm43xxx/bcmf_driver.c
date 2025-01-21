@@ -107,7 +107,7 @@
 #define RATE_SETTING_2_MBPS         ( 2000000 / 500000)
 #define RATE_SETTING_5_5_MBPS       ( 5500000 / 500000)
 #define RATE_SETTING_11_MBPS        (11000000 / 500000)
-#define AMPDU_AP_BA_WSIZE_DEF       (2)
+#define AMPDU_AP_BA_WSIZE_DEF       (8)
 #define AMPDU_STA_BA_WSIZE_DEF      (8)
 #define AMPDU_STA_MPDU_DEF          (4)
 
@@ -3175,6 +3175,7 @@ int bcmf_wl_ap_set_up(FAR struct bcmf_dev_s *priv, bool up, uint32_t timeout)
       /* Wait until AP is brought up/down */
 
       ret = nxsem_tickwait_uninterruptible(priv->softap.signal,
+                                           MSEC2TICK(timeout));
 
       /* Check the SoftAP status  */
 

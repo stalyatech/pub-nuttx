@@ -1,0 +1,35 @@
+btc_mode=1 
+==========
+Full TDM mode, When one side has priority, it has full control of the shared resource.
+
+btc_mode=4
+==========
+BT is always allowed to use the medium. WLAN keeps the normal activity.
+
+btc_mode=5
+==========
+Some simultaneous activities are allowed.
+
+btc_params1:
+============ 
+WLAN PS mode duration in coex mode in us. 
+Specifies WLAN PS mode duration when yielding to BT. 
+Larger value will keep WLAN in PS mode longer increasing BT throughput while decreasing WLAN throughput. 
+This parameter does not affect regular WLAN PS mode. Default is 7500 us.
+
+btc_params8:
+============
+BT deferral limit. 
+This parameter allows setting a limit on how long BT can be denied air-time. 
+If this parameter is set BT will be guaranteed access within a certain time specified as parameter 10. Default is 25000.
+
+btc_params9:
+============
+WLAN PS mode duration in coex mode in us as BT slave device. 
+Similar to parameter 1 except this parameter is applied when COEX device is served as BT slave device.  Default is 15000 us. 
+
+btc_params50:
+=============
+It will improve the priority of the BT side. Default is 0x17ec.
+
+Increase the "params 9" since you are using BT as sink mode, "params 1" is used on BT master mode.

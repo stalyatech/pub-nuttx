@@ -21,7 +21,7 @@ ccode=ALL
 
 pa0itssit=0x20
 extpagain2g=0
-#PA parameters for 2.4GHz, measured at CHIP OUTPUT
+# PA parameters for 2.4GHz, measured at CHIP OUTPUT
 pa2ga0=-168,6777,-789
 AvVmid_c0=0x0,0xc8
 AvVmidIQcal=0x2,0xa8
@@ -61,16 +61,20 @@ muxenab=0x11
 # CLDO PWM voltage settings - 0x4 - 1.1 volt
 #cldo_pwm=0x4
 
-#VCO freq 326.4MHz
+# VCO freq 326.4MHz
 spurconfig=0x3
 
-#SW based desense - Enable by default
-#i.e using glitich statistcs as critria to change crsmin
+# SW based desense - Enable by default
+# i.e using glitich statistcs as critria to change crsmin
 glitch_based_crsmin=1
 
-# Default btc_mode
-btc_mode=1
-bt_default_ant=0
+# Improved Bluetooth coexistence parameters from Cypress
+btc_mode=5
+btc_flags=0x54
+btc_params1=15000
+btc_params8=15000
+btc_params9=15000
+#btc_params50=0x972c
 
 #Antenna diversity
 #swdiv_en=1

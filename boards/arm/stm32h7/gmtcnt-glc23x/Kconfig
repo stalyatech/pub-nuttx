@@ -1,0 +1,69 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+if ARCH_BOARD_GMTCNT_GLC23X
+
+choice
+	prompt "Select SPI Flash File System"
+	default GMTCNT_GLC23X_SPIFLASH_LITTLEFS
+
+config GMTCNT_GLC23X_SPIFLASH_NONE
+	bool "None"
+
+config GMTCNT_GLC23X_SPIFLASH_SMARTFS
+	bool "Smart FS"
+
+config GMTCNT_GLC23X_SPIFLASH_LITTLEFS
+	bool "Little FS"
+
+config GMTCNT_GLC23X_SPIFLASH_SPIFFS
+	bool "SPI FFS"
+
+config GMTCNT_GLC23X_SPIFLASH_NXFFS
+	bool "NuttX FS"
+
+endchoice
+
+config GMTCNT_GLC23X_SPIFLASH_NPARTMAIN
+	int "Number of main partitions"
+	default 2
+	---help---
+		This setting provides the number of main partitions.
+
+config GMTCNT_GLC23X_SPIFLASH_NPARTRESV
+	int "Number of resv partitions"
+	default 2
+	---help---
+		This setting provides the number of reserved partitions.
+
+config GMTCNT_GLC23X_SPIFLASH_SIZERESV
+	int "Size of resv partitions"
+	default 2097152
+	---help---
+		This setting provides the number of reserved partitions.
+
+config STM32_ROMFS
+	bool "Automount baked-in ROMFS image"
+	default n
+	depends on FS_ROMFS
+	---help---
+		Select STM32_ROMFS_IMAGEFILE, STM32_ROMFS_DEV_MINOR, STM32_ROMFS_MOUNTPOINT
+
+config STM32_ROMFS_DEV_MINOR
+	int "Minor for the block device backing the data"
+	depends on STM32_ROMFS
+	default 64
+
+config STM32_ROMFS_MOUNTPOINT
+	string "Mountpoint of the custom romfs image"
+	depends on STM32_ROMFS
+	default "/rom"
+
+config STM32_ROMFS_IMAGEFILE
+	string "ROMFS image file to include into build"
+	depends on STM32_ROMFS
+	default "../../../rom.img"
+
+endif # ARCH_BOARD_GMTCNT_GLC23X

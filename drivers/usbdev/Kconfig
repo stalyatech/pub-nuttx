@@ -232,7 +232,7 @@ config COMPOSITE_VENDORID
 	default 0x0000
 
 config COMPOSITE_VENDORSTR
-	string "Composite vendor ID"
+	string "Composite vendor string"
 	default "NuttX"
 	---help---
 		The vendor ID code/string
@@ -290,6 +290,7 @@ config PL2303
 	bool "Prolific PL2303 serial/USB converter emulation"
 	default n
 	select SERIAL_REMOVABLE
+  select ARCH_HAVE_SERIAL_TERMIOS
 	---help---
 		This logic emulates the Prolific PL2303 serial/USB converter
 
@@ -432,6 +433,7 @@ menuconfig CDCACM
 	bool "USB Modem (CDC/ACM) support"
 	default n
 	select SERIAL_REMOVABLE
+  select ARCH_HAVE_SERIAL_TERMIOS
 	---help---
 		Enables USB Modem (CDC/ACM) support
 
@@ -463,6 +465,7 @@ menuconfig CDCACM_COMPOSITE
 	bool "CDC/ACM composite support"
 	default n
 	depends on USBDEV_COMPOSITE
+  select ARCH_HAVE_SERIAL_TERMIOS
 	---help---
 		Configure the CDC serial driver as part of a composite driver
 		(only if USBDEV_COMPOSITE is also defined)

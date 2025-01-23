@@ -68,7 +68,7 @@ typedef struct bcmf_interface_frame_s
    * the length of the remaining long data to be read. Thus only
    * the remaining part of data[] buffer beginning from the offset of 4 bytes
    * is required to be aligned to the address boundary set by
-   * CONFIG_IEEE80211_BROADCOM_SDIO_DMA_BUF_ALIGNMENT parameter.
+   * CONFIG_IEEE80211_BROADCOM_DMABUF_ALIGNMENT parameter.
    */
 
   uint8_t             data[HEADER_SIZE + MAX_NETDEV_PKTSIZE +

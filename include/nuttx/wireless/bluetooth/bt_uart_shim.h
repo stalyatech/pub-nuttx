@@ -33,7 +33,8 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-FAR struct btuart_lowerhalf_s *btuart_shim_getdevice(FAR const char *path);
+FAR struct btuart_lowerhalf_s *btuart_shim_getdevice(FAR const char *bt_tty_path,
+                                                     FAR const char *bt_reg_path);
 
 #endif /* CONFIG_BLUETOOTH_UART_SHIM */
 #endif /* __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_UART_SHIM_H */

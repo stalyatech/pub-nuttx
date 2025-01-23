@@ -35,6 +35,7 @@ int bcmf_netdev_register(FAR struct bcmf_dev_s *priv);
 
 void bcmf_netdev_notify_rx(FAR struct bcmf_dev_s *priv);
 
-void bcmf_netdev_notify_tx(FAR struct bcmf_dev_s *priv);
+void bcmf_netdev_notify_tx(FAR struct bcmf_dev_s *priv,
+                           uint8_t tx_imask);
 
 #endif /* __DRIVERS_WIRELESS_IEEE80211_BCM43XXX_BCMF_NETDEV_H */

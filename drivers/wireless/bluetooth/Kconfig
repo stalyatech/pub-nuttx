@@ -33,6 +33,7 @@ config BLUETOOTH_UART_CC2564
 
 config BLUETOOTH_BCM4343X
 	bool "Broadcom (Cypress) BCM4343X device support"
+  select BLUETOOTH_UART_SHIM
 	---help---
 		Enables download support for the bluetooth component of BCM4343X devices.
 		Note that firmware needs to be provided for these devices to operate. In
@@ -43,6 +44,33 @@ config BLUETOOTH_UART_OTHER
 	select BLUETOOTH_UART_GENERIC
 
 endchoice # Bluetooth UART HCI device
+
+if BLUETOOTH_BCM4343X
+
+config BLUETOOTH_BCM4343X_DMABUF_ALIGNMENT
+	int "DMA buffer address alignment boundary"
+	default 4
+	range 4 64
+	---help---
+		This parameter should be set depending on
+		the used SOC DMA configuration.
+
+config BLUETOOTH_BCM4343X_UART_BAUDRATE
+	int "HCI UART baudrate"
+	default 921600
+	range 1200 3000000
+	---help---
+		This parameter should be set depending on
+		the used SOC DMA configuration.
+
+config BLUETOOTH_BCM4343X_UART_MTUSIZE
+	int "HCI UART maximum MTU size"
+	default 1695
+	range 70 2048
+	---help---
+		HCI UART Maximum MTU size.
+
+endif # BLUETOOTH_BCM4343X
 
 config BLUETOOTH_UART_DUMP
 	bool "Dump HCI UART I/O buffers"

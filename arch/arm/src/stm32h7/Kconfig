@@ -545,9 +545,13 @@ config STM32H7_SHMEM_SRAM3
 
 endif
 
-config STM32_HAVE_OTA_PARTITION
-	bool
-	default n
+config STM32H7_HAVE_BOOTLOADER
+  bool
+  default n
+
+config STM32H7_HAVE_OTA_PARTITION
+  bool
+  default n
 
 config STM32H7_PROGMEM
 	bool "Flash progmem support"
@@ -559,27 +563,39 @@ config STM32H7_PROGMEM
 menu "Application Image Configuration"
 choice
 	prompt "Application Image Format"
-	default STM32_APP_FORMAT_LEGACY
+	default STM32H7_APP_FORMAT_LEGACY
 	---help---
 		Depending on the chosen 2nd stage bootloader, the application may
 		be required to be perform a specific startup routine. Furthermore,
 		the image binary must be formatted according to the definition from
 		the 2nd stage bootloader.
 
-config STM32_APP_FORMAT_LEGACY
-	bool "Legacy format"
-	---help---
-		This is the legacy application image format.
+config STM32H7_APP_FORMAT_LEGACY
+  bool "Legacy format"
+  select STM32H7_HAVE_OTA_PARTITION
+  ---help---
+    This is the legacy application image format.
 
-config STM32_APP_FORMAT_MCUBOOT
-	bool "MCUboot-bootable format"
-	select STM32_HAVE_OTA_PARTITION
-	depends on EXPERIMENTAL
-	---help---
-		The MCUboot support of loading the firmware images.
+config STM32H7_APP_FORMAT_TINYBOOT
+  bool "Tinyboot bootable format"
+  select STM32H7_HAVE_BOOTLOADER
+  select STM32H7_HAVE_OTA_PARTITION
+  ---help---
+    The Tinyboot support of loading the firmware images.
 
-comment "MCUboot support depends on CONFIG_EXPERIMENTAL"
-	depends on !EXPERIMENTAL
+config STM32H7_APP_FORMAT_MINIBOOT
+  bool "Miniboot bootable format"
+  select STM32H7_HAVE_BOOTLOADER
+  select STM32H7_HAVE_OTA_PARTITION
+  ---help---
+    The Miniboot support of loading the firmware images.
+
+config STM32H7_APP_FORMAT_MCUBOOT
+  bool "MCUboot bootable format"
+  select STM32H7_HAVE_BOOTLOADER
+  select STM32H7_HAVE_OTA_PARTITION
+  ---help---
+    The MCUboot support of loading the firmware images.
 
 endchoice # Application Image Format
 
@@ -6023,11 +6039,11 @@ endmenu # FDCAN Driver
 
 menu "Progmem MTD configuration"
 
-if STM32_HAVE_OTA_PARTITION
+if STM32H7_HAVE_OTA_PARTITION
 
 comment "Application Image OTA Update support"
 
-config STM32_PROGMEM_OTA_PARTITION
+config STM32H7_PROGMEM_OTA_PARTITION
 	bool "MTD driver"
 	default n
 	select BCH
@@ -6040,15 +6056,33 @@ config STM32_PROGMEM_OTA_PARTITION
 		Initialize an MTD driver for the Flash, which will
 		add an entry at /dev for application access from userspace.
 
-if STM32_PROGMEM_OTA_PARTITION
-config STM32_MCUBOOT_HEADER_SIZE
-	hex
-	default 0x200
-	depends on STM32_APP_FORMAT_MCUBOOT
+if STM32H7_PROGMEM_OTA_PARTITION
 
 config STM32_OTA_PRIMARY_SLOT_DEVPATH
 	string "Application image primary slot device path"
 	default "/dev/ota0"
+
+config STM32_OTA_PRIMARY_SLOT_OFFSET
+	hex "Application image primary slot offset"
+	default "0x40000"
+
+config STM32_OTA_SLOT_SIZE
+	hex "Application image slot size (in bytes)"
+	default "0xC0000"
+
+if STM32F7_APP_FORMAT_MINIBOOT
+config STM32_MINIBOOT_HEADER_SIZE
+  hex
+  default 0x200
+endif # STM32F7_APP_FORMAT_MINIBOOT
+
+if STM32F7_APP_FORMAT_TINYBOOT
+config STM32_TINYBOOT_HEADER_SIZE
+  hex
+  default 0x200
+endif # STM32F7_APP_FORMAT_TINYBOOT
+
+if STM32H7_APP_FORMAT_MCUBOOT
 
 config STM32_OTA_SECONDARY_SLOT_DEVPATH
 	string "Application image secondary slot device path"
@@ -6058,9 +6092,9 @@ config STM32_OTA_SCRATCH_DEVPATH
 	string "Scratch partition device path"
 	default "/dev/otascratch"
 
-config STM32_OTA_PRIMARY_SLOT_OFFSET
-	hex "MCUboot application image primary slot offset"
-	default "0x40000"
+config STM32_MCUBOOT_HEADER_SIZE
+	hex
+	default 0x200
 
 config STM32_OTA_SECONDARY_SLOT_OFFSET
 	hex "MCUboot application image secondary slot offset"
@@ -6070,16 +6104,14 @@ config STM32_OTA_SCRATCH_OFFSET
 	hex "MCUboot scratch partition offset"
 	default "0x1c0000"
 
-config STM32_OTA_SLOT_SIZE
-	hex "MCUboot application image slot size (in bytes)"
-	default "0xc0000"
-
 config STM32_OTA_SCRATCH_SIZE
 	hex "MCUboot scratch partition size (in bytes)"
 	default "0x40000"
 
-endif # STM32_PROGMEM_OTA_PARTITION
-endif # STM32_HAVE_OTA_PARTITION
+endif # STM32H7_APP_FORMAT_MCUBOOT
+
+endif # STM32H7_PROGMEM_OTA_PARTITION
+endif # STM32H7_HAVE_OTA_PARTITION
 
 endmenu # Progmem configuration
 

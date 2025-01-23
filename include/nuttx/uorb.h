@@ -465,9 +465,14 @@
 
 #define SENSOR_TYPE_GNSS_GEOFENCE                   52
 
+/* GNSS Raw */
+
+#define SENSOR_TYPE_GNSS_RAW                        53
+
+
 /* The total number of sensor */
 
-#define SENSOR_TYPE_COUNT                           53
+#define SENSOR_TYPE_COUNT                           54
 
 /* The additional sensor open flags */
 
@@ -477,6 +482,10 @@
 /* GNSS satellite info slots */
 
 #define SENSOR_GNSS_SAT_INFO_MAX                    4
+
+/* GNSS raw data bufer size */
+
+#define SENSOR_GNSS_RAWDATA_SIZE                    116
 
 /* Maximum length of sensor device information name and path name. */
 
@@ -1099,6 +1108,13 @@ struct sensor_gnss_geofence_param
    */
 
   int32_t            transition;
+};
+
+struct sensor_gnss_raw      /* Type: GNSS Raw */
+{
+  uint64_t timestamp;       /* Time since system start, Units is microseconds */
+  uint32_t len;             /* Raw data buffer & length */
+  uint8_t  buf[SENSOR_GNSS_RAWDATA_SIZE];
 };
 
 /* This structure describes the state for the sensor device */

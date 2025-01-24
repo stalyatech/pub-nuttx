@@ -39,19 +39,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Configuration ************************************************************/
-
 #define HAVE_PWM 1
-
 #ifndef CONFIG_PWM
-#  undef HAVE_PWM
-#endif
-
-#ifndef CONFIG_STM32H7_TIM3
-#  undef HAVE_PWM
-#endif
-
-#ifndef CONFIG_STM32H7_TIM3_PWM
 #  undef HAVE_PWM
 #endif
 
@@ -63,7 +52,17 @@
  * Name: stm32_pwm_setup
  *
  * Description:
- *   Initialize PWM and register the PWM device.
+ *   This function initializes the PWM hardware and registers the PWM
+ *   device for each configured timer. It supports multiple timers
+ *   (TIM1, TIM2, TIM3, TIM4) for generating PWM signals. The function
+ *   ensures that initialization is performed only once. If initialization
+ *   is successful, it registers each PWM device at unique device paths
+ *   ("/dev/pwm0", "/dev/pwm1", etc.). On any failure, it logs an error
+ *   message and returns an appropriate error code.
+ *
+ * Return Value:
+ *   Returns OK (0) on successful initialization, or an error code
+ *   (e.g., -ENODEV) if the initialization fails.
  *
  ****************************************************************************/
 
@@ -78,16 +77,15 @@ int stm32_pwm_setup(void)
 
   if (!initialized)
     {
-      /* Get an instance of the PWM interface */
+      /* Call stm32_pwminitialize() to get an instance of the PWM interface */
 
-      pwm = stm32_pwminitialize(GLC23X_PWMTIMER);
+#if defined(CONFIG_STM32H7_TIM1_PWM)
+      pwm = stm32_pwminitialize(1);
       if (!pwm)
         {
-          tmrerr("ERROR: Failed to get the STM32 PWM lower half\n");
+          tmrerr("ERROR: Failed to get the STM32H7 PWM lower half\n");
           return -ENODEV;
         }
-
-      /* Register the PWM driver at "/dev/pwm0" */
 
       ret = pwm_register("/dev/pwm0", pwm);
       if (ret < 0)
@@ -95,6 +93,55 @@ int stm32_pwm_setup(void)
           tmrerr("ERROR: pwm_register failed: %d\n", ret);
           return ret;
         }
+#endif /* CONFIG_STM32H7_TIM1_PWM */
+
+#if defined(CONFIG_STM32H7_TIM2_PWM)
+      pwm = stm32_pwminitialize(2);
+      if (!pwm)
+        {
+          tmrerr("ERROR: Failed to get the STM32H7 PWM lower half\n");
+          return -ENODEV;
+        }
+
+      ret = pwm_register("/dev/pwm1", pwm);
+      if (ret < 0)
+        {
+          tmrerr("ERROR: pwm_register failed: %d\n", ret);
+          return ret;
+        }
+#endif /* CONFIG_STM32H7_TIM2_PWM */
+
+#if defined(CONFIG_STM32H7_TIM3_PWM)
+      pwm = stm32_pwminitialize(3);
+      if (!pwm)
+        {
+          tmrerr("ERROR: Failed to get the STM32H7 PWM lower half\n");
+          return -ENODEV;
+        }
+
+      ret = pwm_register("/dev/pwm2", pwm);
+      if (ret < 0)
+        {
+          tmrerr("ERROR: pwm_register failed: %d\n", ret);
+          return ret;
+        }
+#endif /* CONFIG_STM32H7_TIM3_PWM */
+
+#if defined(CONFIG_STM32H7_TIM4_PWM)
+      pwm = stm32_pwminitialize(4);
+      if (!pwm)
+        {
+          tmrerr("ERROR: Failed to get the STM32H7 PWM lower half\n");
+          return -ENODEV;
+        }
+
+      ret = pwm_register("/dev/pwm3", pwm);
+      if (ret < 0)
+        {
+          tmrerr("ERROR: pwm_register failed: %d\n", ret);
+          return ret;
+        }
+#endif /* CONFIG_STM32H7_TIM4_PWM */
 
       /* Now we are initialized */
 

@@ -35,6 +35,17 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <arch/board/board.h>
+
+#ifdef CONFIG_USERLED
+#include <nuttx/leds/userled.h>
+#endif
+
+#ifdef HAVE_RTC_DRIVER
+#  include <nuttx/timers/rtc.h>
+#  include "stm32_rtc.h"
+#endif
+
 #ifdef CONFIG_INPUT_BUTTONS
 #  include <nuttx/input/buttons.h>
 #endif
@@ -42,6 +53,11 @@
 #ifdef CONFIG_STM32_ROMFS
 #include "stm32_romfs.h"
 #endif
+
+#ifdef CONFIG_STM32H7_IWDG
+#  include "stm32_wdg.h"
+#endif
+
 #include "stm32_i2c.h"
 #include "gmtcnt-glc23x.h"
 #include "arm_internal.h"
@@ -404,6 +420,12 @@ int stm32_bringup(void)
   /* Initialize the network */
 
   board_net_initialize();
+
+#ifdef CONFIG_STM32H7_IWDG
+  /* Initialize the watchdog timer */
+
+  stm32_iwdginitialize("/dev/watchdog0", STM32_LSI_FREQUENCY);
+#endif
 
   UNUSED(ret);  /* May not be used */
   return OK;

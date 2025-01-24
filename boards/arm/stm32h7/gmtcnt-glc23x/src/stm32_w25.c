@@ -281,7 +281,7 @@ int stm32_w25initialize(int minor)
 
   /* The reserved area will be used for firmware upgrade/recovery */
 
-  blkreserved = (CONFIG_GMTCNT_GLC23X_SPIFLASH_SIZERESV / geo.neraseblocks);
+  blkreserved = (CONFIG_GMTCNT_GLC23X_SPIFLASH_SIZERESV / geo.erasesize);
   blkpererase = geo.erasesize / geo.blocksize;
   nblocks     = ((geo.neraseblocks - blkreserved) / CONFIG_GMTCNT_GLC23X_SPIFLASH_NPARTMAIN) * 
                 blkpererase;

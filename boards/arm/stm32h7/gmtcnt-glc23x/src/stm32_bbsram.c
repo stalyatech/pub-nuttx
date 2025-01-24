@@ -74,7 +74,7 @@
 #define BBSRAM_USED            ((4*BBSRAM_HEADER_SIZE)+ \
                                 (BBSRAM_SIZE_FN0+BBSRAM_SIZE_FN1+ \
                                  BBSRAM_SIZE_FN2))
-#define BBSRAM_REAMINING       (STM32F7_BBSRAM_SIZE-BBSRAM_USED)
+#define BBSRAM_REAMINING       (STM32H7_BBSRAM_SIZE-BBSRAM_USED)
 #if CONFIG_ARCH_INTERRUPTSTACK <= 3
 #  define BBSRAM_NUMBER_STACKS 1
 #else
@@ -136,7 +136,7 @@ typedef struct
 #if CONFIG_ARCH_INTERRUPTSTACK > 3
   _stack_t interrupt;
 #endif
-} stack_t;
+} stacks_t;
 
 /* Not Used for reference only */
 
@@ -237,7 +237,7 @@ typedef struct
   int           lineno;                 /* __LINE__ to up_assert */
   int           pid;                    /* Process ID */
   uint32_t      regs[XCPTCONTEXT_REGS]; /* Interrupt register save area */
-  stack_t       stacks;                 /* Stack info */
+  stacks_t      stacks;                 /* Stack info */
 #if CONFIG_TASK_NAME_SIZE > 0
   char          name[CONFIG_TASK_NAME_SIZE + 1]; /* Task name (with NULL
                                                   * terminator) */
@@ -264,8 +264,9 @@ typedef struct
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-
-static uint8_t g_sdata[STM32F7_BBSRAM_SIZE];
+#ifdef CONFIG_STM32H7_SAVE_CRASHDUMP
+static uint8_t g_sdata[STM32H7_BBSRAM_SIZE];
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -274,7 +275,7 @@ static uint8_t g_sdata[STM32F7_BBSRAM_SIZE];
 /****************************************************************************
  * Name: hardfault_get_desc
  ****************************************************************************/
-
+#ifdef CONFIG_STM32H7_SAVE_CRASHDUMP
 static int hardfault_get_desc(struct bbsramd_s *desc)
 {
   struct file filestruct;
@@ -288,7 +289,7 @@ static int hardfault_get_desc(struct bbsramd_s *desc)
     }
   else
     {
-      ret = file_ioctl(&filestruct, STM32F7_BBSRAM_GETDESC_IOCTL,
+      ret = file_ioctl(&filestruct, STM32H7_BBSRAM_GETDESC_IOCTL,
                        (unsigned long)((uintptr_t)desc));
       file_close(&filestruct);
 
@@ -306,7 +307,6 @@ static int hardfault_get_desc(struct bbsramd_s *desc)
  * Name: copy_reverse
  ****************************************************************************/
 
-#if defined(CONFIG_STM32H7_SAVE_CRASHDUMP)
 static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 {
   while (size--)
@@ -327,18 +327,19 @@ static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 int stm32_bbsram_int(void)
 {
   int filesizes[CONFIG_STM32H7_BBSRAM_FILES + 1] = BSRAM_FILE_SIZES;
-  char buf[HEADER_TIME_FMT_LEN + 1];
-  struct bbsramd_s desc;
-  int rv;
-  int state;
-  struct tm tt;
-  time_t time_sec;
+  int rv = 0;
 
   /* Using Battery Backed Up SRAM */
 
   stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
 
 #if defined(CONFIG_STM32H7_SAVE_CRASHDUMP)
+  char buf[HEADER_TIME_FMT_LEN + 1];
+  struct bbsramd_s desc;
+  int state;
+  struct tm tt;
+  time_t time_sec;
+
   /* Panic Logging in Battery Backed Up Files */
 
   /* Do we have an hard fault in BBSRAM? */
@@ -378,7 +379,7 @@ int stm32_bbsram_int(void)
  * Name: board_crashdump
  ****************************************************************************/
 
-#if defined(CONFIG_STM32H7_SAVE_CRASHDUMP)
+#ifdef CONFIG_STM32H7_SAVE_CRASHDUMP
 void board_crashdump(uintptr_t sp, struct tcb_s *tcb,
                      const char *filename, int lineno,
                      const char *msg, void *regs)

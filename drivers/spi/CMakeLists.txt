@@ -29,6 +29,14 @@ if(CONFIG_SPI)
     endif()
   endif()
 
+	if(CONFIG_SPI_ICE40)
+		list(APPEND SRCS ice40.c)
+	endif
+
+	if(CONFIG_SPI_EFINIX)
+		list(APPEND SRCS efinix.c)
+	endif
+
   if(CONFIG_SPI_SLAVE_DRIVER)
     list(APPEND SRCS spi_slave_driver.c)
   endif()

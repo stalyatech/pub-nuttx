@@ -22,11 +22,11 @@ include $(TOPDIR)/.config
 include $(TOPDIR)/tools/Config.mk
 include $(TOPDIR)/arch/arm/src/armv7-m/Toolchain.defs
 
-ifeq ($(CONFIG_STM32_APP_FORMAT_MCUBOOT),y)
-  ifeq ($(CONFIG_MCUBOOT_BOOTLOADER),y)
-    LDSCRIPT = flash-mcuboot-loader.ld
+ifeq ($(CONFIG_STM32F7_HAVE_BOOTLOADER),y)
+  ifeq ($(CONFIG_BOARDCTL_BOOT_IMAGE),y)
+    LDSCRIPT = flash-boot-loader.ld
   else
-    LDSCRIPT = flash-mcuboot-app.ld
+    LDSCRIPT = flash-boot-app.ld
   endif
 else
   LDSCRIPT = flash.ld

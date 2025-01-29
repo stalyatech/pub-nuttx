@@ -62,6 +62,9 @@ endif
 
 ifeq ($(CONFIG_SPI),y)
 CSRCS += stm32_spi.c
+	ifeq ($(CONFIG_SPI_TRION),y)
+		CSRCS += stm32_trion.c
+	endif
 endif
 
 ifeq ($(CONFIG_ADC),y)

@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/spi/efinix.c
+ * drivers/spi/trion.c
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/spi/spi.h>
 
-#include <nuttx/spi/efinix.h>
+#include <nuttx/spi/trion.h>
 
 /****************************************************************************
  * Private Function Prototypes
@@ -43,36 +43,36 @@
 
 /* Character driver methods */
 
-static int efinix_open(FAR struct file *filep);
-static int efinix_close(FAR struct file *filep);
-static ssize_t efinix_read(FAR struct file *filep, FAR char *buffer,
-                           size_t buflen);
-static ssize_t efinix_write(FAR struct file *filep, FAR const char *buffer,
-                            size_t buflen);
-static int efinix_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
+static int 			trion_open	(FAR struct file *filep);
+static int 			trion_close	(FAR struct file *filep);
+static ssize_t 	trion_read	(FAR struct file *filep, FAR char *buffer,
+                           	 size_t buflen);
+static ssize_t 	trion_write	(FAR struct file *filep, FAR const char *buffer,
+                             size_t buflen);
+static int 			trion_ioctl	(FAR struct file *filep, int cmd, unsigned long arg);
 
 /* Helper functions */
 
-static int efinix_init_fpga(FAR struct efinix_dev_s *dev);
+static int trion_init_fpga	(FAR struct trion_dev_s *dev);
 
-static int efinix_writeblk(FAR struct efinix_dev_s *dev,
-                           FAR const char *buffer,
-                           size_t buflen);
+static int trion_writeblk		(FAR struct trion_dev_s *dev,
+                           	 FAR const char *buffer,
+                           	 size_t buflen);
 
-static int efinix_endwrite(FAR struct efinix_dev_s *dev);
+static int trion_endwrite		(FAR struct trion_dev_s *dev);
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static const struct file_operations g_efinix_fops =
+static const struct file_operations g_trion_fops =
 {
-  efinix_open, 	/* open */
-  efinix_close, /* close */
-  efinix_read,  /* read */
-  efinix_write, /* write */
+  trion_open, 	/* open */
+  trion_close, 	/* close */
+  trion_read,  	/* read */
+  trion_write, 	/* write */
   NULL,        	/* seek */
-  efinix_ioctl, /* ioctl */
+  trion_ioctl, 	/* ioctl */
 };
 
 /****************************************************************************
@@ -80,24 +80,38 @@ static const struct file_operations g_efinix_fops =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: efinix_open
+ * Name: trion_open
  *
  * Description:
  *  This function is called whenever the Efinix device is opened.
  *
  ****************************************************************************/
 
-static int efinix_open(FAR struct file *filep)
+static int trion_open(FAR struct file *filep)
 {
   FAR struct inode *inode = filep->f_inode;
-  FAR struct efinix_dev_s *dev = inode->i_private;
+  FAR struct trion_dev_s *dev = inode->i_private;
+
+	/* Validate parameters */
 
   DEBUGASSERT(dev != NULL);
+
+	/* Make sure that the device is not already open */
 
   if (dev->is_open)
     {
       return -EBUSY;
     }
+
+	/* Power on the device */
+
+  dev->ops->power(dev, true);
+
+	/* Release the reset line */
+
+  dev->ops->reset(dev, false);
+
+	/* Mark the device as open */
 
   dev->is_open = true;
 
@@ -105,29 +119,37 @@ static int efinix_open(FAR struct file *filep)
 }
 
 /****************************************************************************
- * Name: efinix_close
+ * Name: trion_close
  *
  * Description:
  *  This function is called whenever the Efinix device is closed.
  *
  ****************************************************************************/
 
-static int efinix_close(FAR struct file *filep)
+static int trion_close(FAR struct file *filep)
 {
   FAR struct inode *inode = filep->f_inode;
-  FAR struct efinix_dev_s *dev = inode->i_private;
+  FAR struct trion_dev_s *dev = inode->i_private;
+
+	/* Validate parameters */
 
   DEBUGASSERT(dev != NULL);
 
+	/* Make sure that the device is open */
+
   if (dev->in_progress)
     {
-      if (efinix_endwrite(dev))
+			/* End writing to the FPGA */
+
+      if (trion_endwrite(dev) != OK)
         {
-          _err("ERROR: Failed to end writing to FPGA\n");
+          spierr("ERROR: Failed to end writing to FPGA\n");
           dev->is_open = false;
           return -EIO;
         }
     }
+
+	/* Mark the device as closed */
 
   dev->is_open = false;
 
@@ -135,7 +157,7 @@ static int efinix_close(FAR struct file *filep)
 }
 
 /****************************************************************************
- * Name: efinix_configspi
+ * Name: trion_configspi
  *
  * Description:
  *   Configure the SPI instance for to match the DAT-31R5-SP+
@@ -143,15 +165,23 @@ static int efinix_close(FAR struct file *filep)
  *
  ****************************************************************************/
 
-static inline void efinix_configspi(FAR struct spi_dev_s *spi)
+static inline void trion_configspi(FAR struct spi_dev_s *spi)
 {
+	/* Validate parameters */
+
   DEBUGASSERT(spi != NULL);
 
-  /* Configure SPI Mode for the Efinix */
+  /* Configure SPI Mode for the Efinix Trion */
+
+  SPI_SETMODE(spi, CONFIG_SPI_TRION_MODE);
+  SPI_SETBITS(spi, 8);
+
+  SPI_HWFEATURES(spi, 0);
+  SPI_SETFREQUENCY(spi, CONFIG_SPI_TRION_FREQUENCY);
 }
 
 /****************************************************************************
- * Name: efinix_init_fpga
+ * Name: trion_init_fpga
  *
  * Description:
  *  Initialize the FPGA - set it to SPI Master load mode
@@ -160,25 +190,39 @@ static inline void efinix_configspi(FAR struct spi_dev_s *spi)
  *
  ****************************************************************************/
 
-static int efinix_init_fpga(FAR struct efinix_dev_s *dev)
+static int trion_init_fpga(FAR struct trion_dev_s *dev)
 {
+	/* Validate parameters */
+
   DEBUGASSERT(dev != NULL);
   DEBUGASSERT(dev->spi != NULL);
 
+	/* Lock SPI */
+
   SPI_LOCK(dev->spi, true);
 
-  efinix_configspi(dev->spi);
+	/* Configure SPI for the Efinix Trion */
+
+  trion_configspi(dev->spi);
+
+	/* Enter to the SPI Passive mode */
+
+	/* Select the device */
+
+  dev->ops->select(dev, true);
+  up_udelay(2);
+
+	/* Assert the reset line */
 
   dev->ops->reset(dev, true);
   up_udelay(2);
-  dev->ops->select(dev, true);
-  up_udelay(2);
-  dev->ops->reset(dev, false);
-  up_udelay(1200);
 
-  dev->ops->select(dev, false);
-  SPI_SEND(dev->spi, 0xff);
-  dev->ops->select(dev, true);
+	/* Release the reset line */
+
+  dev->ops->reset(dev, false);
+  up_udelay(2);
+
+	/* Mark the FPGA as in progress */
 
   dev->in_progress = true;
 
@@ -186,37 +230,44 @@ static int efinix_init_fpga(FAR struct efinix_dev_s *dev)
 }
 
 /****************************************************************************
- * Name: ice_v_writeblk
+ * Name: trion_writeblk
  *
  * Description:
  *  Write block to the Efinix FPGA, max 4096 bytes
  ****************************************************************************/
 
-static inline int efinix_writeblk(FAR struct efinix_dev_s *dev, FAR const char *buffer,
-                									size_t buflen)
+static inline int trion_writeblk(FAR struct trion_dev_s *dev, FAR const char *buffer,
+                								 size_t buflen)
 {
   uint32_t nbytes;
 
+	/* Validate parameters */
+
   DEBUGASSERT(dev != NULL);
   DEBUGASSERT(dev->spi != NULL);
-
   DEBUGASSERT(buffer != NULL);
   DEBUGASSERT(buflen > 0);
 
+	/* Check if the FPGA is initialized */
+
   if (!dev->in_progress)
     {
-      _err("ERROR: FPGA not initialized\n");
+      spierr("ERROR: FPGA not initialized\n");
       return -EINVAL;
     }
 
-  efinix_configspi(dev->spi);
+	/* Configure SPI for the Efinix Trion */
+
+  trion_configspi(dev->spi);
+
+	/* Send the data */
 
   while (buflen > 0)
     {
       nbytes = buflen;
-      if (nbytes >= EFINIX_SPI_MAX_XFER)
+      if (nbytes >= TRION_SPI_MAX_XFER)
         {
-          nbytes = EFINIX_SPI_MAX_XFER;
+          nbytes = TRION_SPI_MAX_XFER;
         }
 
       SPI_SNDBLOCK(dev->spi, buffer, nbytes);
@@ -229,83 +280,115 @@ static inline int efinix_writeblk(FAR struct efinix_dev_s *dev, FAR const char *
 }
 
 /****************************************************************************
- * Name: ice_v_endwrite
+ * Name: trion_endwrite
  *
  * Description:
  *  End writing bitstream to the Efinix FPGA
  ****************************************************************************/
 
-static int efinix_endwrite(FAR struct efinix_dev_s *dev)
+static int trion_endwrite(FAR struct trion_dev_s *dev)
 {
-  efinix_configspi(dev->spi);
-  int cdone = 0;
+	/* Configure SPI for the Efinix Trion */
+
+  trion_configspi(dev->spi);
+  int done = 0;
+	int stat = 0;
+
+	/* Validate parameters */
 
   DEBUGASSERT(dev != NULL);
   DEBUGASSERT(dev->spi != NULL);
 
+	/* Check if the FPGA is initialized */
+
   if (!dev->in_progress)
     {
-      _err("ERROR: FPGA not initialized\n");
+      spierr("ERROR: FPGA not initialized\n");
       return -EINVAL;
     }
 
-  dev->ops->select(dev, false);
+	/* Send dummy cycles */
 
-  for (size_t i = 0; i < EFINIX_SPI_FINAL_CLK_CYCLES + 7 / 8; i++)
+  for (size_t i = 0; i < TRION_SPI_FINAL_CLK_CYCLES + 7 / 8; i++)
     {
       SPI_SEND(dev->spi, 0xff);
     }
 
-  cdone = dev->ops->get_status(dev);
-  if (cdone == 0)
+	/* Deselect the device */
+
+  dev->ops->select(dev, false);
+
+	/* Check if CDONE is high */
+
+  done = dev->ops->get_done(dev);
+  if (done == 0)
     {
-      _err("ERROR: CDONE not high after writing to FPGA\n");
+      spierr("ERROR: CDONE not high after writing to FPGA\n");
       SPI_LOCK(dev->spi, false);
       return -ENODEV;
     }
 
+	/* Check if NSTATUS is high */
+
+  stat = dev->ops->get_stat(dev);
+  if (stat == 0)
+    {
+      spierr("ERROR: NSTATUS not high after writing to FPGA\n");
+      SPI_LOCK(dev->spi, false);
+      return -ENODEV;
+    }
+
+	/* Unlock SPI */
+
   SPI_LOCK(dev->spi, false);
+
+	/* Clear the in_progress flag */
 
   dev->in_progress = false;
 
-  return 0;
+  return OK;
 }
 
 /****************************************************************************
- * Name: efinix_write
+ * Name: trion_write
  *
  * Description:
  *  Write buffer to the Efinix FPGA
  ****************************************************************************/
 
-static ssize_t efinix_write(FAR struct file *filep, FAR const char *buffer, size_t buflen)
+static ssize_t trion_write(FAR struct file *filep, FAR const char *buffer, 
+													 size_t buflen)
 {
+  FAR struct inode *inode = filep->f_inode;
+  FAR struct trion_dev_s *dev = inode->i_private;
   int ret;
 
-  DEBUGASSERT(buffer != NULL);
-  DEBUGASSERT(filep != NULL);
+	/* Validate parameters */
 
-  FAR struct inode *inode = filep->f_inode;
-  DEBUGASSERT(inode != NULL);
-  FAR struct efinix_dev_s *dev = inode->i_private;
   DEBUGASSERT(dev != NULL);
-
   DEBUGASSERT(dev->spi != NULL);
+  DEBUGASSERT(buffer != NULL);
+
+	/* Initialize the FPGA */
 
   if (!dev->in_progress)
     {
-      ret = efinix_init_fpga(dev);
+			/* Initialize the FPGA */
+
+      ret = trion_init_fpga(dev);
       if (ret < 0)
         {
-          _err("ERROR: Failed to initialize FPGA: %d\n", ret);
+          spierr("ERROR: Failed to initialize FPGA: %d\n", ret);
           return ret;
         }
     }
 
-  ret = efinix_writeblk(dev, buffer, buflen);
+	/* Write to the FPGA */
+
+  ret = trion_writeblk(dev, buffer, buflen);
   if (ret < 0)
     {
-      _err("ERROR: Failed to write to FPGA: %d\n", ret);
+      spierr("ERROR: Failed to write to FPGA: %d\n", ret);
       return ret;
     }
 
@@ -313,19 +396,19 @@ static ssize_t efinix_write(FAR struct file *filep, FAR const char *buffer, size
 }
 
 /****************************************************************************
- * Name: efinix_read
+ * Name: trion_read
  *
  * Description:
  *   Read is ignored.
  ****************************************************************************/
 
-static ssize_t efinix_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
+static ssize_t trion_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
 {
   return 0;
 }
 
 /****************************************************************************
- * Name: efinix_ioctl
+ * Name: trion_ioctl
  *
  * Description:
  *   The only available ICTL is RFIOC_SETATT. It expects a struct
@@ -334,28 +417,32 @@ static ssize_t efinix_read(FAR struct file *filep, FAR char *buffer, size_t bufl
  *   single attenuator.
  ****************************************************************************/
 
-static int efinix_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
+static int trion_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   FAR struct inode *inode = filep->f_inode;
-  FAR struct efinix_dev_s *dev = inode->i_private;
+  FAR struct trion_dev_s *dev = inode->i_private;
   int ret = OK;
+
+	/* Validate parameters */
+
+  DEBUGASSERT(dev != NULL);
 
   switch (cmd)
     {
     case FPGAIOC_WRITE_INIT:
-      ret = efinix_init_fpga(dev);
+      ret = trion_init_fpga(dev);
       break;
 
     case FPGAIOC_WRITE:
-      ret = efinix_writeblk(dev, (FAR const char *)arg, sizeof(arg));
+      ret = trion_writeblk(dev, (FAR const char *)arg, sizeof(arg));
       break;
 
     case FPGAIOC_WRITE_COMPLETE:
-      ret = efinix_endwrite(dev);
+      ret = trion_endwrite(dev);
       break;
 
     default:
-      sninfo("Unrecognized cmd: %d\n", cmd);
+      spiinfo("Unrecognized cmd: %d\n", cmd);
       ret = -EINVAL;
       break;
     }
@@ -368,14 +455,14 @@ static int efinix_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: efinix_register
+ * Name: trion_register
  *
  * Description:
  *   Register the ice_v character device as 'devpath'.
  *
  ****************************************************************************/
 
-int efinix_register(FAR const char *path, FAR struct efinix_dev_s *dev)
+int trion_register(FAR const char *path, FAR struct trion_dev_s *dev)
 {
   int ret;
 
@@ -385,10 +472,10 @@ int efinix_register(FAR const char *path, FAR struct efinix_dev_s *dev)
 
   /* Register the character driver */
 
-  ret = register_driver(path, &g_efinix_fops, 0666, dev);
+  ret = register_driver(path, &g_trion_fops, 0666, dev);
   if (ret < 0)
     {
-      snerr("ERROR: Failed to register driver: %d\n", ret);
+      spierr("ERROR: Failed to register driver: %d\n", ret);
     }
 
   return ret;

@@ -33,8 +33,8 @@ ifeq ($(CONFIG_SPI_ICE40),y)
   CSRCS += ice40.c
 endif
 
-ifeq ($(CONFIG_SPI_EFINIX),y)
-  CSRCS += efinix.c
+ifeq ($(CONFIG_SPI_TRION),y)
+  CSRCS += trion.c
 endif
 
 ifeq ($(CONFIG_SPI_SLAVE_DRIVER),y)

@@ -33,8 +33,8 @@ if(CONFIG_SPI)
 		list(APPEND SRCS ice40.c)
 	endif
 
-	if(CONFIG_SPI_EFINIX)
-		list(APPEND SRCS efinix.c)
+	if(CONFIG_SPI_TRION)
+		list(APPEND SRCS trion.c)
 	endif
 
   if(CONFIG_SPI_SLAVE_DRIVER)

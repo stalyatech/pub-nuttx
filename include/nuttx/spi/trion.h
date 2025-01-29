@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/spi/efinix.h
+ * include/nuttx/spi/trion.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_SPI_EFINIX_H
-#define __INCLUDE_NUTTX_SPI_EFINIX_H
+#ifndef __INCLUDE_NUTTX_SPI_TRION_H
+#define __INCLUDE_NUTTX_SPI_TRION_H
 
 /****************************************************************************
  * Included Files
@@ -41,15 +41,10 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#if(defined(CONFIG_SPI) && defined(CONFIG_SPI_EFINIX))
+#if(defined(CONFIG_SPI) && defined(CONFIG_SPI_TRION))
 
-#ifndef CONFIG_EFINIX_SPI_FREQUENCY
-#  define CONFIG_EFINIX_SPI_FREQUENCY	10000000
-#endif
-
-#define EFINIX_SPI_MODE							(SPIDEV_MODE0) /* SPI Mode 0: CPOL=0,CPHA=0 */
-#define EFINIX_SPI_FINAL_CLK_CYCLES	160
-#define EFINIX_SPI_MAX_XFER 				4096
+#define TRION_SPI_FINAL_CLK_CYCLES	200
+#define TRION_SPI_MAX_XFER 					4096
 
 #define FPGAIOC_WRITE_INIT 					_FPGACFGIOC(0x0001)
 #define FPGAIOC_WRITE 							_FPGACFGIOC(0x0002)
@@ -60,32 +55,34 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: efinix_register
+ * Name: trion_register
  *
  * Description:
- *   Register the ice_v character device as 'devpath'.
+ *   Register the Trion character device as 'devpath'.
  *
  ****************************************************************************/
 
-struct efinix_dev_s;
+struct trion_dev_s;
 
-struct efinix_ops_s
+struct trion_ops_s
 {
-  CODE void(*reset)(FAR struct efinix_dev_s *dev, FAR bool reset);
-  CODE void(*select)(FAR struct efinix_dev_s *dev, FAR bool select);
-  CODE bool(*get_status)(FAR struct efinix_dev_s *dev);
+  CODE void(*power)(FAR struct trion_dev_s *dev, FAR bool power);
+  CODE void(*reset)(FAR struct trion_dev_s *dev, FAR bool reset);
+  CODE void(*select)(FAR struct trion_dev_s *dev, FAR bool select);
+  CODE bool(*get_done)(FAR struct trion_dev_s *dev);
+  CODE bool(*get_stat)(FAR struct trion_dev_s *dev);
 };
 
-struct efinix_dev_s
+struct trion_dev_s
 {
-  FAR const struct efinix_ops_s *ops;
+  FAR const struct trion_ops_s *ops;
   FAR struct spi_dev_s *spi;
   bool is_open;
   bool in_progress;
 };
 
-int efinix_register(FAR const char *path, FAR struct efinix_dev_s *dev);
+int trion_register(FAR const char *path, FAR struct trion_dev_s *dev);
 
-#endif /* CONFIG_SPI && CONFIG_SPI_EFINIX */
+#endif /* CONFIG_SPI && CONFIG_SPI_TRION */
 
-#endif /* __INCLUDE_NUTTX_SPI_EFINIX_H */
+#endif /* __INCLUDE_NUTTX_SPI_TRION_H */

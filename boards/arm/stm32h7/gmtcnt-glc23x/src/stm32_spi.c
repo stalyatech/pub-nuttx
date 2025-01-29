@@ -65,14 +65,6 @@ void stm32_spidev_initialize(void)
 
   stm32_configgpio(GPIO_W25_CSN);
   stm32_gpiowrite(GPIO_W25_CSN, true);
-
-  /* FPGA Interface */
-
-	stm32_configgpio(GPIO_FPGA_CRST);
-	stm32_configgpio(GPIO_FPGA_CONF);
-	stm32_configgpio(GPIO_FPGA_CDONE);
-	stm32_configgpio(GPIO_FPGA_STAT);
-	stm32_configgpio(GPIO_FPGA_CSN);
 }
 
 /****************************************************************************

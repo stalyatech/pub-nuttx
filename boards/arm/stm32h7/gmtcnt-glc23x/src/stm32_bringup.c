@@ -366,6 +366,19 @@ int stm32_bringup(void)
 #endif /* CONFIG_STM32H7_I2C1 */
 #endif /* CONFIG_I2C */
 
+#ifdef CONFIG_SPI
+#ifdef CONFIG_SPI_TRION
+  /* Register the Efinix Trion driver */
+
+  ret = board_trion_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize Efinix/Trion driver: %d\n", ret);
+    }
+#endif /* CONFIG_SPI_TRION */
+#endif /* CONFIG_SPI */
+
 #ifdef CONFIG_SENSORS_GNSS
   /* Initialize GNSS uORB service. */
 

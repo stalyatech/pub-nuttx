@@ -204,6 +204,9 @@
 #define GPIO_FPGA_CRST 	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN3)
 
+#define GPIO_FPGA_CRSTREL (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | \
+                         	 GPIO_PORTE | GPIO_PIN3)
+
 #define GPIO_FPGA_CONF  (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                          GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN13)
 
@@ -622,6 +625,20 @@ FAR void *board_composite_connect(int port, int configid);
  ****************************************************************************/
 #ifdef CONFIG_NETDEV_LATEINIT
 void board_net_initialize(void);
+#endif
+
+/****************************************************************************
+ * Name: board_trion_initialize
+ * 
+ * Initialize Trion FPGA GPIOs and SPI interface.  Then register the Trion
+ * FPGA device at "/dev/trion0".
+ *
+ * Returns:
+ *  OK on success, a negated errno on failure.
+ * 
+ ****************************************************************************/
+#if defined(CONFIG_SPI) && defined(CONFIG_SPI_TRION)
+int board_trion_initialize(void);
 #endif
 
 #endif /* __BOARDS_ARM_STM32H7_GMTCNT_GLC23X_SRC_GMTCNT_GLC23X_H */

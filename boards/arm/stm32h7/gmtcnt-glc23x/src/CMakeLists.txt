@@ -60,6 +60,9 @@ endif()
 
 if(CONFIG_SPI)
   list(APPEND SRCS stm32_spi.c)
+	if(CONFIG_SPI_TRION)
+  	list(APPEND SRCS stm32_trion.c)
+	endif()
 endif()
 
 if(CONFIG_ADC)

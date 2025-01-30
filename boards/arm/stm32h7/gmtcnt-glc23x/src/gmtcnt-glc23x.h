@@ -42,6 +42,7 @@
 #define HAVE_MTDCONFIG       1
 #define HAVE_PROGMEM_CHARDEV 1
 #define HAVE_HCIUART         1
+#define HAVE_NETMONITOR 		 1
 
 /* Can't support HCI UART features if BCM4343X Bluetooth is not enabled */
 
@@ -84,6 +85,17 @@
 
 #if !defined(CONFIG_USBDEV_TRACE) && !defined(CONFIG_USBHOST_TRACE)
 #  undef HAVE_USBMONITOR
+#endif
+
+/* NSH Network monitor  */
+
+#if !defined(CONFIG_NET) || !defined(CONFIG_STM32H7_ETHMAC)
+#  undef HAVE_NETMONITOR
+#endif
+
+#if !defined(CONFIG_NETINIT_THREAD) || !defined(CONFIG_ARCH_PHY_INTERRUPT) || \
+    !defined(CONFIG_NETDEV_PHY_IOCTL) || !defined(CONFIG_NET_UDP)
+#  undef HAVE_NETMONITOR
 #endif
 
 #if !defined(CONFIG_STM32H7_PROGMEM) || !defined(CONFIG_MTD_PROGMEM)
@@ -197,7 +209,7 @@
                          GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN15)
 
 #define GPIO_ETH_IRQ   	(GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_50MHz | \
-                         GPIO_PORTE | GPIO_PIN13)
+                         GPIO_EXTI | GPIO_PORTE | GPIO_PIN13)
 
 /* FPGA dedicated pins */
 

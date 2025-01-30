@@ -43,6 +43,7 @@
 #include <nuttx/wdog.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/signal.h>
+#include <nuttx/net/phy.h>
 #include <nuttx/net/mii.h>
 #include <nuttx/net/ip.h>
 #include <nuttx/net/netdev.h>
@@ -180,6 +181,46 @@
 #ifdef CONFIG_STM32H7_ETH_PTP
 #  warning "CONFIG_STM32H7_ETH_PTP is not yet supported"
 #endif
+
+/* These definitions are used to enable the PHY interrupts */
+
+#if defined(CONFIG_NETDEV_PHY_IOCTL) && defined(CONFIG_ARCH_PHY_INTERRUPT)
+#  if defined( CONFIG_ETH0_PHY_AM79C874)
+#    error missing logic
+#  elif defined( CONFIG_ETH0_PHY_KS8721)
+#    error missing logic
+#  elif defined( CONFIG_ETH0_PHY_KSZ8041)
+#    error missing logic
+#  elif defined( CONFIG_ETH0_PHY_KSZ8051)
+#    error missing logic
+#  elif defined( CONFIG_ETH0_PHY_KSZ8061)
+#    error missing logic
+#  elif defined( CONFIG_ETH0_PHY_KSZ8081)
+#    define MII_INT_REG    MII_KSZ8081_INT
+#    define MII_INT_SETEN  MII_KSZ80X1_INT_LDEN | MII_KSZ80X1_INT_LUEN
+#    define MII_INT_CLREN  0
+#  elif defined( CONFIG_ETH0_PHY_KSZ90x1)
+#    error missing logic
+#  elif defined( CONFIG_ETH0_PHY_DP83848C)
+#    define MII_INT_REG    MII_DP83848C_MISR
+#    define MII_INT_SETEN  MII_DP83848C_LINK_INT_EN
+#    define MII_INT_CLREN  0
+#  elif defined( CONFIG_ETH0_PHY_LAN8720)
+#    error missing logic
+#  elif defined( CONFIG_ETH0_PHY_LAN8740)
+#    error missing logic
+#  elif defined( CONFIG_ETH0_PHY_LAN8740A)
+#    error missing logic
+#  elif defined( CONFIG_ETH0_PHY_LAN8742A)
+#    error missing logic
+#  elif defined( CONFIG_ETH0_PHY_DM9161)
+#    error missing logic
+#  else
+#    error unknown PHY
+#  endif
+#endif
+
+/* This driver does not use IPv4 checksum offloading. */
 
 #undef CONFIG_STM32H7_ETH_HWCHECKSUM
 
@@ -2954,11 +2995,10 @@ static int stm32_ioctl(struct net_driver_s *dev, int cmd, unsigned long arg)
 #ifdef CONFIG_ARCH_PHY_INTERRUPT
       case SIOCMIINOTIFY: /* Set up for PHY event notifications */
         {
-          struct mii_iotcl_notify_s *req =
-            (struct mii_iotcl_notify_s *)((uintptr_t)arg);
+          struct mii_ioctl_notify_s *req =
+            (struct mii_ioctl_notify_s *)((uintptr_t)arg);
 
-          ret = phy_notify_subscribe(dev->d_ifname, req->pid, req->signo,
-                                     req->arg);
+          ret = phy_notify_subscribe(dev->d_ifname, req->pid, &req->event);
           if (ret == OK)
             {
               /* Enable PHY link up/down interrupts */
@@ -3030,8 +3070,21 @@ static int stm32_ioctl(struct net_driver_s *dev, int cmd, unsigned long arg)
 #if defined(CONFIG_NETDEV_PHY_IOCTL) && defined(CONFIG_ARCH_PHY_INTERRUPT)
 static int stm32_phyintenable(struct stm32_ethmac_s *priv)
 {
-#warning Missing logic
-  return -ENOSYS;
+  int ret;
+
+	/* Enable link up/down interrupts */
+
+#ifdef CONFIG_ETH0_PHY_DP83848C
+	ret = stm32_phywrite(CONFIG_STM32H7_PHYADDR, MII_DP83848C_MICR,
+											 MII_DP83848C_INT_EN | MII_DP83848C_INT_OE,
+											 MII_INT_CLREN);
+#else
+	ret = stm32_phywrite(CONFIG_STM32H7_PHYADDR, MII_INT_REG, 
+											 MII_INT_SETEN,
+											 MII_INT_CLREN);
+#endif
+
+  return ret;
 }
 #endif
 

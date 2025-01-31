@@ -409,6 +409,11 @@
 #define GPIO_USART6_RX    (GPIO_USART6_RX_1 | GPIO_SPEED_100MHz)   	/* PC7  */
 #define GPIO_USART6_TX    (GPIO_USART6_TX_1 | GPIO_SPEED_100MHz)   	/* PC6  */
 
+/* RS485 direction pin */
+
+#define GPIO_USART6_RS485_DIR	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                         			 GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN8)
+
 /* I2C3 (LED Control Bus) */
 
 #define GPIO_I2C3_SCL     (GPIO_I2C3_SCL_1 | GPIO_SPEED_50MHz)     	/* PA8  */

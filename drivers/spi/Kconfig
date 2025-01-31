@@ -242,6 +242,30 @@ config SPI_ICE40
 		Enable support for a character driver at /dev/ice40-[N] for the iCE40 FPGA.
 		This driver is intended for uploading the bitsream to the FPGA.
 
+config SPI_TRION
+	bool "SPI Trion driver"
+	default n
+	depends on SPI_EXCHANGE
+	---help---
+		Enable support for a character driver at /dev/trion[N] for the Efinix Trion
+		FPGA. This driver is intended for uploading the bitsream to the FPGA.
+
+if SPI_TRION
+
+config SPI_TRION_FREQUENCY
+	int "SPI Trion frequency"
+	default 20000000
+	---help---
+		The default SPI frequency for Trion FPGA communication.
+
+config SPI_TRION_MODE
+	int "SPI Trion MODE"
+	default 3
+	---help---
+		The default SPI mode for Trion FPGA communication.
+
+endif # SPI_TRION
+
 config SPI_BITBANG
 	bool "SPI bit-bang device"
 	default n

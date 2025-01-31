@@ -20,6 +20,10 @@
 
 set(SRCS stm32_boot.c stm32_bringup.c stm32_platform.c)
 
+if(CONFIG_NET)
+  list(APPEND SRCS stm32_netlink.c)
+endif()
+
 if(CONFIG_ARCH_LEDS)
   list(APPEND SRCS stm32_autoleds.c)
 else()

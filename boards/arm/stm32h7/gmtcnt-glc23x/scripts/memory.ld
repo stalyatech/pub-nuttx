@@ -30,7 +30,7 @@ MEMORY
 
   kflash (rx) : ORIGIN = 0x08000000, LENGTH = 128K
   uflash (rx) : ORIGIN = 0x08020000, LENGTH = 128K
-  xflash (rx) : ORIGIN = 0x08040000, LENGTH = 1792K
+  xflash (rx) : ORIGIN = 0x08040000, LENGTH = 1280K
 
   /* 288Kb SRAM123 */
 

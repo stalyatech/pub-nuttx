@@ -32,5 +32,28 @@
  ****************************************************************************/
 
 #define BOARDIOC_OTA_GETVERSION   (BOARDIOC_USER+(1))
+#define BOARDIOC_OTA_GETVECTOR   	(BOARDIOC_USER+(2))
+#define BOARDIOC_OTA_EXEVECTOR   	(BOARDIOC_USER+(3))
+
+/****************************************************************************
+ * Public types
+ ****************************************************************************/
+
+/* This structure represents the first two entries on NVIC vector table */
+
+typedef struct vector_table
+{
+  uint32_t spr;  								/* Stack pointer on reset */
+  uint32_t reset; 							/* Pointer to reset exception handler */
+} vector_table_s;
+
+/* Structure containing the arguments to the BOARDIOC_OTA_BOOTIMAGE command */
+
+struct boardioc_image_info_s
+{
+  FAR const char *path;       	/* Path to application firmware image */
+  uint32_t        header_size;  /* Size of the image header in bytes */
+	vector_table_s 	vector_tabl;	/* ARM NVIC vector table */
+};
 
 #endif /* __BOARDS_ARM_STM32L4_STM32L4R9AI_DISCO_INCLUDE_BOARDCTL_H */

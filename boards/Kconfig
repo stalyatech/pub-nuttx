@@ -4806,6 +4806,12 @@ config BOARDCTL_BOOT_IMAGE
 		Program Counter register with the application firmware image entry
 		point address).
 
+config BOARDCTL_EXEC_IMAGE
+	bool "Execute an application firmware image"
+	default n
+	---help---
+		Execute an application firmware image.
+
 config BOARDCTL_MKRD
 	bool "Enable application space creation of RAM disks"
 	default n

@@ -48,6 +48,10 @@ ifeq ($(CONFIG_BOARDCTL_BOOT_IMAGE),y)
 CSRCS += stm32_boot_image.c
 endif
 
+ifeq ($(CONFIG_BOARDCTL_EXEC_IMAGE),y)
+CSRCS += stm32_exec_image.c
+endif
+
 ifeq ($(CONFIG_BOARDCTL_UNIQUEID),y)
 CSRCS += stm32_uid.c
 endif

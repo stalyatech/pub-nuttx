@@ -43,8 +43,17 @@
 #ifdef CONFIG_BOARDCTL_IOCTL
 
 /****************************************************************************
+ * External Function Prototypes
+ ****************************************************************************/
+
+int board_get_vector_table(const char *path, uint32_t hdr_size,
+													 struct vector_table *vt);
+int board_exe_vector_table(struct vector_table *vt);
+
+/****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 #ifdef CONFIG_STM32H7_PROGMEM_OTA_PARTITION
 
 #define IMAGE_HEADER_MAGIC      0x534f584e
@@ -204,6 +213,32 @@ int board_ioctl(unsigned int cmd, uintptr_t arg)
           }
         break;
       }
+
+			/* Get the image vector table */
+
+      case BOARDIOC_OTA_GETVECTOR:
+      {
+          FAR struct boardioc_image_info_s *info =
+            (FAR struct boardioc_image_info_s *)arg;
+
+          DEBUGASSERT(info != NULL);
+
+          ret = board_get_vector_table(info->path, info->header_size, &info->vector_tabl);
+				break;
+			}
+
+			/* Execute the image vector table */
+
+      case BOARDIOC_OTA_EXEVECTOR:
+      {
+          FAR const struct boardioc_image_info_s *info =
+            (FAR const struct boardioc_image_info_s *)arg;
+
+          DEBUGASSERT(info != NULL);
+
+          ret = board_exe_vector_table(&info->vector_tabl);
+				break;
+			}
 
       default:
         break;

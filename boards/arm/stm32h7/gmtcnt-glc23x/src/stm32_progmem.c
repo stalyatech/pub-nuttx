@@ -121,11 +121,31 @@ static int     progmem_blk_unlink(struct inode *inode);
 #if defined(CONFIG_STM32H7_PROGMEM_OTA_PARTITION)
 static const struct ota_partition_s g_ota_partition_table[] =
 {
+#ifdef CONFIG_STM32_OTA_PRIMARY_SLOT_DEVPATH
   {
     .offset  = CONFIG_STM32_OTA_PRIMARY_SLOT_OFFSET,
-    .size    = CONFIG_STM32_OTA_SLOT_SIZE,
+    .size    = CONFIG_STM32_OTA_PRIMARY_SLOT_SIZE,
     .devpath = CONFIG_STM32_OTA_PRIMARY_SLOT_DEVPATH
   }
+#endif
+
+#ifdef CONFIG_STM32_OTA_SECONDARY_SLOT_DEVPATH
+	,
+  {
+    .offset  = CONFIG_STM32_OTA_SECONDARY_SLOT_OFFSET,
+    .size    = CONFIG_STM32_OTA_SECONDARY_SLOT_SIZE,
+    .devpath = CONFIG_STM32_OTA_SECONDARY_SLOT_DEVPATH
+  }
+#endif
+
+#ifdef CONFIG_STM32_OTA_TERTIARY_SLOT_DEVPATH
+	,
+  {
+    .offset  = CONFIG_STM32_OTA_TERTIARY_SLOT_OFFSET,
+    .size    = CONFIG_STM32_OTA_TERTIARY_SLOT_SIZE,
+    .devpath = CONFIG_STM32_OTA_TERTIARY_SLOT_DEVPATH
+  }
+#endif
 };
 static struct progmem_part_s g_progmem_part[nitems(g_ota_partition_table)];
 #else
@@ -463,7 +483,7 @@ int stm32_progmem_init(void)
 #ifdef CONFIG_STM32H7_PROGMEM_OTA_PARTITION
   const struct ota_partition_s *ota = &g_ota_partition_table[0];
 
-  g_progmem_mtd = progmem_initialize(ota->offset);
+  g_progmem_mtd = progmem_initialize(ota->offset + up_progmem_getaddress(0));
   if (g_progmem_mtd == NULL)
     {
       ferr("ERROR: Failed to get progmem flash MTD\n");

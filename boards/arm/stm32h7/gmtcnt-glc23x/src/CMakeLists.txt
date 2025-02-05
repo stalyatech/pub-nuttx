@@ -46,6 +46,10 @@ if(CONFIG_BOARDCTL_BOOT_IMAGE)
   list(APPEND SRCS stm32_boot_image.c)
 endif()
 
+if(CONFIG_BOARDCTL_EXEC_IMAGE)
+  list(APPEND SRCS stm32_exec_image.c)
+endif()
+
 if(CONFIG_BOARDCTL_UNIQUEID)
   list(APPEND SRCS stm32_uid.c)
 endif()

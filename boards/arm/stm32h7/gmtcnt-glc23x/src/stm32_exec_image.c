@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32h7/gmtcnt-glc23x/src/stm32_boot_image.c
+ * boards/arm/stm32h7/gmtcnt-glc23x/src/stm32_exec_image.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -28,12 +28,9 @@
 #include <stdio.h>
 #include <fcntl.h>
 
-#include <sys/boardctl.h>
-#include <nuttx/irq.h>
-#include <nuttx/cache.h>
+#include <arch/board/board.h>
+#include <arch/board/boardctl.h>
 
-#include "nvic.h"
-#include "arm_internal.h"
 #include "barriers.h"
 
 /****************************************************************************
@@ -48,87 +45,26 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static void cleanup_arm_nvic(void);
-static void systick_disable(void);
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name:  cleanup_arm_nvic
- *
- * Description:
- *   Acknowledge and disable all interrupts in NVIC
- *
- * Input Parameters:
- *   None
- *
- *  Returned Value:
- *    None
- *
- ****************************************************************************/
-
-static void cleanup_arm_nvic(void)
-{
-  int i;
-
-  /* Allow any pending interrupts to be recognized */
-
-  ARM_ISB();
-  cpsid();
-
-  /* Disable all interrupts */
-
-  for (i = 0; i < NR_IRQS; i += 32)
-    {
-      putreg32(0xffffffff, NVIC_IRQ_CLEAR(i));
-    }
-
-  /* Clear all pending interrupts */
-
-  for (i = 0; i < NR_IRQS; i += 32)
-    {
-      putreg32(0xffffffff, NVIC_IRQ_CLRPEND(i));
-    }
-}
-
-/****************************************************************************
- * Name:  systick_disable
- *
- * Description:
- *   Disable the SysTick system timer
- *
- * Input Parameters:
- *   None
- *
- *  Returned Value:
- *    None
- *
- ****************************************************************************/
-
-static void systick_disable(void)
-{
-  putreg32(0, NVIC_SYSTICK_CTRL);
-  putreg32(NVIC_SYSTICK_RELOAD_MASK, NVIC_SYSTICK_RELOAD);
-  putreg32(0, NVIC_SYSTICK_CURRENT);
-}
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_boot_image
+ * Name: board_get_vector_table
  *
  * Description:
- *   This entry point is called by bootloader to jump to application image.
+ *   This entry point is called by logic loader to get application 
+ * 	 information.
  *
  ****************************************************************************/
 
-int board_boot_image(const char *path, uint32_t hdr_size)
+int board_get_vector_table(const char *path, uint32_t hdr_size,
+													 struct vector_table *vt)
 {
-  static struct vector_table vt;
   struct file file;
   ssize_t bytes;
   int ret;
@@ -140,34 +76,31 @@ int board_boot_image(const char *path, uint32_t hdr_size)
       return ret;
     }
 
-  bytes = file_pread(&file, &vt, sizeof(vt), hdr_size);
+  bytes = file_pread(&file, vt, sizeof(struct vector_table), hdr_size);
   if (bytes != sizeof(vt))
     {
       syslog(LOG_ERR, "Failed to read ARM vector table: %d", bytes);
       return bytes < 0 ? bytes : -1;
     }
 
-  systick_disable();
+  return 0;
+}
 
-  cleanup_arm_nvic();
-
-#ifdef CONFIG_ARMV7M_DCACHE
-  up_disable_dcache();
-#endif
-#ifdef CONFIG_ARMV7M_ICACHE
-  up_disable_icache();
-#endif
-
-#ifdef CONFIG_ARM_MPU
-  mpu_control(false, false, false);
-#endif
-
+/****************************************************************************
+ * Name: board_exe_vector_table
+ *
+ * Description:
+ *   This entry point is called by logic loader to jump to application image.
+ *
+ ****************************************************************************/
+int board_exe_vector_table(const struct vector_table *vt)
+{
   /* Set main and process stack pointers */
 
-  __asm__ __volatile__("\tmsr msp, %0\n" : : "r" (vt.spr));
+  __asm__ __volatile__("\tmsr msp, %0\n" : : "r" (vt->spr));
   setcontrol(0x00);
   ARM_ISB();
-  ((void (*)(void))vt.reset)();
+  ((void (*)(void))vt->reset)();
 
   return 0;
 }

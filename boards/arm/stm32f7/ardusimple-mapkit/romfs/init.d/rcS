@@ -1,0 +1,8 @@
+# Button service (deamon)
+serv_button
+
+# LED(s) service (deamon)
+serv_leds
+
+# Charger service (deamon)
+serv_charger

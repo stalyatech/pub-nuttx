@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <sys/boardctl.h>
 #include <sys/utsname.h>
 #include <stdio.h>
 #include <string.h>
@@ -95,11 +96,36 @@ int uname(FAR struct utsname *name)
 
 #if defined(__DATE__) && defined(__TIME__) && \
     !defined(CONFIG_LIBC_UNAME_DISABLE_TIMESTAMP)
+
+#ifdef CONFIG_BOARDCTL_IOCTL
+  const char *fw_ver = "null";
+
+  /* Get the custom version */
+
+  boardctl(BOARDIOC_USER + 1, (unsigned long)((uintptr_t)&fw_ver));
+
+  snprintf(name->version, VERSION_NAMELEN, "(%s) %s %s %s",
+          fw_ver, CONFIG_VERSION_BUILD, __DATE__, __TIME__);
+#else
   snprintf(name->version, VERSION_NAMELEN, "%s %s %s",
            CONFIG_VERSION_BUILD, __DATE__, __TIME__);
+#endif /* CONFIG_BOARDCTL_IOCTL */
+
 #else
-  strlcpy(name->version,  CONFIG_VERSION_BUILD, sizeof(name->version));
-#endif
+
+#ifdef CONFIG_BOARDCTL_IOCTL
+  const char *fw_ver = "null";
+
+  /* Get the custom version */
+
+  boardctl(BOARDIOC_USER + 1, (unsigned long)((uintptr_t)&fw_ver));
+
+  snprintf(name->version, VERSION_NAMELEN, "(%s) %s", fw_ver, CONFIG_VERSION_BUILD);
+#else
+  snprintf(name->version, VERSION_NAMELEN, "%s", CONFIG_VERSION_BUILD);
+#endif /* CONFIG_BOARDCTL_IOCTL */
+
+#endif /* __DATE__ && __TIME__ && !CONFIG_LIBC_UNAME_DISABLE_TIMESTAMP */
 
   strlcpy(name->machine,  CONFIG_ARCH, sizeof(name->machine));
 

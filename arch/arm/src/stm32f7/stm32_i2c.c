@@ -2412,7 +2412,7 @@ static int stm32_i2c_process(struct i2c_master_s *dev,
         }
       else if (status & I2C_INT_PECERR)
         {
-      /* PEC Error in reception (SMBus Only) */
+          /* PEC Error in reception (SMBus Only) */
 
           i2cerr("ERROR: I2C PEC Error\n");
           errval = EPROTO;

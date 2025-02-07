@@ -1,0 +1,8 @@
+# LED show (deamon)
+leds
+
+# Start the Mongoose services
+mg_smart -p 8001 -r /sdc/www2 -g &
+
+# Start the FTP service
+ftpd_start -4 &

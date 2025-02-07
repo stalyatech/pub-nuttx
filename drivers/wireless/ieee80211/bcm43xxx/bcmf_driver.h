@@ -52,6 +52,7 @@ struct bcmf_bus_dev_s;
 #define CHIP_STA_INTERFACE   0
 #define CHIP_AP_INTERFACE    1
 #define CHIP_P2P_INTERFACE   2
+#define CHIP_MAX_INTERFACE   2
 
 /****************************************************************************
  * Public Types
@@ -63,14 +64,17 @@ struct bcmf_dev_s
 {
   FAR struct bcmf_bus_dev_s *bus; /* Bus interface structure */
 
-  bool bc_bifup;             /* true:ifup false:ifdown */
-  struct work_s bc_rxwork;   /* For deferring rx work to the work queue */
-  struct work_s bc_pollwork; /* For deferring poll work to the work queue */
+  bool bc_bifup[CHIP_MAX_INTERFACE];  /* true:ifup false:ifdown */
+  struct work_s bc_rxwork;            /* For deferring rx work to the work queue */
+  struct work_s bc_pollwork;          /* For deferring poll work to the work queue */
 
   /* This holds the information visible to the NuttX network */
 
-  struct net_driver_s bc_dev;            /* Network interface structure */
-  FAR struct bcmf_frame_s *cur_tx_frame; /* Frame used to interface network layer */
+  struct net_driver_s                 /* Network interface structures */
+      bc_dev[CHIP_MAX_INTERFACE];
+  FAR struct bcmf_frame_s             /* Frame used to interface network layer */
+     *tx_frame[CHIP_MAX_INTERFACE];
+  uint8_t tx_imask;                    /* Transmit interface mask */
 
   /* Event registration array */
 
@@ -95,6 +99,7 @@ struct bcmf_dev_s
   FAR wl_bss_info_t *scan_result;      /* Temp buffer that holds results */
   unsigned int scan_result_entries;    /* Current entries of temp buffer */
 
+  FAR sem_t *radio_signal;/* Radio notification signal */
   FAR sem_t *auth_signal; /* Authentication notification signal */
   uint32_t auth_status;   /* Authentication status */
   wsec_pmk_t auth_pmk;    /* Authentication pmk */
@@ -109,6 +114,42 @@ struct bcmf_dev_s
 #ifdef CONFIG_IEEE80211_BROADCOM_PTA_PRIORITY
   int pta_priority; /* Current priority of Packet Traffic Arbitration */
 #endif
+
+  uint32_t fwcap;         /* Firmware capability */
+
+  struct
+  {
+    FAR sem_t *signal;    /* Notification signal */
+    uint16_t setup;      /* Linkup status */
+    uint16_t assoc;       /* Associate status */
+
+    struct
+    {
+      uint32_t iface;
+      uint32_t value;
+    } mfp;                /* Management frame protection mode */
+
+    struct
+    {
+      uint32_t iface;
+      uint32_t value;
+    } wsec;               /* Security type */
+
+    struct
+    {
+      uint32_t iface;
+      uint32_t value;
+    } wpa;                /* Authentication type */
+
+    struct
+    {
+      uint32_t iface;
+      uint32_t ssid_len;
+      uint8_t  SSID[32];
+    } ssid;               /* SSID */
+
+  } softap;
+
 };
 
 /* Default bus interface structure */
@@ -158,7 +199,8 @@ int bcmf_driver_initialize(FAR struct bcmf_dev_s *priv);
 int bcmf_wl_set_mac_address(FAR struct bcmf_dev_s *priv,
                             FAR struct ifreq *req);
 
-int bcmf_wl_enable(FAR struct bcmf_dev_s *priv, bool enable);
+int bcmf_wl_enable(FAR struct bcmf_dev_s *priv, bool enable,
+                   uint8_t iface);
 
 int bcmf_wl_active(FAR struct bcmf_dev_s *priv, bool active);
 
@@ -206,6 +248,7 @@ int bcmf_wl_get_iwrange(FAR struct bcmf_dev_s *priv, FAR struct iwreq *iwr);
 int bcmf_wl_set_country(FAR struct bcmf_dev_s *priv, FAR struct iwreq *iwr);
 int bcmf_wl_get_country(FAR struct bcmf_dev_s *priv, FAR struct iwreq *iwr);
 
+int bcmf_wl_set_channel(FAR struct bcmf_dev_s *priv, FAR struct iwreq *iwr);
 int bcmf_wl_get_channel(FAR struct bcmf_dev_s *priv, int interface);
 
 #ifdef CONFIG_IEEE80211_BROADCOM_PTA_PRIORITY
@@ -218,5 +261,34 @@ int bcmf_wl_set_pta_priority(FAR struct bcmf_dev_s *priv, uint32_t prio);
 # define bcmf_wl_set_pta(...)
 # define bcmf_wl_set_pta_priority(...)
 #endif
+
+int bcmf_wl_set_pm(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_pm_t *pm);
+int bcmf_wl_get_pm(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_pm_t *pm);
+
+int bcmf_wl_set_li(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_li_t *li);
+int bcmf_wl_get_li(FAR struct bcmf_dev_s *priv, uint8_t iface, wl_li_t *li);
+
+int bcmf_wl_ap_set_beacon_interval(FAR struct bcmf_dev_s *priv, uint8_t iface,
+                                   uint32_t interval);
+int bcmf_wl_ap_get_beacon_interval(FAR struct bcmf_dev_s *priv, uint8_t iface,
+                                   uint32_t *interval);
+
+int bcmf_wl_ap_set_dtim_interval(FAR struct bcmf_dev_s *priv, uint8_t iface,
+                                 uint32_t interval);
+int bcmf_wl_ap_get_dtim_interval(FAR struct bcmf_dev_s *priv, uint8_t iface,
+                                 uint32_t *interval);
+
+int bcmf_wl_ap_get_stas(FAR struct bcmf_dev_s *priv, struct iwreq *iwr);
+
+int bcmf_wl_ap_init   (FAR struct bcmf_dev_s *priv);
+int bcmf_wl_ap_is_up  (FAR struct bcmf_dev_s *priv);
+int bcmf_wl_ap_set_up (FAR struct bcmf_dev_s *priv, bool up, uint32_t timeout);
+
+int bcmf_wl_get_fwcap(FAR struct bcmf_dev_s *priv, uint8_t iface, uint32_t *fwcap);
+
+int bcmf_wl_set_sae_password(FAR struct bcmf_dev_s *priv, uint8_t iface,
+                             const uint8_t *key, uint8_t key_len);
+int bcmf_wl_set_sae_pwe_loop(FAR struct bcmf_dev_s *priv, uint8_t iface,
+                             uint32_t max_loop);
 
 #endif /* __DRIVERS_WIRELESS_IEEE80211_BCM43XXX_BCMF_DRIVER_H */

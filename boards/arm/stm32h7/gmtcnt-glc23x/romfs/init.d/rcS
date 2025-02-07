@@ -1,0 +1,5 @@
+# LED(s) service (deamon)
+serv_leds
+
+# Load FPGA bitstream
+fpga_load -b /data0/trion/glc-iop.bin

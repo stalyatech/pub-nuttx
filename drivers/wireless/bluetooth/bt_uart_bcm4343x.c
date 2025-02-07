@@ -43,17 +43,26 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/kthread.h>
 #include <nuttx/semaphore.h>
+#include <nuttx/signal.h>
 #include <nuttx/serial/tioctl.h>
 #include <termios.h>
 
 #include "bt_uart.h"
+#if defined(CONFIG_UART_BTH4)
+#  include <nuttx/serial/uart_bth4.h>
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define HCIUART_DEFAULT_SPEED 2000000
-#define HCIUART_LOW_SPEED     115200
+#ifdef CONFIG_BLUETOOTH_BCM4343X_UART_BAUDRATE
+# define HCIUART_DEFAULT_SPEED  CONFIG_BLUETOOTH_BCM4343X_UART_BAUDRATE
+#else
+# define HCIUART_DEFAULT_SPEED  921600
+#endif
+
+#define HCIUART_LOW_SPEED 115200
 
 /****************************************************************************
  * Private Data
@@ -322,6 +331,7 @@ static int load_bcm4343x_firmware(FAR const struct btuart_lowerhalf_s *lower)
             {
               wlwarn("block offset %x upload failed, retrying\n",
                             rp - g_bt_firmware_hcd);
+              nxsig_usleep(1000);
             }
         }
       while ((ret != 0) && (++blockattempts < 3));
@@ -341,9 +351,20 @@ static int load_bcm4343x_firmware(FAR const struct btuart_lowerhalf_s *lower)
 
   if (command == g_hcd_launch_command)
     {
-      lower->write(lower, &istx, 1);
-      ret = uartwriteconf(lower, &rxsem, rp, 3 + txlen,
-                          launch_resp, sizeof(launch_resp));
+      blockattempts = 0;
+      do
+        {
+          lower->write(lower, &istx, 1);
+          ret = uartwriteconf(lower, &rxsem, rp, 3 + txlen,
+                              launch_resp, sizeof(launch_resp));
+          if (ret)
+            {
+              wlwarn("launch command failed, retrying\n");
+              nxsig_usleep(1000);
+            }
+        }
+      while ((ret != 0) && (++blockattempts < 3));
+
       if (ret != 0)
         {
           wlerr("failed to launch firmware\n");
@@ -438,12 +459,21 @@ int btuart_register(FAR const struct btuart_lowerhalf_s *lower)
 
   /* And register the driver with the network and the Bluetooth stack. */
 
+#if defined(CONFIG_UART_BTH4)
+  ret = uart_bth4_register("/dev/ttyHCI", &upper->dev);
+  if (ret < 0)
+    {
+      wlerr("ERROR: uart_bth4_register failed: %d\n", ret);
+      kmm_free(upper);
+    }
+#elif defined(CONFIG_NET_BLUETOOTH)
   ret = bt_netdev_register(&upper->dev);
   if (ret < 0)
     {
       wlerr("ERROR: bt_netdev_register failed: %d\n", ret);
       kmm_free(upper);
     }
+#endif
 
   return ret;
 }

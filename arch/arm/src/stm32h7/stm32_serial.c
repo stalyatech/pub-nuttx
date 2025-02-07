@@ -171,20 +171,6 @@
 #    endif
 #  endif
 
-/* Currently RS-485 support cannot be enabled when RXDMA is in use due to
- * lack of testing - RS-485 support was developed on STM32F1x
- */
-
-#  if (defined(CONFIG_USART1_RXDMA) && defined(CONFIG_USART1_RS485)) || \
-      (defined(CONFIG_USART2_RXDMA) && defined(CONFIG_USART2_RS485)) || \
-      (defined(CONFIG_USART3_RXDMA) && defined(CONFIG_USART3_RS485)) || \
-      (defined(CONFIG_UART4_RXDMA) && defined(CONFIG_UART4_RS485)) || \
-      (defined(CONFIG_UART5_RXDMA) && defined(CONFIG_UART5_RS485)) || \
-      (defined(CONFIG_USART6_RXDMA) && defined(CONFIG_USART6_RS485)) || \
-      (defined(CONFIG_UART7_RXDMA) && defined(CONFIG_UART7_RS485)) || \
-      (defined(CONFIG_UART8_RXDMA) && defined(CONFIG_UART8_RS485))
-#    error "RXDMA and RS-485 cannot be enabled at the same time for the same U[S]ART"
-#  endif
 
 /* The DMA buffer size when using RX DMA to emulate a FIFO.
  *
@@ -338,20 +324,6 @@
 #  endif
 #endif
 
-/* Currently RS-485 support cannot be enabled when TXDMA is in use due to
- * lack of testing - RS-485 support was developed on STM32F1x
- */
-
-#if (defined(CONFIG_USART1_TXDMA) && defined(CONFIG_USART1_RS485)) || \
-     (defined(CONFIG_USART2_TXDMA) && defined(CONFIG_USART2_RS485)) || \
-     (defined(CONFIG_USART3_TXDMA) && defined(CONFIG_USART3_RS485)) || \
-     (defined(CONFIG_UART4_TXDMA) && defined(CONFIG_UART4_RS485)) || \
-     (defined(CONFIG_UART5_TXDMA) && defined(CONFIG_UART5_RS485)) || \
-     (defined(CONFIG_USART6_TXDMA) && defined(CONFIG_USART6_RS485)) || \
-     (defined(CONFIG_UART7_TXDMA) && defined(CONFIG_UART7_RS485)) || \
-     (defined(CONFIG_UART8_TXDMA) && defined(CONFIG_UART8_RS485))
-#  error "TXDMA and RS-485 cannot be enabled at the same time for the same U[S]ART"
-#endif
 
 /* The DMA buffer size when using TX DMA.
  *
@@ -2483,7 +2455,7 @@ static int up_interrupt(int irq, void *context, void *arg)
    * currently being used.
    */
 
-#ifdef HAVE_RS485
+#if defined(HAVE_RS485) && !defined(SERIAL_HAVE_TXDMA)
   /* Transmission of whole buffer is over - TC is set, TXEIE is cleared.
    * Note - this should be first, to have the most recent TC bit value
    * from SR register - sending data affects TC, but without refresh we
@@ -2549,6 +2521,37 @@ static int up_interrupt(int irq, void *context, void *arg)
 
       uart_xmitchars(&priv->dev);
     }
+
+#ifdef SERIAL_HAVE_TXDMA
+		/* Transmission completed by TXDMA - TC is set */
+
+		if ((priv->sr & USART_ISR_TC) != 0 &&
+				(priv->ie & USART_CR1_TCIE) != 0)
+			{
+#ifdef HAVE_RS485
+				/* Transmission of whole buffer is over - TC is set, TXEIE is cleared.
+				 * Note - this should be first, to have the most recent TC bit value
+				 * from SR register - sending data affects TC, but without refresh we
+				 * will not know that...
+				 */
+	stm32_gpiowrite(priv->rs485_dir_gpio, !priv->rs485_dir_polarity);
+#endif
+				/* This flag is cleared by writing the corresponding bit to the
+				 * interrupt clear register (ICR).
+				 */
+
+				up_restoreusartint(priv, priv->ie & ~USART_CR1_TCIE);
+				up_serialout(priv, STM32_USART_ICR_OFFSET, USART_ICR_TCCF);
+
+				/* Adjust the pointers */
+
+				uart_xmitchars_done(&priv->dev);
+
+				/* Send more if availaible */
+
+				up_dma_txavailable(&priv->dev);
+			}
+#endif
 
   return OK;
 }
@@ -3333,15 +3336,15 @@ static void up_dma_txcallback(DMA_HANDLE handle, uint8_t status, void *arg)
 
           return;
         }
+				else
+					{
+						/* If TXDMA is supported on this U[S]ART, then also enable the
+						* transmission complete interrupt.
+						*/
+
+						up_restoreusartint(priv, priv->ie | USART_CR1_TCIE);
+					}
     }
-
-  /* Adjust the pointers */
-
-  uart_xmitchars_done(&priv->dev);
-
-  /* Send more if availaible */
-
-  up_dma_txavailable(&priv->dev);
 }
 #endif
 
@@ -3386,6 +3389,15 @@ static void up_dma_send(struct uart_dev_s *dev)
 {
   struct stm32_dma_config_s txdmacfg;
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
+
+	/* Set RS485 direction */
+
+#ifdef HAVE_RS485
+  if (priv->rs485_dir_gpio != 0)
+    {
+      stm32_gpiowrite(priv->rs485_dir_gpio, priv->rs485_dir_polarity);
+    }
+#endif
 
   /* We need to stop DMA before reconfiguration */
 

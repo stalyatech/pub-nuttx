@@ -1824,6 +1824,16 @@ config ARCH_BOARD_STALYA_FMU
 	---help---
 		Stalya FMU board based on the STMicro STM32H743VI MCU.
 
+config ARCH_BOARD_GMTCNT_GLC23X
+	bool "GMTCNT GLC23X PLC"
+	depends on ARCH_CHIP_STM32H743VI
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	select ARCH_PHY_INTERRUPT
+	---help---
+		GMT Control GLC23X PLC based on the STMicro STM32H743VI MCU.
+
 config ARCH_BOARD_NUCLEO_L152RE
 	bool "STM32L152 Nucleo L152RE"
 	depends on ARCH_CHIP_STM32L152RE
@@ -3416,6 +3426,7 @@ config ARCH_BOARD
 	default "linum-stm32h753bi"         if ARCH_BOARD_LINUM_STM32H753BI
 	default "openh743i"                 if ARCH_BOARD_OPENH743I
 	default "stalya-fmu"                if ARCH_BOARD_STALYA_FMU
+  default "gmtcnt-glc23x"            	if ARCH_BOARD_GMTCNT_GLC23X
 	default "nucleo-l073rz"             if ARCH_BOARD_NUCLEO_L073RZ
 	default "nucleo-l152re"             if ARCH_BOARD_NUCLEO_L152RE
 	default "nucleo-l432kc"             if ARCH_BOARD_NUCLEO_L432KC
@@ -4085,6 +4096,9 @@ source "boards/arm/stm32h7/openh743i/Kconfig"
 endif
 if ARCH_BOARD_STALYA_FMU
 source "boards/arm/stm32h7/stalya-fmu/Kconfig"
+endif
+if ARCH_BOARD_GMTCNT_GLC23X
+source "boards/arm/stm32h7/gmtcnt-glc23x/Kconfig"
 endif
 if ARCH_BOARD_B_L475E_IOT01A
 source "boards/arm/stm32l4/b-l475e-iot01a/Kconfig"
@@ -4848,6 +4862,12 @@ config BOARDCTL_BOOT_IMAGE
 		application firmware image (e.g. deinitialize peripherals, load the
 		Program Counter register with the application firmware image entry
 		point address).
+
+config BOARDCTL_EXEC_IMAGE
+	bool "Execute an application firmware image"
+	default n
+	---help---
+		Execute an application firmware image.
 
 config BOARDCTL_MKRD
 	bool "Enable application space creation of RAM disks"

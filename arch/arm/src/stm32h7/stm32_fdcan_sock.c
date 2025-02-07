@@ -140,7 +140,10 @@
 
 /* CAN Clock Configuration **************************************************/
 
+#ifndef STM32_FDCANCLK
 #define STM32_FDCANCLK      STM32_HSE_FREQUENCY
+#warning "Using default FDCAN clock of %d Hz", STM32_FDCANCLK
+#endif
 #define CLK_FREQ            STM32_FDCANCLK
 #define PRESDIV_MAX         256
 
@@ -3046,4 +3049,3 @@ static void fdcan_errint(struct fdcan_driver_s *priv, bool enable)
   putreg32(regval, priv->base + STM32_FDCAN_IE_OFFSET);
 }
 #endif
-

@@ -45,9 +45,6 @@ static uint32_t g_ledmap[BOARD_NLEDS] =
   GPIO_LD1,
   GPIO_LD2,
   GPIO_LD3,
-  GPIO_LD4,
-  GPIO_LD5,
-  GPIO_LD6,
 };
 
 static bool g_initialized;

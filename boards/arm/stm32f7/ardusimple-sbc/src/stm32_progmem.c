@@ -101,7 +101,7 @@ static const struct ota_partition_s g_ota_partition_table[] =
 {
   {
     .offset  = CONFIG_STM32_OTA_PRIMARY_SLOT_OFFSET,
-    .size    = CONFIG_STM32_OTA_SLOT_SIZE,
+    .size    = CONFIG_STM32_OTA_PRIMARY_SLOT_SIZE,
     .devpath = CONFIG_STM32_OTA_PRIMARY_SLOT_DEVPATH
   }
 };

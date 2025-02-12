@@ -66,9 +66,6 @@ static uint32_t g_ledcfg[BOARD_NLEDS] =
   GPIO_LD1,
   GPIO_LD2,
   GPIO_LD3,
-  GPIO_LD4,
-  GPIO_LD5,
-  GPIO_LD6,
 };
 
 /****************************************************************************

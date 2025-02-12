@@ -254,7 +254,7 @@
 
 /* LED definitions **********************************************************/
 
-/* The ArduSimple-SBC board has 3 LEDs.
+/* The ArduSimple-MapKit board has 3 LEDs.
  *
  * All of them can be controlled by software.
  *
@@ -269,26 +269,17 @@
 #define BOARD_LED1        0
 #define BOARD_LED2        1
 #define BOARD_LED3        2
-#define BOARD_LED4        3
-#define BOARD_LED5        4
-#define BOARD_LED6        5
-#define BOARD_NLEDS       6
+#define BOARD_NLEDS       3
 
 #define BOARD_LD1         BOARD_LED1
 #define BOARD_LD2         BOARD_LED2
 #define BOARD_LD3         BOARD_LED3
-#define BOARD_LD4         BOARD_LED4
-#define BOARD_LD5         BOARD_LED5
-#define BOARD_LD6         BOARD_LED6
 
 /* LED bits for use with board_userled_all() */
 
 #define BOARD_LED1_BIT    (1 << BOARD_LED1)
 #define BOARD_LED2_BIT    (1 << BOARD_LED2)
 #define BOARD_LED3_BIT    (1 << BOARD_LED3)
-#define BOARD_LED4_BIT    (1 << BOARD_LED4)
-#define BOARD_LED5_BIT    (1 << BOARD_LED5)
-#define BOARD_LED6_BIT    (1 << BOARD_LED6)
 
 /* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
  * include/board.h and src/stm32_leds.c. The LEDs are used to encode
@@ -354,23 +345,24 @@
 
 #define GPIO_TIM1_CH1OUT (GPIO_TIM1_CH1OUT_2 | GPIO_SPEED_50MHz)  /* PE9 */
 
-/* TIM 3 Channels */
+/* TIM 2 Channels */
 
-#define GPIO_TIM3_CH1OUT (GPIO_TIM3_CH1OUT_1 | GPIO_SPEED_50MHz)  /* PA6 */
-#define GPIO_TIM3_CH2OUT (GPIO_TIM3_CH2OUT_1 | GPIO_SPEED_50MHz)  /* PA7 */
-#define GPIO_TIM3_CH3OUT (GPIO_TIM3_CH3OUT_1 | GPIO_SPEED_50MHz)  /* PB0 */
+#define GPIO_TIM2_CH1OUT (GPIO_TIM2_CH1OUT_1 | GPIO_SPEED_50MHz)  /* PA0 */
+#define GPIO_TIM2_CH2OUT (GPIO_TIM2_CH2OUT_1 | GPIO_SPEED_50MHz)  /* PA1 */
+#define GPIO_TIM2_CH3OUT (GPIO_TIM2_CH3OUT_1 | GPIO_SPEED_50MHz)  /* PA2 */
 
 /* ADC1 */
 
-#define GPIO_ADC1_IN0   GPIO_ADC1_IN0_0   /* PA0 */
-#define GPIO_ADC1_IN1   GPIO_ADC1_IN1_0   /* PA1 */
+#define GPIO_ADC1_IN10  GPIO_ADC1_IN10_0    /* PC0 */
+#define GPIO_ADC1_IN11  GPIO_ADC1_IN11_0    /* PC1 */
 
 /*
  * USART1 	ttyS0	  External IMU Port 2
  * USART2 	ttyS1	  Bluetooth HCI Port
  * USART3 	ttyS2	  XBee Radio Socket
- * UART7 	  ttyS3	  XBee GNSS Socket
- * UART8 	  ttyS4	  External IMU Port 1
+ * USART6 	ttyS3	  XBee GNSS Socket Port 2
+ * UART7 	  ttyS4	  XBee GNSS Socket Port 1
+ * UART8 	  ttyS5	  External IMU Port 1
  */
 
 /* USART1:
@@ -411,7 +403,7 @@
 
 /* USART3:
  *
- * USART3 is connected to the "XBee Port B" lines.
+ * USART3 is connected to the "XBee Radio Socket" lines.
  *
  *   ---------  ---------  -----
 *                STM32F7
@@ -425,9 +417,25 @@
 #define GPIO_USART3_TX (GPIO_USART3_TX_3|GPIO_SPEED_100MHz)
 #define GPIO_USART3_RX (GPIO_USART3_RX_3|GPIO_SPEED_100MHz)
 
+/* USART6:
+ *
+ * USART6 is connected to the "XBee GNSS Socket Port 2" lines.
+ *
+ *   ---------  ---------  -----
+*                STM32F7
+ *   SIGNAME    FUNCTION   GPIO
+ *   ---------  ---------  -----
+ *   XBE_A_TXD2 USART6_TX  PC6
+ *   XBE_A_RXD2 USART6_RX  PC7
+ *   ---------  ---------  -----
+ */
+
+#define GPIO_USART6_TX (GPIO_USART6_TX_1|GPIO_SPEED_100MHz)
+#define GPIO_USART6_RX (GPIO_USART6_RX_1|GPIO_SPEED_100MHz)
+
 /* UART7:
  *
- * UART7 is connected to the "XBee Port B" lines.
+ * UART7 is connected to the "XBee GNSS Socket Port 1" lines.
  *
  *   ---------  ---------  -----
  *               STM32F7

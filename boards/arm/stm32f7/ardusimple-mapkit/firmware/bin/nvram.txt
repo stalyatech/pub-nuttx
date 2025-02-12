@@ -68,12 +68,16 @@ spurconfig=0x3
 # i.e using glitich statistcs as critria to change crsmin
 glitch_based_crsmin=1
 
+# Default btc_mode
+btc_mode=1
+bt_default_ant=0
+
 # Improved Bluetooth coexistence parameters from Cypress
-btc_mode=5
-btc_flags=0x54
-btc_params1=15000
-btc_params8=15000
-btc_params9=15000
+#btc_mode=5
+#btc_flags=0x54
+#btc_params1=15000
+#btc_params8=15000
+#btc_params9=15000
 #btc_params50=0x972c
 
 #Antenna diversity

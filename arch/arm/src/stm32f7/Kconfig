@@ -7498,12 +7498,12 @@ config STM32_OTA_PRIMARY_SLOT_DEVPATH
   default "/dev/ota0"
 
 config STM32_OTA_PRIMARY_SLOT_OFFSET
-  hex "Application image slot offset"
-  default "0x40000"
+  hex "Application image primary slot offset"
+  default "0x20000"
 
-config STM32_OTA_SLOT_SIZE
-  hex "Application image slot size (in bytes)"
-  default "0xC0000"
+config STM32_OTA_PRIMARY_SLOT_SIZE
+  hex "Application image primary slot size (in bytes)"
+  default "0xE0000"
 
 if STM32F7_APP_FORMAT_MINIBOOT
 config STM32_MINIBOOT_HEADER_SIZE

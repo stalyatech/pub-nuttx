@@ -26,7 +26,6 @@
 #include <nuttx/board.h>
 #include <nuttx/analog/adc.h>
 #include <arch/board/board.h>
-#include <nuttx/sensors/analog.h>
 
 #include <stdbool.h>
 #include <errno.h>
@@ -74,15 +73,15 @@
 
 static const uint8_t g_chanlist[ADC1_NCHANNELS] =
 {
-  0, 1
+  10, 11
 };
 
 /* Configurations of pins used by each ADC channel */
 
 static const uint32_t g_pinlist[ADC1_NCHANNELS] =
 {
-  GPIO_ADC1_IN0,                /* PA0: VLIPO   */
-  GPIO_ADC1_IN1,                /* PA1: HW_REV  */
+  GPIO_ADC1_IN10,               /* PC0: VLIPO   */
+  GPIO_ADC1_IN11,               /* PC1: HW_REV  */
 };
 
 /****************************************************************************

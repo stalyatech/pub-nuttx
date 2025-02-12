@@ -58,7 +58,7 @@ config BLUETOOTH_BCM4343X_DMABUF_ALIGNMENT
 config BLUETOOTH_BCM4343X_UART_BAUDRATE
 	int "HCI UART baudrate"
 	default 921600
-	range 1200 2000000
+	range 1200 3000000
 	---help---
 		This parameter should be set depending on
 		the used SOC DMA configuration.

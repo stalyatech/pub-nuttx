@@ -137,15 +137,6 @@ int stm32_adc_setup(void)
           return ret;
         }
 
-#ifdef CONFIG_SENSORS_ANALOG
-      ret = analog_uorb_register(0, 1);
-      if (ret < 0)
-        {
-          aerr("ERROR: analog_uorb_register failed: %d\n", ret);
-          return ret;
-        }
-#endif /* CONFIG_SENSORS_ANALOG */
-
       /* Now we are initialized */
 
       initialized = true;

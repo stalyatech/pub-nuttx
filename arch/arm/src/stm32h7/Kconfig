@@ -576,6 +576,12 @@ config STM32H7_APP_FORMAT_LEGACY
   ---help---
     This is the legacy application image format.
 
+config STM32H7_APP_FORMAT_PLCLOGIC
+  bool "PLC logic format"
+  select STM32H7_HAVE_OTA_PARTITION
+  ---help---
+    This supports the user PLC application image format.
+
 config STM32H7_APP_FORMAT_TINYBOOT
   bool "Tinyboot bootable format"
   select STM32H7_HAVE_BOOTLOADER
@@ -6057,18 +6063,49 @@ config STM32H7_PROGMEM_OTA_PARTITION
 		add an entry at /dev for application access from userspace.
 
 if STM32H7_PROGMEM_OTA_PARTITION
-
 config STM32_OTA_PRIMARY_SLOT_DEVPATH
 	string "Application image primary slot device path"
 	default "/dev/ota0"
 
 config STM32_OTA_PRIMARY_SLOT_OFFSET
 	hex "Application image primary slot offset"
+	default "0x20000"
+
+config STM32_OTA_PRIMARY_SLOT_SIZE
+	hex "Application image primary slot size (in bytes)"
+	default "0x160000"
+
+if STM32H7_APP_FORMAT_PLCLOGIC
+config STM32_OTA_SECONDARY_SLOT_DEVPATH
+	string "Application image secondary slot device path"
+	default "/dev/ota1"
+
+config STM32_OTA_SECONDARY_SLOT_OFFSET
+	hex "Application image secondary slot offset"
+	default "0x180000"
+
+config STM32_OTA_SECONDARY_SLOT_SIZE
+	hex "Application image secondary slot size (in bytes)"
 	default "0x40000"
 
-config STM32_OTA_SLOT_SIZE
-	hex "Application image slot size (in bytes)"
-	default "0xC0000"
+config STM32_OTA_TERTIARY_SLOT_DEVPATH
+	string "Application image tertiary slot device path"
+	default "/dev/ota2"
+
+config STM32_OTA_TERTIARY_SLOT_OFFSET
+	hex "Application image tertiary slot offset"
+	default "0x1C0000"
+
+config STM32_OTA_TERTIARY_SLOT_SIZE
+	hex "Application image tertiary slot size (in bytes)"
+	default "0x40000"
+endif # STM32H7_PROGMEM_OTA_PARTITION
+
+if STM32H7_APP_FORMAT_PLCLOGIC
+config STM32_PLCLOGIC_HEADER_SIZE
+  hex
+  default 0x200
+endif # STM32H7_APP_FORMAT_PLCLOGIC
 
 if STM32H7_APP_FORMAT_MINIBOOT
 config STM32_MINIBOOT_HEADER_SIZE

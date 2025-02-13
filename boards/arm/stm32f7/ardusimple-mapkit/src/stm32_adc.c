@@ -26,7 +26,6 @@
 #include <nuttx/board.h>
 #include <nuttx/analog/adc.h>
 #include <arch/board/board.h>
-#include <nuttx/sensors/analog.h>
 
 #include <stdbool.h>
 #include <errno.h>
@@ -136,15 +135,6 @@ int stm32_adc_setup(void)
           aerr("ERROR: adc_register failed: %d\n", ret);
           return ret;
         }
-
-#ifdef CONFIG_SENSORS_ANALOG
-      ret = analog_uorb_register(0, 1);
-      if (ret < 0)
-        {
-          aerr("ERROR: analog_uorb_register failed: %d\n", ret);
-          return ret;
-        }
-#endif /* CONFIG_SENSORS_ANALOG */
 
       /* Now we are initialized */
 

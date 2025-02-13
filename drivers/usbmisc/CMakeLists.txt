@@ -36,8 +36,8 @@ if(CONFIG_USBMISC)
   endif()
 
   if(CONFIG_USB251X)
-  list(APPEND SRCS usb251x.c)
-endif()
+    list(APPEND SRCS usb251x.c)
+  endif()
 
   target_sources(drivers PRIVATE ${SRCS})
 endif()

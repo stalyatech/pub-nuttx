@@ -1346,7 +1346,7 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
       uart_dmatxavail(dev);
 #endif
       uart_enabletxint(dev);
-#ifdef CONFIG_SERIAL_TXDMA
+#if 0 /* CONFIG_SERIAL_TXDMA !!! */
       if (oktoblock)
         {
           ret = nxsem_wait(&dev->xmitsem);

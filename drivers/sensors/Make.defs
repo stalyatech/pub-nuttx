@@ -468,12 +468,6 @@ ifeq ($(CONFIG_SENSORS_ICM20689),y)
   endif
 endif
 
-# On-board analog measurement 
-
-ifeq ($(CONFIG_SENSORS_ANALOG),y)
-  CSRCS += analog_uorb.c
-endif
-
 # Include sensor driver build support
 
 DEPPATH += --dep-path sensors
